@@ -1,0 +1,50 @@
+---
+title: "How I actually use AI tools in engineering work"
+date: "2025-02-03"
+summary: "Not a productivity take. A look at where LLMs are genuinely useful in systems work, where they're not, and what that tells me about building better agent tooling."
+tags: ["ai-tooling", "engineering", "agents"]
+---
+
+There's no shortage of takes on AI tools and developer productivity. Most of them are either breathlessly optimistic or pointedly skeptical, and most of them are talking about the same narrow slice of use cases: autocomplete, test generation, writing boilerplate.
+
+I want to write about something more specific: how these tools fit into the kind of engineering work I actually do, which is mostly systems-level — debugging, infrastructure, virtualization. And what that experience is teaching me about what better tooling would look like.
+
+## Where LLMs are genuinely useful
+
+**Reading unfamiliar code quickly.** When I'm dropped into a codebase I don't know — or a subsystem I've never touched — an LLM can give me a useful orientation pass faster than I can read the code myself. Not a deep understanding, but enough to know which files matter and which questions to ask. This is real value.
+
+**Exploring API surfaces.** "What's the QEMU monitor command to get the current migration state?" is exactly the kind of question where an LLM is faster than documentation. It might be slightly wrong, but it narrows the search space from "everything" to "check these three things."
+
+**First-draft code for tedious problems.** Parsing a config format, writing a basic CLI argument handler, setting up test fixtures — anything where the solution is deterministic and the cost of getting it slightly wrong is low. The LLM draft isn't the final code, but it's faster than starting from scratch.
+
+**Rubber duck debugging.** This is underrated. Describing a problem precisely enough for an LLM to understand it often clarifies the problem. The LLM's answer is sometimes wrong. The act of formulation is almost always useful.
+
+## Where they fall short
+
+**Deep systems debugging.** When I was tracing the VM freeze described in [an earlier post](/blog/debugging-production-incident), no LLM would have been useful at the diagnostic steps that mattered. The relevant information was in a specific dmesg output, a specific iostat reading, and a specific NFS mount state. An LLM doesn't have access to that state. It can tell you what hung tasks are; it can't tell you which hung task is blocking your specific VM right now.
+
+**Novel problem spaces.** LLMs are good at interpolating within their training distribution. VM live migration is documented enough that they have reasonable coverage. But when you're working on something more internal — a proprietary hypervisor extension, a custom guest agent protocol — you're outside the distribution. The model generates plausible-sounding text that doesn't correspond to your actual system.
+
+**Code that requires held context.** For changes that span multiple files and require understanding how pieces fit together, I spend more time correcting the model's understanding than I would have spent writing the code myself. It loses context, hallucinates interfaces, confuses similar-looking functions. The ROI inverts.
+
+## What this tells me about agent tooling
+
+The pattern I notice: LLMs are useful as a lookup and drafting layer, but they're bottlenecked by access to real system state.
+
+A debugging assistant that could actually read the relevant logs, run the right diagnostic commands, and correlate the output would be qualitatively more useful than one that can only answer questions about what debugging *generally* looks like.
+
+This is why I've been working on [Windows-MCP](https://github.com/ziyangliu-666/Windows-MCP) — giving an agent real access to system state via the Model Context Protocol. Not as a demo, but as a foundation for agent tooling that can actually interact with a running system rather than just generating text about it.
+
+The hard part isn't the LLM. The hard part is the tool layer: what operations do you expose, how do you handle errors, how do you constrain what the agent can do without making it useless. These are engineering problems, not AI problems. They're also more interesting than they might sound.
+
+## A note on workflow
+
+Concretely, what I use day-to-day:
+
+- **Claude or GPT-4** for code drafting, documentation reading, and rubber duck sessions
+- **GitHub Copilot** in the editor for completions — useful when it has enough surrounding context, annoying when it doesn't
+- **Nothing AI-assisted** for production debugging where the information is in live system state
+
+The last point is worth emphasizing. When something is broken in production, I want to understand the system, not have the model guess at it based on training data. The place where AI tooling would actually help in that scenario is if the agent could query the live system directly.
+
+That's the gap I think is worth building toward.

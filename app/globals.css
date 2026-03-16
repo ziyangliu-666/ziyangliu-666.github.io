@@ -1,26 +1,160 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --canvas: #0c0c0c;
+  --surface: #111111;
+  --elevated: #181818;
+  --line: #222222;
+  --ink: #e2e8f0;
+  --ink-muted: #71717a;
+  --ink-dim: #3f3f46;
+  --jade: #4ade80;
+  --jade-dim: #166534;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-elevated: var(--elevated);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-dim: var(--ink-dim);
+  --color-jade: var(--jade);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 2px solid var(--jade);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--canvas);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 3px;
+}
+
+/* Prose — blog post body */
+.prose {
+  color: var(--ink);
+  max-width: 68ch;
+  line-height: 1.75;
+}
+
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4 {
+  color: var(--ink);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-top: 2em;
+  margin-bottom: 0.75em;
+}
+
+.prose h1 { font-size: 1.75rem; }
+.prose h2 { font-size: 1.375rem; border-bottom: 1px solid var(--line); padding-bottom: 0.4em; }
+.prose h3 { font-size: 1.125rem; }
+
+.prose p {
+  margin-top: 0;
+  margin-bottom: 1.25em;
+  color: #c4cad5;
+}
+
+.prose a {
+  color: var(--jade);
+  text-decoration: underline;
+  text-decoration-color: var(--jade-dim);
+  text-underline-offset: 3px;
+}
+
+.prose a:hover {
+  text-decoration-color: var(--jade);
+}
+
+.prose code {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.875em;
+  background-color: var(--elevated);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0.1em 0.4em;
+  color: var(--jade);
+}
+
+.prose pre {
+  background-color: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 1.25rem 1.5rem;
+  overflow-x: auto;
+  margin: 1.5em 0;
+}
+
+.prose pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #c4cad5;
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+
+.prose ul,
+.prose ol {
+  margin: 1em 0 1.25em;
+  padding-left: 1.5em;
+  color: #c4cad5;
+}
+
+.prose li {
+  margin-bottom: 0.4em;
+}
+
+.prose blockquote {
+  border-left: 2px solid var(--jade);
+  margin: 1.5em 0;
+  padding: 0.5em 1.25em;
+  color: var(--ink-muted);
+  font-style: italic;
+}
+
+.prose hr {
+  border: none;
+  border-top: 1px solid var(--line);
+  margin: 2.5em 0;
+}
+
+.prose strong {
+  color: var(--ink);
+  font-weight: 600;
 }

@@ -1,0 +1,62 @@
+---
+title: "What live VM migration actually looks like"
+date: "2024-11-12"
+summary: "Live migration sounds clean in the docs. The reality involves dirty page tracking, guest agent timeouts, and failures that only happen under load."
+tags: ["virtualization", "systems", "kvm"]
+---
+
+Live VM migration is one of those things that looks elegant in a diagram and considerably less elegant when you're staring at a stuck migration at 2am.
+
+The basic idea is well-documented: iteratively copy a VM's memory to the destination host while it's still running, then do a brief pause to copy the final dirty pages and transfer CPU state. Simple. Except the distance between "simple" and "works correctly in production" is where most of the interesting engineering happens.
+
+## The dirty page problem
+
+During iterative copy, the guest keeps running. Every page it writes becomes "dirty" and needs to be re-copied. If the guest writes memory faster than you can copy it — which happens under load — the migration converges slowly or not at all.
+
+This is the convergence problem. Most hypervisors track dirty pages via a bitmap in the EPT (Extended Page Tables). You iterate: copy dirty pages, reset the bitmap, copy what got dirtied in the meantime, repeat. The ratio of pages written versus pages copied tells you whether you're going to finish.
+
+If the guest is doing something write-intensive during migration — a database flush, a large file write, anything that hammers memory — you end up in a loop where you never quite catch up. The hypervisor has to make a call: pause the guest longer, or abort.
+
+KVM handles this through several mechanisms:
+- **Pre-copy**: the default approach, as described above
+- **Auto-converge**: CPU throttling to slow the guest down so migration can catch up
+- **Post-copy**: flip the approach — move the guest immediately, pull pages on-demand as they're accessed
+
+We ran into convergence failures on a few workload patterns. The fix was mostly tuning — convergence thresholds, max downtime, when to engage auto-converge — but diagnosing it first required actually understanding what the migration state machine was doing at each step.
+
+## The guest agent layer
+
+Memory is only part of the story. For a clean migration, you often need cooperation from the guest OS itself.
+
+This is what the guest agent handles. QEMU's guest agent (qemu-ga) can:
+- Quiesce the filesystem before migration (freeze/thaw)
+- Report guest state to the hypervisor
+- Handle post-migration callbacks
+
+The part that bit us was quiescing. We had workloads where `guest-fsfreeze-freeze` would time out because a process inside the guest held a file lock. Migration would proceed, but the destination would get a filesystem in an inconsistent state — not corrupted, but not clean either.
+
+The fix was a combination of: better pre-migration checks on the guest side, a timeout and retry policy in the migration orchestration layer, and logging that actually showed which process was holding the lock.
+
+```bash
+# Check if guest agent is responsive before initiating migration
+virsh qemu-agent-command $VM_NAME '{"execute":"guest-ping"}'
+
+# Filesystem status before freeze
+virsh qemu-agent-command $VM_NAME '{"execute":"guest-get-fsinfo"}'
+```
+
+## Post-migration validation
+
+Once migration completes, you're not done. The guest is running on a new host, but:
+
+- Network state may have shifted (MAC binding, IP routes)
+- Storage paths may resolve differently
+- Any host-specific configuration needs to be checked
+
+We built a simple post-migration validation step that ran a health check against the guest via the agent. Not sophisticated — just enough to catch the cases where migration "succeeded" in the hypervisor's view but the guest came up misconfigured.
+
+## What I'd tell someone starting on this
+
+Live migration is a feature where the edge cases are load-dependent and environment-specific. The documentation will tell you how it works under ideal conditions. Your job is to figure out what "not ideal" looks like in your environment — which workloads stress the convergence loop, which guests don't quiesce cleanly, which storage backends add latency at the wrong moment.
+
+Instrument everything. The migration state machine has a lot of intermediate states; knowing which one you're stuck in is half the debugging job.

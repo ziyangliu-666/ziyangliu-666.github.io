@@ -1,0 +1,110 @@
+---
+title: "Debugging a VM freeze: a case study in cross-layer failures"
+date: "2024-08-27"
+summary: "A VM went unresponsive. The hypervisor thought it was fine. The guest disagreed. Tracing the failure across three layers to find the actual cause."
+tags: ["debugging", "systems", "incident", "virtualization"]
+---
+
+The alert came in during the afternoon: a VM was unresponsive. Not down — the hypervisor reported it as running, vCPUs were scheduled, no error in the VM logs. But the application inside wasn't responding, and the guest agent wasn't answering either.
+
+This is the specific category of failure that takes the longest to debug: everything at one layer looks fine, the problem is at another layer entirely.
+
+## Initial triage
+
+First step: establish what we actually know.
+
+```
+$ virsh list --all | grep $VM_NAME
+ 42   prod-worker-07       running
+
+$ virsh qemu-agent-command prod-worker-07 '{"execute":"guest-ping"}'
+error: Guest agent is not responding: QEMU guest agent is not connected
+```
+
+Hypervisor says running. Guest agent not responding. Could be:
+1. Guest OS hung (kernel panic, deadlock, OOM)
+2. Guest agent process crashed or stuck
+3. Something in the virtio-serial channel between host and guest
+
+VNC to the console showed the guest was at a login prompt — not panicked, apparently alive, just not processing anything.
+
+## Kernel ring buffer
+
+If the guest is at a prompt but unresponsive, the kernel log is the first place to look. We had a serial console configured, which meant we could read dmesg output even if SSH was broken.
+
+```
+[234891.442] INFO: task kworker/u4:2:1847 blocked for more than 120 seconds.
+[234891.442] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[234891.443] kworker/u4:2    D    0  1847      2 0x00000000
+[234891.443] Call Trace:
+[234891.443]  __schedule+0x2d3/0x890
+[234891.443]  schedule+0x3c/0xa0
+[234891.443]  io_schedule+0x12/0x40
+[234891.443]  wait_on_page_bit+0xca/0x100
+```
+
+Hung task. Blocked on IO. `wait_on_page_bit` means something is waiting for a page that should have been written to disk.
+
+That narrows it considerably. Not a CPU or memory issue — this is storage IO that isn't completing.
+
+## Tracing the IO path
+
+The guest was using a virtio-blk device backed by a file on the host. The IO path is:
+
+```
+guest app → guest kernel block layer → virtio-blk → vhost-blk → host kernel → storage backend
+```
+
+On the host:
+
+```bash
+# Check if the host-side vhost process is alive
+$ ps aux | grep vhost
+root     18234  0.0  0.0      0     0 ?   S    Aug26   0:00 [vhost-18221]
+
+# IO stats on the backing file's filesystem
+$ iostat -x 2 3
+Device    r/s   w/s  rMB/s  wMB/s  await  svctm  %util
+sdb       0.0   0.0    0.0    0.0   0.0    0.0    0.0
+sdb       0.0   0.0    0.0    0.0   0.0    0.0    0.0
+```
+
+The backing storage device was showing zero IO. Not slow IO — zero IO. The write requests were being queued in the guest, hitting virtio-blk, and not coming back.
+
+## The actual cause
+
+The backing file was on an NFS mount, and the NFS server had gone into a degraded state — it was accepting connections but not serving requests. The mount on the host wasn't reporting an error, it was just hanging every IO operation indefinitely.
+
+```bash
+$ df -h /var/lib/virt/images
+# hangs for 30 seconds, then:
+df: /var/lib/virt/images: Stale file handle
+```
+
+NFS soft mounts would have timed out and returned errors. This was a hard mount — IO would block forever waiting for the NFS server to respond.
+
+The VM was healthy. The hypervisor was healthy. The storage layer between them was silently broken.
+
+## Resolution and retrospective
+
+Immediate fix: remount the NFS share (after the NFS server was recovered), which unblocked the hung IO and brought the guest back to normal within a minute.
+
+Longer-term changes:
+- Added monitoring on NFS mount health from the host, not just connectivity to the NFS server
+- Moved critical VM backing stores to local storage or storage with proper timeout semantics
+- Added alerting on `hung_task_timeout` events from guest serial consoles
+
+The lesson here isn't specific to NFS or virtio. Cross-layer failures are diagnosed by eliminating layers. When "everything looks fine" at one layer, start looking at the interfaces between layers. The failure is almost always at a boundary — where one component trusts that the other is working.
+
+## Debugging checklist for unresponsive VMs
+
+When a VM is "running" but not responding:
+
+1. **Console access**: VNC or serial console to see guest state directly
+2. **Guest agent**: Is it responding? If not, is virtio-serial functional?
+3. **Guest kernel log**: Check for hung tasks, OOM events, filesystem errors
+4. **Host-side IO**: `iostat` on the backing storage, check for stalled IO
+5. **Storage backend**: Is the backend actually serving requests? (NFS, iSCSI, Ceph — all have their own health indicators)
+6. **Network**: Is the management network between guest agent and host functioning?
+
+Instrument in depth. The thing that's failing is usually not the thing that's reporting the error.
