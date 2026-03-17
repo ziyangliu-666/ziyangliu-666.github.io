@@ -25,14 +25,14 @@ export function Nav() {
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-mono text-sm text-ink-muted hover:text-ink transition-colors"
+                  className="font-mono text-sm text-ink-muted hover:text-ink transition-colors py-3"
                 >
                   {link.label.toLowerCase()}
                 </a>
               ) : (
                 <Link
                   href={link.href}
-                  className="font-mono text-sm text-ink-muted hover:text-ink transition-colors"
+                  className="font-mono text-sm text-ink-muted hover:text-ink transition-colors py-3"
                 >
                   {link.label.toLowerCase()}
                 </Link>

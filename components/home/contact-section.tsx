@@ -35,9 +35,9 @@ const links = [
 export function ContactSection() {
   return (
     <section className="mx-auto max-w-5xl px-6 lg:px-10 py-20">
-      <h2 className="font-mono text-xs text-jade tracking-widest uppercase mb-2">
+      <p className="font-mono text-xs text-jade tracking-widest uppercase mb-2">
         contact
-      </h2>
+      </p>
       <p className="text-ink-muted text-sm mb-10 max-w-md">
         Available for backend, infrastructure, and AI tooling roles.
         Reach out by email or connect on LinkedIn.

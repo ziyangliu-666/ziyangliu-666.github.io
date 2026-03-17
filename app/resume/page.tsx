@@ -111,9 +111,9 @@ export default function ResumePage() {
 
       {/* Experience */}
       <section className="mb-14">
-        <h2 className="font-mono text-xs text-jade tracking-widest uppercase mb-8">
+        <p className="font-mono text-xs text-jade tracking-widest uppercase mb-8">
           experience
-        </h2>
+        </p>
         <div className="space-y-10">
           {experience.map((job, i) => (
             <div key={i}>
@@ -149,9 +149,9 @@ export default function ResumePage() {
 
       {/* Education */}
       <section className="mb-14">
-        <h2 className="font-mono text-xs text-jade tracking-widest uppercase mb-8">
+        <p className="font-mono text-xs text-jade tracking-widest uppercase mb-8">
           education
-        </h2>
+        </p>
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1">
           <div>
             <p className="font-semibold text-ink">University of Electronic Science and Technology of China (UESTC)</p>
@@ -167,9 +167,9 @@ export default function ResumePage() {
 
       {/* Projects */}
       <section className="mb-14">
-        <h2 className="font-mono text-xs text-jade tracking-widest uppercase mb-8">
+        <p className="font-mono text-xs text-jade tracking-widest uppercase mb-8">
           projects
-        </h2>
+        </p>
         <div className="space-y-5">
           {projects.map((p) => (
             <div key={p.name}>

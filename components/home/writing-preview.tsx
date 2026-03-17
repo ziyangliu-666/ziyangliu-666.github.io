@@ -8,9 +8,9 @@ export function WritingPreview() {
     <section className="border-t border-line bg-surface">
       <div className="mx-auto max-w-5xl px-6 lg:px-10 py-16">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="font-mono text-xs text-jade tracking-widest uppercase">
+          <p className="font-mono text-xs text-jade tracking-widest uppercase">
             writing
-          </h2>
+          </p>
           <Link
             href="/blog"
             className="font-mono text-xs text-ink-muted hover:text-jade transition-colors"

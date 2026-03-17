@@ -7,9 +7,9 @@ export function Projects() {
 
   return (
     <section className="mx-auto max-w-5xl px-6 lg:px-10 py-20">
-      <h2 className="font-mono text-xs text-jade tracking-widest uppercase mb-10">
+      <p className="font-mono text-xs text-jade tracking-widest uppercase mb-10">
         projects
-      </h2>
+      </p>
 
       {/* Featured 2-col grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">

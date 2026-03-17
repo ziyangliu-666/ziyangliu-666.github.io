@@ -40,9 +40,9 @@ export function Experience() {
   return (
     <section className="border-y border-line bg-surface" aria-label="Work experience">
       <div className="mx-auto max-w-5xl px-6 lg:px-10 py-16">
-        <h2 className="font-mono text-xs text-jade tracking-widest uppercase mb-10">
+        <p className="font-mono text-xs text-jade tracking-widest uppercase mb-10">
           experience
-        </h2>
+        </p>
 
         <div className="space-y-10">
           {entries.map((company, i) => (
