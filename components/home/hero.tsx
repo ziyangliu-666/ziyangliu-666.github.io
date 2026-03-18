@@ -21,7 +21,7 @@ export function Hero() {
           <p className="font-mono text-sm text-ink-dim mb-8">刘子阳</p>
 
           <p className="text-xl text-ink-muted leading-relaxed mb-3 max-w-xl">
-            Virtualization engineer. Worked on{" "}
+            Software engineer. Worked on{" "}
             <span className="text-ink">VM migration</span>,{" "}
             <span className="text-ink">guest tooling</span>, and{" "}
             <span className="text-ink">kernel debugging</span> at SmartX.
