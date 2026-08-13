@@ -169,54 +169,47 @@ textarea {
   font-weight: 450;
   letter-spacing: -0.024em;
   color: #f4f4f6;
-  perspective: 520px;
 }
 
-/* The wordmark is the one piece of the page that moves. It tracks the pointer in 3D, and
- * the two effects below are what make it read as a pane of glass rather than a rotating
- * label: a chromatic fringe that separates as the face turns off-axis, and a specular band
- * that travels across the letters. Both are driven from useTilt() through these custom
- * properties, so the paint stays in the compositor and never touches React.
+/* The wordmark stays flat. What moves is the light on it: a soft highlight that follows the
+ * pointer across the letters, as if they were cut from something with a surface. Driven from
+ * useTilt() through --sheen, so the paint stays in the compositor and never touches React.
  *
- * The fringe is a text-shadow rather than duplicate elements: the shadow is drawn from the
- * glyph outline behind a transparent fill, which is exactly the edge-only bleed we want,
- * and it costs no extra nodes. */
+ * An earlier version rotated the word in 3D with a chromatic fringe. It was a trick rather
+ * than an effect — loud, and at odds with a page whose whole argument is restraint. A moving
+ * highlight is the version that survives being looked at twice. */
 .tilt {
-  --split: 0px;
-  --split-sign: 1;
   --sheen: 50%;
-  --sheen-strength: 0.06;
 
   display: inline-block;
   font-weight: 600;
   letter-spacing: 0.06em;
-  transform-style: preserve-3d;
-  will-change: transform;
 
+  /* A narrow band rather than a broad wash: a gleam crossing the letters reads as light on
+   * a surface, where a wide gradient just looks like uneven text. The base sits below the
+   * heading's own #f4f4f6 so the band has somewhere to travel to — the delta is small on a
+   * still and obvious in motion, which is the right way round for something this quiet. */
   background-image: linear-gradient(
-    104deg,
-    #dcdce2 0%,
-    #dcdce2 calc(var(--sheen) - 16%),
-    color-mix(in oklab, #ffffff calc(var(--sheen-strength) * 190%), #dcdce2)
-      var(--sheen),
-    #dcdce2 calc(var(--sheen) + 16%),
-    #dcdce2 100%
+    93deg,
+    #c2c2cb 0%,
+    #c2c2cb calc(var(--sheen) - 13%),
+    #ffffff var(--sheen),
+    #c2c2cb calc(var(--sheen) + 13%),
+    #c2c2cb 100%
   );
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   -webkit-text-fill-color: transparent;
-
-  text-shadow:
-    calc(var(--split) * var(--split-sign) * -1) 0 rgba(60, 200, 255, 0.5),
-    calc(var(--split) * var(--split-sign)) 0 rgba(255, 80, 130, 0.42);
 }
 
-/* Fringes are the first thing to drop for anyone who has asked for less motion — the
- * rotation stays, since it is their own pointer being reflected back. */
-@media (prefers-reduced-motion: reduce) {
+/* No pointer, no highlight to track — a phone should get the plain word, not a band frozen
+ * at wherever the last touch happened to land. */
+@media (hover: none) {
   .tilt {
-    text-shadow: none;
+    background-image: none;
+    color: #f4f4f6;
+    -webkit-text-fill-color: #f4f4f6;
   }
 }
 
@@ -860,4 +853,14 @@ textarea {
 .source--more:hover {
   color: #f0f0f3;
   background: #1b1b21;
+}
+
+/* The scope line under the landing composer. Sized and coloured like the chat footnote,
+ * because it is the same kind of thing: quiet, factual, not asking to be read first. */
+.scope {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #5d5d65;
+  max-width: 620px;
 }

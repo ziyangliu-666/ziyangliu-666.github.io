@@ -753,6 +753,27 @@ async function main() {
     "utf8",
   );
 
+  /* A few hundred bytes the landing page can fetch on load to say what it actually holds.
+   * The full index is 800KB and loads on the first question; this exists so that one line
+   * of honest scope does not cost a visitor who never asks anything. */
+  const prCount = docs.filter((d) => d.id.startsWith("pr-")).length;
+  fs.writeFileSync(
+    path.join(OUT_DIR, "summary.json"),
+    JSON.stringify({
+      builtAt: bundle.builtAt,
+      documents: docs.length,
+      chunks: chunks.length,
+      counts: {
+        resume: docs.filter((d) => d.kind === "resume").length,
+        paper: docs.filter((d) => d.kind === "paper").length,
+        repo: docs.filter((d) => d.kind === "repo" && !d.id.startsWith("pr-")).length,
+        pullRequest: prCount,
+        writing: docs.filter((d) => d.kind === "writing").length,
+      },
+    }),
+    "utf8",
+  );
+
   for (const doc of docs) {
     fs.writeFileSync(
       path.join(OUT_DIR, "docs", `${doc.id}.json`),
