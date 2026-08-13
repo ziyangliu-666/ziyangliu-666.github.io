@@ -172,12 +172,52 @@ textarea {
   perspective: 520px;
 }
 
+/* The wordmark is the one piece of the page that moves. It tracks the pointer in 3D, and
+ * the two effects below are what make it read as a pane of glass rather than a rotating
+ * label: a chromatic fringe that separates as the face turns off-axis, and a specular band
+ * that travels across the letters. Both are driven from useTilt() through these custom
+ * properties, so the paint stays in the compositor and never touches React.
+ *
+ * The fringe is a text-shadow rather than duplicate elements: the shadow is drawn from the
+ * glyph outline behind a transparent fill, which is exactly the edge-only bleed we want,
+ * and it costs no extra nodes. */
 .tilt {
+  --split: 0px;
+  --split-sign: 1;
+  --sheen: 50%;
+  --sheen-strength: 0.06;
+
   display: inline-block;
   font-weight: 600;
   letter-spacing: 0.06em;
   transform-style: preserve-3d;
   will-change: transform;
+
+  background-image: linear-gradient(
+    104deg,
+    #dcdce2 0%,
+    #dcdce2 calc(var(--sheen) - 16%),
+    color-mix(in oklab, #ffffff calc(var(--sheen-strength) * 190%), #dcdce2)
+      var(--sheen),
+    #dcdce2 calc(var(--sheen) + 16%),
+    #dcdce2 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+
+  text-shadow:
+    calc(var(--split) * var(--split-sign) * -1) 0 rgba(60, 200, 255, 0.5),
+    calc(var(--split) * var(--split-sign)) 0 rgba(255, 80, 130, 0.42);
+}
+
+/* Fringes are the first thing to drop for anyone who has asked for less motion — the
+ * rotation stays, since it is their own pointer being reflected back. */
+@media (prefers-reduced-motion: reduce) {
+  .tilt {
+    text-shadow: none;
+  }
 }
 
 .composer-wrap {
@@ -465,10 +505,144 @@ textarea {
   font-size: 16px;
   line-height: 1.68;
   color: #dcdce1;
-  white-space: pre-wrap;
   text-wrap: pretty;
   /* A bare URL in an answer must not push the 720px column sideways. */
   overflow-wrap: anywhere;
+}
+
+/* Rich text. The design specified none of this — it drew answers as one plain text node —
+ * so these are the smallest additions that carry markdown without introducing a second
+ * visual language: the same greys, the same mono face as the tool rows, no new accent. */
+
+.answer > *:first-child {
+  margin-top: 0;
+}
+
+.answer > *:last-child {
+  margin-bottom: 0;
+}
+
+.md-p {
+  margin: 0 0 0.95em;
+}
+
+.md-h {
+  margin: 1.4em 0 0.5em;
+  font-weight: 600;
+  color: #f0f0f3;
+  letter-spacing: -0.005em;
+}
+
+.md-h1 {
+  font-size: 17.5px;
+}
+.md-h2 {
+  font-size: 16.5px;
+}
+.md-h3 {
+  font-size: 15.5px;
+}
+
+.md-strong {
+  font-weight: 600;
+  color: #f2f2f4;
+}
+
+.md-a {
+  color: #c9c9ce;
+  text-decoration: underline;
+  text-decoration-color: #3a3a44;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2.5px;
+  transition:
+    color 120ms ease,
+    text-decoration-color 120ms ease;
+}
+
+.md-a:hover {
+  color: #ffffff;
+  text-decoration-color: #7d7d88;
+}
+
+.md-list {
+  margin: 0 0 0.95em;
+  padding-left: 1.35em;
+}
+
+.md-list li {
+  margin: 0 0 0.3em;
+}
+
+.md-list li::marker {
+  color: #6a6a74;
+}
+
+.md-code {
+  font-family: var(--mono);
+  font-size: 13px;
+  background: #16161a;
+  border: 1px solid #212128;
+  border-radius: 5px;
+  padding: 1px 5px;
+  color: #c4c4cd;
+}
+
+.md-pre {
+  margin: 0 0 0.95em;
+  padding: 12px 14px;
+  background: #121216;
+  border: 1px solid #1f1f26;
+  border-radius: 10px;
+  overflow-x: auto;
+}
+
+.md-pre code {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #c4c4cd;
+  white-space: pre;
+}
+
+.md-quote {
+  margin: 0 0 0.95em;
+  padding-left: 14px;
+  border-left: 2px solid #26262b;
+  color: #a8a8b1;
+}
+
+.md-hr {
+  height: 1px;
+  margin: 1.5em 0;
+  background: linear-gradient(90deg, transparent, #26262b 20%, #26262b 80%, transparent);
+}
+
+/* Tables scroll inside their own box; the 720px column must never widen. */
+.md-table-wrap {
+  margin: 0 0 0.95em;
+  overflow-x: auto;
+}
+
+.md-table {
+  border-collapse: collapse;
+  font-size: 14px;
+  min-width: 100%;
+}
+
+.md-table th,
+.md-table td {
+  text-align: left;
+  padding: 7px 14px 7px 0;
+  border-bottom: 1px solid #1c1c22;
+  vertical-align: top;
+}
+
+.md-table th {
+  font-weight: 600;
+  color: #b6b6bf;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .caret {

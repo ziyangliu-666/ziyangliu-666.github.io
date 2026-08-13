@@ -15,7 +15,7 @@ import {
 } from "react";
 import type { AgentEvent, Transport } from "../agent/events";
 import { initialState, reducer, type AgentMessage, type Segment } from "./state";
-import { plainify } from "./plainify";
+import { Markdown } from "./markdown";
 import "./agent.css";
 
 const SEED_QUESTIONS = [
@@ -44,48 +44,86 @@ interface Props {
 }
 
 /* ------------------------------------------------------------------- wordmark tilt
- * Pointer-driven 3D tilt on ZIYANG. The transform is written straight to the node and
- * eased toward the target each frame — putting it in state would re-render the whole
- * thread at 60fps for a decoration. */
+ * Pointer-driven 3D tilt on ZIYANG, plus the refraction that makes it read as a solid
+ * pane of glass rather than a rotating label: two faint chromatic ghosts that separate
+ * with the angle, and a specular sheen that sweeps across as the face turns.
+ *
+ * Everything is written straight to the node's style and CSS custom properties, eased
+ * toward the target each frame. Putting it in React state would re-render the thread at
+ * 60fps for a decoration.
+ *
+ * Reduce-motion is honoured by dropping the easing, not the effect. The rotation is the
+ * reader's own pointer movement rendered back to them — the vestibular problem is motion
+ * they did not ask for, so what gets removed is the animated glide, not the response. */
 function useTilt() {
   const el = useRef<HTMLSpanElement | null>(null);
 
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const ease = calm ? 1 : 0.09;
 
     const t = { x: 0, y: 0, tx: 0, ty: 0 };
     let raf = 0;
 
-    const loop = () => {
-      t.x += (t.tx - t.x) * 0.09;
-      t.y += (t.ty - t.y) * 0.09;
+    const paint = () => {
       const node = el.current;
-      if (node) {
-        node.style.transform =
-          `rotateY(${(t.x * 46).toFixed(2)}deg) ` +
-          `rotateX(${(-t.y * 28).toFixed(2)}deg) ` +
-          `translateZ(${(Math.abs(t.x) * 26).toFixed(1)}px)`;
-      }
+      if (!node) return;
+      const rotY = t.x * 46;
+      const rotX = -t.y * 28;
+      node.style.transform =
+        `rotateY(${rotY.toFixed(2)}deg) rotateX(${rotX.toFixed(2)}deg) ` +
+        `translateZ(${(Math.abs(t.x) * 26).toFixed(1)}px)`;
+      // Chromatic separation grows with how far off-axis the face is turned, the way an
+      // edge-lit pane splits light it passes at a steep angle.
+      const split = Math.abs(t.x) * 3.2 + Math.abs(t.y) * 1.1;
+      node.style.setProperty("--split", `${split.toFixed(2)}px`);
+      node.style.setProperty("--split-sign", t.x < 0 ? "-1" : "1");
+      // The highlight travels the opposite way to the rotation, so the glint stays put in
+      // the room while the letters turn through it.
+      node.style.setProperty("--sheen", `${(50 - t.x * 55).toFixed(1)}%`);
+      node.style.setProperty(
+        "--sheen-strength",
+        Math.min(0.5, 0.06 + Math.abs(t.x) * 0.42).toFixed(3),
+      );
+    };
+
+    const loop = () => {
+      t.x += (t.tx - t.x) * ease;
+      t.y += (t.ty - t.y) * ease;
+      paint();
       raf =
         Math.abs(t.tx - t.x) > 0.001 || Math.abs(t.ty - t.y) > 0.001
           ? requestAnimationFrame(loop)
           : 0;
     };
 
-    const onPointer = (e: PointerEvent) => {
+    const track = (clientX: number, clientY: number) => {
       const node = el.current;
       if (!node) return;
       const r = node.getBoundingClientRect();
       const cx = r.left + r.width / 2;
       const cy = r.top + r.height / 2;
-      t.tx = Math.max(-1, Math.min(1, (e.clientX - cx) / (window.innerWidth / 2)));
-      t.ty = Math.max(-1, Math.min(1, (e.clientY - cy) / (window.innerHeight / 2)));
+      t.tx = Math.max(-1, Math.min(1, (clientX - cx) / (window.innerWidth / 2)));
+      t.ty = Math.max(-1, Math.min(1, (clientY - cy) / (window.innerHeight / 2)));
+      if (!raf) raf = requestAnimationFrame(loop);
+    };
+
+    const onPointer = (e: PointerEvent) => track(e.clientX, e.clientY);
+
+    /* Touch has no hover, so the wordmark would sit flat on a phone forever. Tilting it
+     * with the device instead keeps the effect on the surface where most visitors are. */
+    const onOrient = (e: DeviceOrientationEvent) => {
+      if (e.gamma == null || e.beta == null) return;
+      t.tx = Math.max(-1, Math.min(1, e.gamma / 45));
+      t.ty = Math.max(-1, Math.min(1, (e.beta - 45) / 45));
       if (!raf) raf = requestAnimationFrame(loop);
     };
 
     window.addEventListener("pointermove", onPointer, { passive: true });
+    window.addEventListener("deviceorientation", onOrient);
     return () => {
       window.removeEventListener("pointermove", onPointer);
+      window.removeEventListener("deviceorientation", onOrient);
       if (raf) cancelAnimationFrame(raf);
     };
   }, []);
@@ -283,8 +321,7 @@ function AgentTurn({
           )}
           {seg.text && (
             <div className="answer">
-              {plainify(seg.text)}
-              {running && <span className="caret" />}
+              <Markdown text={seg.text} caret={running} />
             </div>
           )}
         </div>
