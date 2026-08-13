@@ -27,11 +27,18 @@ const SEED_QUESTIONS = [
 const FOOTER_NOTE =
   "Retrieval over his résumé, papers, repos and writing — plus live web search. The agent loop runs in your browser. Answers can be wrong; the sources are linked.";
 
+/* A build with no model configured answers from a handful of canned replies. Saying that
+ * is better than a footnote promising retrieval and web search that cannot happen. */
+const OFFLINE_NOTE =
+  "This build has no model configured, so it is answering from a few canned replies. The résumé linked above is the real thing.";
+
 interface Props {
   wordmark?: string;
   showSuggestions?: boolean;
   showUsage?: boolean;
   footerNote?: string;
+  /** False when no model is reachable, which changes what the footnote may claim. */
+  live?: boolean;
   transport: Transport;
 }
 
@@ -330,7 +337,8 @@ export default function ZiyangAgent({
   wordmark = "ZIYANG",
   showSuggestions = true,
   showUsage = true,
-  footerNote = FOOTER_NOTE,
+  live = true,
+  footerNote = live ? FOOTER_NOTE : OFFLINE_NOTE,
   transport,
 }: Props) {
   const [state, dispatch] = useReducer(reducer, initialState);

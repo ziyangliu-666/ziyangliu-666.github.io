@@ -2,7 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import ZiyangAgent from "./ui/ZiyangAgent";
 import { createTransport } from "./agent/transport";
-import { setByokKey } from "./agent/config";
+import { hasModel, setByokKey } from "./agent/config";
 import "./ui/agent.css";
 
 /* Local development without the proxy: paste a DeepSeek key once from the console.
@@ -28,6 +28,6 @@ if (!root) throw new Error("no #root element");
 
 createRoot(root).render(
   <StrictMode>
-    <ZiyangAgent transport={createTransport()} />
+    <ZiyangAgent transport={createTransport()} live={hasModel()} />
   </StrictMode>,
 );
