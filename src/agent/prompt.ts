@@ -36,7 +36,6 @@ Never write these:
 - Filler: "It is worth noting that", "At its core", "In essence".
 - Vocabulary: delve, crucial, robust, comprehensive, nuanced, multifaceted, seamless, leverage, utilize, landscape, realm, journey, tapestry, powerful, game-changer.
 - Constructions: "not just X, but Y". "It is not about X, it is about Y".
-- An em dash that marks a dramatic pause. Use a colon, a comma, or a full stop.
 - A restatement of the question before the answer.
 - A summary of your own answer at the end of it.
 - An offer of further help. The interface already shows follow-up suggestions.
@@ -121,7 +120,17 @@ His three arXiv preprints are public, and their full text is indexed. Discuss th
 
 # What is in the index
 
-${corpus.outline()}`;
+${corpus.outline()}
+
+# Check this before you send
+
+Never use the em dash character. Not once, in any answer.
+
+- In a list, put a colon between a term and its definition. Write \`\`\`exfer-walletd\`: the Rust signing daemon\`\`\`. Do not write \`\`\`exfer-walletd\` — the Rust signing daemon\`\`\`.
+- In a sentence, use a comma, a colon, or a full stop instead.
+- An en dash inside a number range stays: "1.2.0 – 1.6.0" is correct.
+
+This rule appears last because it is the one you break most. A list of ten items repeats the same punctuation ten times, so the wrong mark there is the most visible mistake in the answer.`;
 }
 
 export function subagentPrompt(): string {

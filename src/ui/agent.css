@@ -543,20 +543,37 @@ textarea {
   color: #f2f2f4;
 }
 
+/* A link has to win against #dcdce1 body text on a near-black ground. It was losing: the old
+ * colour was #c9c9ce, darker than the prose around it, with an underline at #3a3a44 that read
+ * as no underline at all. Three signals now separate a link from its sentence: it is the only
+ * pure white in the answer, it carries a weight step, and its underline is actually visible. */
 .md-a {
-  color: #c9c9ce;
+  color: #ffffff;
+  font-weight: 500;
   text-decoration: underline;
-  text-decoration-color: #3a3a44;
+  text-decoration-color: #6f6f7c;
   text-decoration-thickness: 1px;
-  text-underline-offset: 2.5px;
+  text-underline-offset: 3px;
+  /* The hover wash needs room beyond the glyphs. Padding on an inline element would push the
+     line box, so the negative margin gives it back. This wraps correctly across lines, which
+     a box-shadow spread would not. */
+  padding: 1px 2px;
+  margin: 0 -2px;
+  border-radius: 3px;
   transition:
-    color 120ms ease,
-    text-decoration-color 120ms ease;
+    text-decoration-color 130ms ease,
+    background 130ms ease;
 }
 
 .md-a:hover {
-  color: #ffffff;
-  text-decoration-color: #7d7d88;
+  text-decoration-color: #ffffff;
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.md-a:focus-visible {
+  outline: 1px solid #7d7d88;
+  outline-offset: 2px;
+  background: rgba(255, 255, 255, 0.09);
 }
 
 .md-list {

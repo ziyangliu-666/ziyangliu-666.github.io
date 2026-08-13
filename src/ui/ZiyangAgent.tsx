@@ -33,8 +33,12 @@ const SEED_QUESTIONS = [
 /** Sources shown before the list is folded. */
 const SOURCE_LIMIT = 12;
 
+/* Plain "resume", for the same reason the nav says it: the ported design writes it without
+ * the accents, and the accented form pulls the eye to the one word in the sentence that
+ * least needs the attention. No em dash either, because the answers are held to a rule that
+ * bans one and the interface should not break it in the footnote underneath them. */
 const FOOTER_NOTE =
-  "Retrieval over his résumé, papers and repositories — plus live web search. The agent loop runs in your browser. Answers can be wrong; the sources are linked.";
+  "Retrieval over his resume, papers and repositories, plus live web search. The agent loop runs in your browser. Answers can be wrong; the sources are linked.";
 
 /* A build with no model configured answers from a handful of canned replies. Saying that
  * is better than a footnote promising retrieval and web search that cannot happen. */
