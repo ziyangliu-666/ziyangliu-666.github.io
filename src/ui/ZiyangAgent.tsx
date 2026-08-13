@@ -349,12 +349,20 @@ export default function ZiyangAgent({
   const busyRef = useRef(false);
   const [override, setOverride] = useState<Transport | null>(null);
 
+  /* Every turn takes a number, and stop/reset/a new question all bump it. A transport
+   * cannot be forced to return the instant it is cancelled — it stops at its next poll —
+   * so without this a stopped turn's tail events land on the turn that replaced it, and
+   * its final `done` marks the new answer complete while it is still streaming. */
+  const turn = useRef(0);
+
   const active = override ?? transport;
 
   const send = useCallback(
     async (text: string) => {
       const q = text.trim();
       if (!q || busyRef.current) return;
+      const myTurn = ++turn.current;
+      const current = () => turn.current === myTurn;
       busyRef.current = true;
       cancelled.current = false;
       stickToBottom.current = true;
@@ -368,7 +376,7 @@ export default function ZiyangAgent({
       dispatch({ type: "ask", text: q });
 
       const emit = (event: AgentEvent) => {
-        if (!cancelled.current) dispatch({ type: "event", event });
+        if (current() && !cancelled.current) dispatch({ type: "event", event });
       };
 
       try {
@@ -376,7 +384,7 @@ export default function ZiyangAgent({
           message: q,
           history,
           onEvent: emit,
-          isCancelled: () => cancelled.current,
+          isCancelled: () => !current() || cancelled.current,
         });
       } catch (err) {
         const detail = err instanceof Error ? err.message : "unknown error";
@@ -385,6 +393,8 @@ export default function ZiyangAgent({
           message: `The agent stopped early: ${detail}. Try again, or ask something narrower.`,
         });
       }
+
+      if (!current()) return; // stopped, reset, or superseded — that turn already settled
       dispatch({ type: "event", event: { type: "done" } });
       dispatch({ type: "settle" });
       busyRef.current = false;
@@ -393,6 +403,7 @@ export default function ZiyangAgent({
   );
 
   const stop = useCallback(() => {
+    turn.current++;
     cancelled.current = true;
     dispatch({ type: "event", event: { type: "done" } });
     dispatch({ type: "settle" });
@@ -400,6 +411,7 @@ export default function ZiyangAgent({
   }, []);
 
   const reset = useCallback(() => {
+    turn.current++;
     cancelled.current = true;
     busyRef.current = false;
     dispatch({ type: "reset" });

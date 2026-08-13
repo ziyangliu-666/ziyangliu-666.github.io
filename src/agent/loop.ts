@@ -121,6 +121,8 @@ export async function runAgent(o: RunOptions): Promise<void> {
   emit({ type: "status", text: "Thinking" });
 
   try {
+    let answered = false;
+
     for (let iteration = 0; iteration < LIMITS.maxIterations; iteration++) {
       if (stop()) return;
 
@@ -172,7 +174,10 @@ export async function runAgent(o: RunOptions): Promise<void> {
       answer += text;
 
       const toolCalls = calls.finish();
-      if (!toolCalls.length) break;
+      if (!toolCalls.length) {
+        answered = true;
+        break;
+      }
 
       messages.push({
         role: "assistant",
@@ -278,7 +283,43 @@ export async function runAgent(o: RunOptions): Promise<void> {
       }
     }
 
+    /* Out of tool rounds with no answer written. Ask once more with tools withheld, so
+     * the visitor gets a conclusion from what was already retrieved instead of a column
+     * of activity rows and nothing under them. */
+    if (!answered && !stop()) {
+      emit({ type: "status", text: "Wrapping up" });
+      messages.push({
+        role: "user",
+        content:
+          "You have used the tool budget for this question. Answer now from what you already retrieved, and say plainly anything you could not confirm.",
+      });
+
+      for await (const delta of chat({
+        model: MODELS.main,
+        messages,
+        thinking: false,
+        maxTokens: LIMITS.maxTokens,
+        signal: controller.signal,
+      })) {
+        if (stop()) return;
+        if (delta.type === "text") {
+          answer += delta.text;
+          emit({ type: "text_delta", text: delta.text });
+        } else if (delta.type === "usage") {
+          inputTokens += delta.inputTokens ?? 0;
+          outputTokens += delta.outputTokens ?? 0;
+        }
+      }
+    }
+
     if (stop()) return;
+
+    if (!answer.trim()) {
+      emit({
+        type: "text_delta",
+        text: "I could not put an answer together for that one. Try asking it a different way, or read the résumé linked at the top.",
+      });
+    }
 
     if (sources.length) emit({ type: "sources", items: sources });
 
