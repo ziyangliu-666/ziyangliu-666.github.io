@@ -55,6 +55,12 @@ function str(v: unknown, fallback = ""): string {
   return typeof v === "string" ? v : fallback;
 }
 
+/** Shorten for the activity row without leaving a stray space before the ellipsis. */
+function brief(v: unknown, max: number): string {
+  const s = str(v).replace(/\s+/g, " ").trim();
+  return s.length <= max ? s : `${s.slice(0, max).trimEnd()}…`;
+}
+
 function num(v: unknown, fallback: number): number {
   return typeof v === "number" && Number.isFinite(v) ? v : fallback;
 }
@@ -93,7 +99,7 @@ const retrieve: ToolDef = {
   },
   display: (args) => {
     const index = str(args.index, "all");
-    return `index:${index} "${str(args.query).slice(0, 60)}"`;
+    return `index:${index} "${brief(args.query, 60)}"`;
   },
   async run(args, ctx) {
     const query = str(args.query).trim();
@@ -228,7 +234,7 @@ const webSearch: ToolDef = {
       },
     },
   },
-  display: (args) => `"${str(args.query).slice(0, 60)}"`,
+  display: (args) => `"${brief(args.query, 60)}"`,
   async run(args, ctx) {
     if (!PROXY_URL) {
       return {
@@ -417,7 +423,7 @@ const spawnSubagent: ToolDef = {
     },
   },
   activity: "subagent",
-  display: (args) => str(args.task).slice(0, 70),
+  display: (args) => brief(args.task, 70),
   async run(args, ctx) {
     if (ctx.subagentsUsed() >= LIMITS.maxSubagents) {
       return {

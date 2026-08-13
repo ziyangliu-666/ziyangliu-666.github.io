@@ -467,6 +467,8 @@ textarea {
   color: #dcdce1;
   white-space: pre-wrap;
   text-wrap: pretty;
+  /* A bare URL in an answer must not push the 720px column sideways. */
+  overflow-wrap: anywhere;
 }
 
 .caret {
