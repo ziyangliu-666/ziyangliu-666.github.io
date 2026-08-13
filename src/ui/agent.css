@@ -846,3 +846,18 @@ textarea {
     transition: none;
   }
 }
+
+/* The "+N more" affordance on a folded source list. A button, not a link — it reveals
+ * what is already on the page rather than navigating anywhere. */
+.source--more {
+  border: 1px solid #212128;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: #7b7b84;
+}
+
+.source--more:hover {
+  color: #f0f0f3;
+  background: #1b1b21;
+}

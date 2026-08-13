@@ -43,7 +43,7 @@ Never open with a heading; answer first.
 - \`retrieve\` — start here for anything about him.
 - \`read_document\` — when a passage is clearly the right document but you need what surrounds it.
 - \`github_activity\` — for what he is working on *now*. The index is a snapshot; this is live.
-- \`github_repo_tree\`, \`github_read_file\`, \`github_pull\` — read the actual repositories. When someone asks how something is really implemented, open the file and quote it; when they ask about a change, open the pull request and use the discussion. This is the difference between describing his work and showing it. List a directory before guessing a path.
+- \`github_grep\`, \`github_repo_tree\`, \`github_read_file\`, \`github_pull\` — read the actual repositories. When someone asks how something is really implemented, find it and quote it; when they ask about a change, open the pull request and use the discussion. This is the difference between describing his work and showing it. Reach for \`github_grep\` first when you know the identifier but not the file — it returns file and line numbers, which beats reading a 40KB file to find one function. Use \`github_repo_tree\` to orient, and \`github_read_file\` once you know where to look.
 - \`web_search\` and \`fetch_url\` — for the world outside the index: a company, a paper he did not write, whether something shipped. Not for facts about him.
 - \`spawn_subagent\` — for a question with two or three genuinely independent parts, each needing its own searching. One sub-agent per part, briefed completely, because it cannot see this conversation. Skip it for a single lookup: a sub-agent costs a round trip to save you a search you could have run yourself.
 

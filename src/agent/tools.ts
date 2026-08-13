@@ -421,6 +421,10 @@ interface GhTreeEntry {
   size?: number;
 }
 
+/** Extensions worth grepping. Anything else is either binary or not source. */
+const TEXTUAL =
+  /\.(ts|tsx|js|jsx|mjs|cjs|py|rs|go|c|h|cpp|hpp|java|kt|rb|sh|bash|zsh|toml|yaml|yml|json|md|txt|sql|proto|graphql|css|scss|html|svelte|vue|tf|dockerfile|spec|cfg|ini|env\.example)$|(^|\/)(Dockerfile|Makefile|justfile|CMakeLists\.txt)$/i;
+
 /** Build noise nobody asks about, and it would fill the listing. */
 const TREE_NOISE =
   /(^|\/)(node_modules|target|dist|build|\.git|\.github\/workflows\/cache|__pycache__|\.venv|vendor|coverage)(\/|$)|(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|Cargo\.lock|poetry\.lock)$|\.(png|jpg|jpeg|gif|webp|ico|woff2?|ttf|otf|mp4|zip|gz|wasm|pdf)$/i;
@@ -610,6 +614,121 @@ const readFile: ToolDef = {
   },
 };
 
+/* Watching a real trace, the model twice wrote "I can't grep directly" and fell back to
+ * reading a 41KB file whole to find one function. GitHub's code-search API needs a token,
+ * but the tree API plus raw.githubusercontent is enough to do it here: list the text files,
+ * fetch them in parallel from the CDN, and match locally. One API call, N cheap CDN reads,
+ * and the model gets line numbers instead of a haystack. */
+const grepRepo: ToolDef = {
+  spec: {
+    type: "function",
+    function: {
+      name: "github_grep",
+      description:
+        "Search the text of one of Ziyang's repositories for a literal string, case-insensitive, and get back matching lines with their file and line number. Use this before github_read_file when you know what you are looking for but not where it lives — it saves reading whole files to find one function.",
+      parameters: {
+        type: "object",
+        properties: {
+          repo: { type: "string", description: "Repository name or owner/name." },
+          pattern: {
+            type: "string",
+            description:
+              "Literal text to find, e.g. consent_gated. Not a regular expression.",
+          },
+          path: {
+            type: "string",
+            description: "Optional directory to search inside, e.g. src.",
+          },
+        },
+        required: ["repo", "pattern"],
+        additionalProperties: false,
+      },
+    },
+  },
+  display: (args) => `${str(args.repo)} "${brief(args.pattern, 40)}"`,
+  async run(args, ctx) {
+    const resolved = await resolveRepo(str(args.repo), ctx.signal);
+    if ("error" in resolved) return { result: resolved.error, display: "refused" };
+
+    const needle = str(args.pattern).trim();
+    if (!needle) return { result: "github_grep needs a pattern.", display: "no pattern" };
+
+    const treeRes = await fetch(
+      `https://api.github.com/repos/${resolved.owner}/${resolved.name}/git/trees/HEAD?recursive=1`,
+      { headers: { accept: "application/vnd.github+json" }, signal: ctx.signal },
+    );
+    if (!treeRes.ok) {
+      return {
+        result: githubFailure(treeRes.status, `${resolved.name} tree`),
+        display: `failed ${treeRes.status}`,
+      };
+    }
+
+    const prefix = str(args.path).replace(/^\/+|\/+$/g, "");
+    const tree = (await treeRes.json()) as { tree?: GhTreeEntry[] };
+    const candidates = (tree.tree ?? [])
+      .filter((e) => e.type === "blob" && !TREE_NOISE.test(e.path))
+      .filter((e) => !prefix || e.path.startsWith(`${prefix}/`) || e.path === prefix)
+      .filter((e) => TEXTUAL.test(e.path))
+      .filter((e) => (e.size ?? 0) < 400_000)
+      .slice(0, 40);
+
+    if (!candidates.length) {
+      return {
+        result: `No text files to search under "${prefix || "/"}" in ${resolved.name}.`,
+        display: "0 files",
+      };
+    }
+
+    const lower = needle.toLowerCase();
+    const hits: string[] = [];
+    let scanned = 0;
+
+    await Promise.all(
+      candidates.map(async (entry) => {
+        try {
+          const res = await fetch(
+            `https://raw.githubusercontent.com/${resolved.owner}/${resolved.name}/HEAD/${entry.path}`,
+            { signal: ctx.signal },
+          );
+          if (!res.ok) return;
+          const text = await res.text();
+          scanned++;
+          const lines = text.split("\n");
+          for (let i = 0; i < lines.length && hits.length < 80; i++) {
+            if (lines[i]!.toLowerCase().includes(lower)) {
+              hits.push(`${entry.path}:${i + 1}: ${lines[i]!.trim().slice(0, 220)}`);
+            }
+          }
+        } catch {
+          /* one unreadable file should not fail the search */
+        }
+      }),
+    );
+
+    if (!hits.length) {
+      return {
+        result: `"${needle}" appears in none of the ${scanned} text files searched in ${resolved.name}${prefix ? `/${prefix}` : ""}. Try a shorter or different string, or list the tree.`,
+        display: `0 matches in ${scanned} files`,
+      };
+    }
+
+    const files = new Set(hits.map((h) => h.split(":")[0]));
+    return {
+      result: clamp(
+        `"${needle}" — ${hits.length} matching lines in ${files.size} files (${scanned} searched)\n\n${hits.sort().join("\n")}`,
+      ),
+      display: `${hits.length} matches in ${files.size} files`,
+      sources: [
+        {
+          label: `${resolved.owner}/${resolved.name}`,
+          url: `https://github.com/${resolved.owner}/${resolved.name}`,
+        },
+      ],
+    };
+  },
+};
+
 const readPull: ToolDef = {
   spec: {
     type: "function",
@@ -785,6 +904,7 @@ export const TOOLS: Record<string, ToolDef> = {
   fetch_url: fetchUrl,
   github_activity: githubActivity,
   github_repo_tree: repoTree,
+  github_grep: grepRepo,
   github_read_file: readFile,
   github_pull: readPull,
   spawn_subagent: spawnSubagent,
@@ -797,6 +917,7 @@ export const SUBAGENT_TOOLS: Record<string, ToolDef> = {
   retrieve,
   read_document: readDocument,
   github_repo_tree: repoTree,
+  github_grep: grepRepo,
   github_read_file: readFile,
 };
 

@@ -25,6 +25,9 @@ const SEED_QUESTIONS = [
   "What makes his background different?",
 ];
 
+/** Sources shown before the list is folded. */
+const SOURCE_LIMIT = 12;
+
 const FOOTER_NOTE =
   "Retrieval over his résumé, papers, repos and writing — plus live web search. The agent loop runs in your browser. Answers can be wrong; the sources are linked.";
 
@@ -294,6 +297,7 @@ function AgentTurn({
   onToggle: (segment: number) => void;
   onFollowUp: (text: string) => void;
 }) {
+  const [allSources, setAllSources] = useState(false);
   const running = message.phase !== "done";
   const u = message.usage;
   const usageLine = u
@@ -332,18 +336,27 @@ function AgentTurn({
       {message.sources.length > 0 && (
         <div className="sources">
           <span className="sources-label">Sources</span>
-          {message.sources.map((src, i) => (
-            <a
-              className="source"
-              key={`${src.url ?? src.label}-${i}`}
-              href={src.url ?? "#"}
-              target={src.url?.startsWith("http") ? "_blank" : undefined}
-              rel="noreferrer"
-            >
-              <span className="source-n">{i + 1}</span>
-              <span>{src.label}</span>
-            </a>
-          ))}
+          {(allSources ? message.sources : message.sources.slice(0, SOURCE_LIMIT)).map(
+            (src, i) => (
+              <a
+                className="source"
+                key={`${src.url ?? src.label}-${i}`}
+                href={src.url ?? "#"}
+                target={src.url?.startsWith("http") ? "_blank" : undefined}
+                rel="noreferrer"
+              >
+                <span className="source-n">{i + 1}</span>
+                <span>{src.label}</span>
+              </a>
+            ),
+          )}
+          {/* A deep question can touch twenty-odd files. Hiding none of them is honest but
+              unreadable, so the count stays visible and the rest are one click away. */}
+          {!allSources && message.sources.length > SOURCE_LIMIT && (
+            <button className="source source--more" onClick={() => setAllSources(true)}>
+              +{message.sources.length - SOURCE_LIMIT} more
+            </button>
+          )}
         </div>
       )}
 
