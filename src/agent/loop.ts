@@ -479,5 +479,10 @@ async function deriveFollowUps(
     .split("\n")
     .map((l) => l.replace(/^[-•\d.\s"']+/, "").replace(/["']$/, "").trim())
     .filter((l) => l.length > 8 && l.length < 90)
+    // The prompt asks for the third person and the model still slips into addressing
+    // Ziyang directly — "your error analysis cases" — which reads as though the visitor
+    // were talking to him. Dropping those is better than rewriting them: one good
+    // suggestion, or none, beats a grammatically mangled one.
+    .filter((l) => !/\b(you|your|yours|yourself)\b/i.test(l) && !/[你您]/.test(l))
     .slice(0, 2);
 }
