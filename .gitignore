@@ -20,3 +20,6 @@ proxy/node_modules
 .env.*
 !.env.example
 .gstack/
+
+# tsc incremental build state
+*.tsbuildinfo
