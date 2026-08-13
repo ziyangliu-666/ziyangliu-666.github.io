@@ -52,7 +52,18 @@ const GITHUB_USER = "ziyangliu-666";
 
 /* Pull requests carry the engineering detail that a repo description cannot: what was
  * broken, what the fix was, what was verified. These are the accounts whose PRs are his. */
-const PR_SEARCH = "org:exfer-stack type:pr";
+const PR_SEARCHES = [
+  { query: "org:exfer-stack type:pr", label: "his own repositories" },
+  /* The chain itself lives at ahuman-exfer/exfer — an upstream project, not his account.
+   * The résumé's "28 upstream pull requests" are here, and they are the best evidence in
+   * the whole corpus: rayon-parallel signature verification, persisting the UTXO set to
+   * redb, a double-open in the atomic reorg commit, eight bugs behind an inflated orphan
+   * rate. Every one carries the reasoning, which a repository description never does. */
+  {
+    query: "repo:ahuman-exfer/exfer author:exfer-stack type:pr",
+    label: "upstream on the chain",
+  },
+] as const;
 
 /* exfer.info is the project's own documentation, 223k characters of it. Only the chapters
  * that explain what the system is and why it is shaped that way are indexed — a visitor
@@ -66,7 +77,7 @@ const EXFER_DOC_PAGES = [
   { path: "use/vault.html", title: "Exfer — vault" },
 ] as const;
 
-type Kind = "resume" | "paper" | "writing" | "repo" | "profile" | "project";
+type Kind = "resume" | "paper" | "repo" | "profile" | "project";
 
 interface Section {
   heading: string;
@@ -100,7 +111,7 @@ const PAPERS = [
     id: "paper-copy-as-decode",
     file: "2604.18170v1.pdf",
     title: "Copy-as-Decode: Grammar-Constrained Parallel Prefill for LLM Editing",
-    url: "https://arxiv.org/abs/2604.18170",
+    url: "https://arxiv.org/pdf/2604.18170",
     date: "2026-04-20",
   },
   {
@@ -108,7 +119,7 @@ const PAPERS = [
     file: "2604.12376v1.pdf",
     title:
       "Cooperative Memory Paging with Keyword Bookmarks for Long-Horizon LLM Conversations",
-    url: "https://arxiv.org/abs/2604.12376",
+    url: "https://arxiv.org/pdf/2604.12376",
     date: "2026-04-14",
   },
   {
@@ -116,7 +127,7 @@ const PAPERS = [
     file: "2604.18179v1.pdf",
     title:
       "Committed SAE-Feature Traces for Audited-Session Substitution Detection in Hosted LLMs",
-    url: "https://arxiv.org/abs/2604.18179",
+    url: "https://arxiv.org/pdf/2604.18179",
     date: "2026-04-20",
   },
 ] as const;
@@ -156,6 +167,73 @@ function pdfToText(file: string, opts: { layout?: boolean } = {}): string {
       `pdftotext failed on ${file}. Install poppler (\`brew install poppler\`).\n${String(err)}`,
     );
   }
+}
+
+/* Hyperlinks in a PDF are annotations, and `pdftotext` throws them away — so the résumé's
+ * links to the upstream chain, the desktop and mobile wallets and exfer.info were all
+ * silently lost. `pdftohtml` keeps them. Anchor text arrives messy ("t，upstream",
+ * "和移动端，", "upstream):"), so it is cleaned down to the word the reader would recognise. */
+interface PdfLink {
+  anchor: string;
+  url: string;
+}
+
+function pdfLinks(file: string): PdfLink[] {
+  let html: string;
+  try {
+    html = execFileSync(
+      "pdftohtml",
+      ["-stdout", "-i", "-noframes", "-s", "-q", file, "-"],
+      { encoding: "utf8", maxBuffer: 32 * 1024 * 1024 },
+    );
+  } catch {
+    console.warn(`  ! pdftohtml unavailable — links in ${path.basename(file)} skipped`);
+    return [];
+  }
+
+  const out: PdfLink[] = [];
+  const seen = new Set<string>();
+
+  for (const m of html.matchAll(/<a href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)) {
+    const url = m[1]!;
+    // Internal PDF bookmarks (resume.html#2) are the outline, not content.
+    if (!/^(https?:|mailto:)/i.test(url)) continue;
+
+    const anchor = m[2]!
+      .replace(/<[^>]+>/g, "")
+      .replace(/&#160;|&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      // Keep the trailing word: the anchor often starts mid-token from the line before.
+      // U+2011 is in the class because the résumé sets "ziyangliu‑666" with a
+      // non-breaking hyphen, and excluding it truncated the anchor to "666".
+      .replace(
+        /^[\s\S]*?([\p{L}\p{N}][\p{L}\p{N}._/\u2011-]*)[)\]:：,，。、;；\s]*$/u,
+        "$1",
+      )
+      .replace(/[)\]:：,，。、;；]+$/u, "")
+      .trim();
+
+    if (seen.has(url)) continue;
+    seen.add(url);
+    // A mailto's anchor is the address itself; anything else needs a word to attach to.
+    const label = url.startsWith("mailto:") ? url.slice(7) : anchor;
+    if (label.length < 3) continue;
+    out.push({ anchor: label, url });
+  }
+  return out;
+}
+
+/** Turn the first mention of each anchor into a markdown link the model can pass through. */
+function linkify(text: string, links: PdfLink[]): string {
+  let out = text;
+  for (const { anchor, url } of links) {
+    // Contact lines already read as links; only body mentions need rewriting.
+    if (/^(mailto:)/i.test(url)) continue;
+    const escaped = anchor.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const pattern = new RegExp(`(?<!\\[)\\b${escaped}\\b(?!\\]\\()`, "u");
+    if (pattern.test(out)) out = out.replace(pattern, `[${anchor}](${url})`);
+  }
+  return out;
 }
 
 /** pdftotext leaves justification hyphens at line ends; rejoin those words. */
@@ -273,6 +351,22 @@ function resumeDoc(file: string, lang: "en" | "zh"): Doc {
   if (current) sections.push(...flattenResumeSection(current));
   if (header.length) sections.unshift({ heading: "Header", text: header.join("\n") });
 
+  const links = pdfLinks(file);
+  const linked = sections
+    .filter((s) => s.text.trim())
+    .map((s) => ({ heading: s.heading, text: linkify(s.text, links) }));
+
+  // Also listed plainly, so a question like "where is the upstream repo" can be answered
+  // from a retrieved passage without the anchor happening to fall in the same chunk.
+  if (links.length) {
+    linked.push({
+      heading: "Links in the résumé",
+      text: links
+        .map(({ anchor, url }) => `${anchor}: ${url}`)
+        .join("\n"),
+    });
+  }
+
   const title =
     lang === "en" ? "Résumé (English)" : "Résumé (Chinese) / 中文简历";
   return {
@@ -281,7 +375,7 @@ function resumeDoc(file: string, lang: "en" | "zh"): Doc {
     kind: "resume",
     lang,
     url: lang === "en" ? "/resume.pdf" : "/resume-zh.pdf",
-    sections: sections.filter((s) => s.text.trim()),
+    sections: linked,
   };
 }
 
@@ -362,6 +456,37 @@ function paperDoc(spec: (typeof PAPERS)[number]): Doc {
   }
   flush();
 
+  const figures = paperFigures(spec);
+
+  /* Put each figure beside the prose that discusses it. A separate "Figures" section is
+   * retrievable, but only if the model thinks to search for figures — and it will not, when
+   * the question is about speculative decoding. Injected at the caption, any retrieval that
+   * surfaces the discussion surfaces the image path with it. */
+  for (const fig of figures) {
+    const label = /^((?:Figure|Table)\s+\d+)/.exec(fig.caption)?.[1];
+    if (!label) continue;
+    const target = sections.find(
+      (sec) => sec.text.includes(`${label}:`) && !sec.text.includes("/corpus/figures/"),
+    );
+    if (!target) continue;
+    const embed = `![${fig.caption.slice(0, 160)}](/corpus/figures/${fig.file})`;
+    target.text = target.text.replace(`${label}:`, `${embed}\n${label}:`);
+  }
+
+  if (figures.length) {
+    sections.push({
+      heading: "Figures",
+      text: [
+        "Figures from this paper, extracted from the PDF. To show one in an answer, embed it",
+        "as a markdown image using the path exactly as written here.",
+        "",
+        ...figures.map(
+          (f) => `![${f.caption.slice(0, 160)}](/corpus/figures/${f.file})\n${f.caption} (page ${f.page})`,
+        ),
+      ].join("\n"),
+    });
+  }
+
   return {
     id: spec.id,
     title: spec.title,
@@ -373,7 +498,7 @@ function paperDoc(spec: (typeof PAPERS)[number]): Doc {
   };
 }
 
-// ------------------------------------------------------------ markdown / writing
+// --------------------------------------------------------------------- markdown
 
 function splitMarkdownSections(body: string): Section[] {
   const out: Section[] = [];
@@ -397,29 +522,6 @@ function splitMarkdownSections(body: string): Section[] {
   return out;
 }
 
-function writingDocs(): Doc[] {
-  const dir = path.join(ROOT, "content", "blog");
-  if (!fs.existsSync(dir)) return [];
-  return fs
-    .readdirSync(dir)
-    .filter((f) => f.endsWith(".mdx"))
-    .map((file) => {
-      const slug = file.replace(/\.mdx$/, "");
-      const raw = readSource(path.join(dir, file)).toString("utf8");
-      const { data, content } = matter(raw);
-      const summary = typeof data.summary === "string" ? data.summary : "";
-      const sections = splitMarkdownSections(content);
-      if (summary) sections.unshift({ heading: "Summary", text: summary });
-      return {
-        id: `writing-${slug}`,
-        title: (data.title as string) ?? slug,
-        kind: "writing" as const,
-        lang: "en" as const,
-        date: data.date as string | undefined,
-        sections,
-      };
-    });
-}
 
 function handwrittenDocs(): Doc[] {
   const dir = path.join(ROOT, "corpus", "src");
@@ -545,39 +647,179 @@ interface GhSearchItem {
 }
 
 function pullRequestDocs(): Doc[] {
-  const found = gh(
-    `search/issues?q=${encodeURIComponent(PR_SEARCH)}&per_page=100`,
-  ) as { items?: GhSearchItem[] } | null;
-  if (!found?.items?.length) {
+  const items: GhSearchItem[] = [];
+  for (const { query, label } of PR_SEARCHES) {
+    const found = gh(
+      `search/issues?q=${encodeURIComponent(query)}&per_page=100`,
+    ) as { items?: GhSearchItem[] } | null;
+    const batch = found?.items ?? [];
+    console.log(`  · ${batch.length} pull requests — ${label}`);
+    items.push(...batch);
+  }
+  if (!items.length) {
     console.warn("! no pull requests found — skipping");
     return [];
   }
 
-  return found.items
+  return items
     .filter((pr) => pr.body && pr.body.trim().length > 120)
     .map((pr) => {
       const repo = pr.repository_url.split("/").pop() ?? "repo";
+      const owner = pr.repository_url.split("/").slice(-2)[0] ?? "";
+      const upstream = owner !== "exfer-stack";
       const body = (pr.body ?? "")
         // The Claude Code trailer is on most of them and says nothing about the change.
         .replace(/🤖 Generated with \[Claude Code\][\s\S]*$/, "")
         .replace(/<!--[\s\S]*?-->/g, "")
         .trim();
 
+      const trimmed =
+        body.length > 3000
+          ? `${body.slice(0, 3000)}\n… [body truncated; the full PR is at the link above]`
+          : body;
+
       return {
-        id: `pr-${repo}-${pr.number}`.toLowerCase(),
-        title: `${repo} #${pr.number}: ${pr.title}`,
+        id: `pr-${upstream ? "upstream-" : ""}${repo}-${pr.number}`.toLowerCase(),
+        title: `${upstream ? "upstream " : ""}${repo} #${pr.number}: ${pr.title}`,
         kind: "repo" as const,
         lang: "en" as const,
         url: pr.html_url,
         date: (pr.closed_at ?? pr.created_at).slice(0, 10),
         sections: [
           {
-            heading: `Pull request — ${repo} #${pr.number} (${pr.state})`,
-            text: `${pr.title}\n\n${body}`,
+            heading: `Pull request — ${owner}/${repo} #${pr.number} (${pr.state})`,
+            text: [
+              `${pr.title}`,
+              upstream
+                ? `Contributed by Ziyang (as exfer-stack) upstream to ${owner}/${repo}, the Exfer chain itself.`
+                : `In ${owner}/${repo}, his own repository.`,
+              pr.html_url,
+              "",
+              trimmed,
+            ].join("\n"),
           },
         ],
       };
     });
+}
+
+/* ------------------------------------------------------------------- paper figures
+ *
+ * The papers' diagrams carry things prose cannot — the three-way decoding comparison in
+ * Copy-as-Decode is worth more than a paragraph describing it — so they are extracted at
+ * build time and the agent can embed them in an answer.
+ *
+ * Pairing is by page: `pdfimages -p` names each file with the page it came from, and the
+ * caption for a figure is on that same page. Small images are dropped, because a paper's
+ * embedded raster set also contains colour bars and one-pixel-wide gradient strips that
+ * would otherwise be offered to a reader as "Figure 4". */
+
+interface Figure {
+  file: string;
+  caption: string;
+  page: number;
+}
+
+/* `pdfimages -png` re-encodes the PDF's own JPEGs losslessly, which turned 8 diagrams into
+ * 3.8MB of repository. Recompressed to JPEG at a width no display needs to exceed, they come
+ * to a fraction of that. `sips` ships with macOS and the corpus build is local-only; if it
+ * is missing the PNG is kept as-is rather than failing the build. */
+function shrink(full: string, file: string): string {
+  const jpg = full.replace(/\.png$/, ".jpg");
+  try {
+    execFileSync(
+      "sips",
+      [
+        "-s", "format", "jpeg",
+        "-s", "formatOptions", "72",
+        "-Z", "1400",
+        full,
+        "--out", jpg,
+      ],
+      { stdio: "ignore" },
+    );
+  } catch {
+    console.warn(`  ! sips unavailable — ${file} stays a PNG`);
+    return file;
+  }
+  const before = fs.statSync(full).size;
+  const after = fs.statSync(jpg).size;
+  if (after >= before) {
+    fs.rmSync(jpg);
+    return file;
+  }
+  fs.rmSync(full);
+  return path.basename(jpg);
+}
+
+function paperFigures(spec: (typeof PAPERS)[number]): Figure[] {
+  const pdf = path.join(DOWNLOADS, spec.file);
+  const outDir = path.join(OUT_DIR, "figures");
+  fs.mkdirSync(outDir, { recursive: true });
+
+  const prefix = spec.id.replace(/^paper-/, "");
+  try {
+    execFileSync("pdfimages", ["-png", "-p", pdf, path.join(outDir, prefix)], {
+      encoding: "utf8",
+      maxBuffer: 8 * 1024 * 1024,
+    });
+  } catch {
+    console.warn(`  ! pdfimages failed on ${spec.file} — no figures`);
+    return [];
+  }
+
+  const produced = fs
+    .readdirSync(outDir)
+    .filter((f) => f.startsWith(`${prefix}-`) && f.endsWith(".png"));
+
+  const captionCache = new Map<number, string[]>();
+  const captionsOn = (page: number): string[] => {
+    if (!captionCache.has(page)) {
+      let text = "";
+      try {
+        text = execFileSync(
+          "pdftotext",
+          ["-f", String(page), "-l", String(page), "-nopgbrk", pdf, "-"],
+          { encoding: "utf8", maxBuffer: 4 * 1024 * 1024 },
+        );
+      } catch {
+        /* an unreadable page just yields no caption */
+      }
+      const found = [...dehyphenate(text).matchAll(/(Figure|Table)\s+\d+[.:]\s*([\s\S]{0,320})/g)]
+        .map((m) => `${m[0].split(/\n\s*\n/)[0]!.replace(/\s+/g, " ").trim()}`);
+      captionCache.set(page, found);
+    }
+    return captionCache.get(page)!;
+  };
+
+  const figures: Figure[] = [];
+  const used = new Map<number, number>();
+
+  for (const file of produced.sort()) {
+    const full = path.join(outDir, file);
+    const { size } = fs.statSync(full);
+    const page = Number(/-(\d{3})-\d+\.png$/.exec(file)?.[1] ?? 0);
+
+    // Colour bars and gradient strips: present in the PDF, meaningless to a reader.
+    if (size < 20_000) {
+      fs.rmSync(full);
+      continue;
+    }
+
+    const onPage = captionsOn(page);
+    const nth = used.get(page) ?? 0;
+    used.set(page, nth + 1);
+    const caption = onPage[nth] ?? onPage[0] ?? "";
+
+    if (!caption) {
+      // A figure nobody can label is a figure the agent cannot introduce honestly.
+      fs.rmSync(full);
+      continue;
+    }
+    figures.push({ file: shrink(full, file), caption, page });
+  }
+
+  return figures;
 }
 
 /* -------------------------------------------------------------- exfer.info docs */
@@ -643,6 +885,66 @@ async function exferDocs(): Promise<Doc[]> {
   return out;
 }
 
+/* --------------------------------------------------------------- landing keywords
+ *
+ * The résumé's SKILLS section is already a curated keyword list — the terms he chose to be
+ * known for — so the landing page's scattered tags are read from it rather than invented
+ * here. Written into the bundle as a generated module instead of a JSON file the page
+ * fetches: they are on screen before the first paint, with no flash and no request. */
+
+const SKILL_CATEGORIES = [
+  "Languages",
+  "LLM",
+  "Systems",
+  "Distributed",
+  "Tooling",
+  "Data",
+];
+
+function writeKeywords(resume: Doc): void {
+  const skills = resume.sections.find((s) => /SKILLS/i.test(s.heading));
+  if (!skills) {
+    console.warn("! no SKILLS section — landing keywords not regenerated");
+    return;
+  }
+
+  // The section arrives as one run: "Languages Python, Rust … LLM Model Context Protocol …".
+  // Splitting on the category labels recovers each group.
+  // `(?!-)` matters: without it the "LLM" category label also splits inside
+  // "LLM-as-judge", leaving "-as-judge" as a keyword.
+  const pattern = new RegExp(`\\b(${SKILL_CATEGORIES.join("|")})\\b(?![-\\w])`, "g");
+  const parts = skills.text.split(pattern).map((p) => p.trim());
+
+  const keywords: string[] = [];
+  for (let i = 1; i < parts.length; i += 2) {
+    for (const raw of (parts[i + 1] ?? "").split(",")) {
+      const term = raw.trim().replace(/\s+/g, " ");
+      // Long phrases read as sentences on a small tilted tag, not as keywords.
+      // A single letter reads as a rendering fault on a tilted tag, not as a keyword,
+      // and anything past ~28 characters reads as a sentence.
+      if (term.length >= 2 && term.length <= 28 && !keywords.includes(term)) {
+        keywords.push(term);
+      }
+    }
+  }
+
+  const file = path.join(ROOT, "src", "ui", "keywords.generated.ts");
+  fs.writeFileSync(
+    file,
+    [
+      "/* Generated by scripts/build-corpus.ts from the SKILLS section of the résumé.",
+      " * Do not edit: run `npm run corpus`. */",
+      "",
+      "export const RESUME_KEYWORDS = [",
+      ...keywords.map((k) => `  ${JSON.stringify(k)},`),
+      "] as const;",
+      "",
+    ].join("\n"),
+    "utf8",
+  );
+  console.log(`  · ${keywords.length} landing keywords from SKILLS`);
+}
+
 // ------------------------------------------------------------------------- build
 
 function chunkDoc(doc: Doc): Chunk[] {
@@ -677,18 +979,20 @@ function chunkDoc(doc: Doc): Chunk[] {
 
 async function main() {
   console.log("Building corpus…");
+  // Wiped up front, not before writing: paperDoc() extracts figures into OUT_DIR while the
+  // documents are still being built, and clearing it later would delete them.
+  fs.rmSync(OUT_DIR, { recursive: true, force: true });
 
   const docs: Doc[] = [];
 
   console.log("· résumé");
-  docs.push(resumeDoc(path.join(RESUME_DIR, "resume.pdf"), "en"));
+  const resumeEn = resumeDoc(path.join(RESUME_DIR, "resume.pdf"), "en");
+  docs.push(resumeEn);
+  writeKeywords(resumeEn);
   docs.push(resumeDoc(path.join(RESUME_DIR, "resume-zh.pdf"), "zh"));
 
   console.log("· preprints");
   for (const spec of PAPERS) docs.push(paperDoc(spec));
-
-  console.log("· writing");
-  docs.push(...writingDocs());
 
   console.log("· profile notes");
   docs.push(...handwrittenDocs());
@@ -725,7 +1029,6 @@ async function main() {
   });
   mini.addAll(chunks);
 
-  fs.rmSync(OUT_DIR, { recursive: true, force: true });
   fs.mkdirSync(path.join(OUT_DIR, "docs"), { recursive: true });
 
   const manifest = docs.map((d) => ({
@@ -753,26 +1056,6 @@ async function main() {
     "utf8",
   );
 
-  /* A few hundred bytes the landing page can fetch on load to say what it actually holds.
-   * The full index is 800KB and loads on the first question; this exists so that one line
-   * of honest scope does not cost a visitor who never asks anything. */
-  const prCount = docs.filter((d) => d.id.startsWith("pr-")).length;
-  fs.writeFileSync(
-    path.join(OUT_DIR, "summary.json"),
-    JSON.stringify({
-      builtAt: bundle.builtAt,
-      documents: docs.length,
-      chunks: chunks.length,
-      counts: {
-        resume: docs.filter((d) => d.kind === "resume").length,
-        paper: docs.filter((d) => d.kind === "paper").length,
-        repo: docs.filter((d) => d.kind === "repo" && !d.id.startsWith("pr-")).length,
-        pullRequest: prCount,
-        writing: docs.filter((d) => d.kind === "writing").length,
-      },
-    }),
-    "utf8",
-  );
 
   for (const doc of docs) {
     fs.writeFileSync(

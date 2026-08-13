@@ -31,8 +31,23 @@ function safeHref(raw: string): string | null {
  * `[x](javascript:alert(1))` matches only as far as the first `)`, and the leftover
  * bracket is rendered as text next to the label — visible debris from a link the
  * renderer was right to reject. Real URLs need it too: Wikipedia is full of them. */
+/* Image sources: this site's own paths, and https elsewhere — a screenshot in a README or a
+ * figure on a project page is often the best answer available, so remote images are allowed
+ * deliberately.
+ *
+ * The cost, stated rather than hidden: loading a remote image tells that host the visitor's
+ * IP, and the model chooses these URLs after reading pages that could try to talk it into
+ * embedding a tracking pixel. `referrer-policy: no-referrer` on the tag keeps this page's URL
+ * out of the request, which is the part we can control. http and data: are refused outright:
+ * one is a downgrade, the other is a way to smuggle content past every check above. */
+function safeSrc(raw: string): string | null {
+  const src = raw.trim();
+  if (src.startsWith("/") && !src.startsWith("//")) return src;
+  return /^https:\/\//i.test(src) ? src : null;
+}
+
 const INLINE =
-  /(`[^`\n]+`)|(\*\*\*[^*\n]+\*\*\*)|(\*\*[^*\n]+\*\*)|(__[^_\n]+__)|(~~[^~\n]+~~)|(\*[^\s*][^*\n]*?\*)|(\[[^\]\n]*\]\((?:[^()\s]|\([^()\s]*\))+\))|(<?https?:\/\/[^\s<>()[\]]+>?)/g;
+  /(!\[[^\]\n]*\]\([^)\s]+\))|(`[^`\n]+`)|(\*\*\*[^*\n]+\*\*\*)|(\*\*[^*\n]+\*\*)|(__[^_\n]+__)|(~~[^~\n]+~~)|(\*[^\s*][^*\n]*?\*)|(\[[^\]\n]*\]\((?:[^()\s]|\([^()\s]*\))+\))|(<?https?:\/\/[^\s<>()[\]]+>?)/g;
 
 function link(href: string, label: ReactNode, key: number): ReactNode {
   const safe = safeHref(href);
@@ -62,7 +77,26 @@ function inline(text: string, keyBase = 0): ReactNode[] {
     if (at > last) out.push(text.slice(last, at));
     last = at + token.length;
 
-    if (token.startsWith("`")) {
+    if (token.startsWith("![")) {
+      const split = token.indexOf("](");
+      const alt = token.slice(2, split);
+      const src = safeSrc(token.slice(split + 2, -1));
+      out.push(
+        src ? (
+          <img
+            className="md-img"
+            key={key++}
+            src={src}
+            alt={alt}
+            loading="lazy"
+            referrerPolicy="no-referrer"
+          />
+        ) : (
+          // Off-site image: keep the caption the model wrote, drop the request.
+          <span key={key++}>{alt}</span>
+        ),
+      );
+    } else if (token.startsWith("`")) {
       out.push(
         <code className="md-code" key={key++}>
           {token.slice(1, -1)}
@@ -327,13 +361,31 @@ export function Markdown({
           </div>
         );
       }
-      default:
+      default: {
+        const lone = b.lines.length === 1 ? /^!\[([^\]\n]*)\]\(([^)\s]+)\)$/.exec(b.lines[0]!) : null;
+        const loneSrc = lone ? safeSrc(lone[2]!) : null;
+        if (lone && loneSrc) {
+          return (
+            <figure className="md-figure" key={i}>
+              <img
+                className="md-img"
+                src={loneSrc}
+                alt={lone[1]!}
+                loading="lazy"
+                referrerPolicy="no-referrer"
+              />
+              {lone[1] && <figcaption className="md-caption">{lone[1]}</figcaption>}
+              {trailing}
+            </figure>
+          );
+        }
         return (
           <p className="md-p" key={i}>
             {withBreaks(b.lines, i)}
             {trailing}
           </p>
         );
+      }
     }
   });
 }

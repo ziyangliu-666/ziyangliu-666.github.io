@@ -16,7 +16,7 @@ import {
 import type { AgentEvent, Transport } from "../agent/events";
 import { initialState, reducer, type AgentMessage, type Segment } from "./state";
 import { Markdown } from "./markdown";
-import { Scope } from "./Scope";
+import { Stickers } from "./Stickers";
 import "./agent.css";
 
 /* Each of these demonstrates a different thing the agent can actually do — breadth, a
@@ -34,7 +34,7 @@ const SEED_QUESTIONS = [
 const SOURCE_LIMIT = 12;
 
 const FOOTER_NOTE =
-  "Retrieval over his résumé, papers, repos and writing — plus live web search. The agent loop runs in your browser. Answers can be wrong; the sources are linked.";
+  "Retrieval over his résumé, papers and repositories — plus live web search. The agent loop runs in your browser. Answers can be wrong; the sources are linked.";
 
 /* A build with no model configured answers from a handful of canned replies. Saying that
  * is better than a footnote promising retrieval and web search that cannot happen. */
@@ -464,16 +464,25 @@ export default function ZiyangAgent({
     <div className="app">
       <header className="hdr">
         <div className="hdr-left">
-          <div className="wordmark">{wordmark}</div>
-          {state.started && (
-            <button className="linkbtn" onClick={reset}>
-              New thread
+          {/* The wordmark is the way back to the start, the way a masthead is on any site.
+              A separate "New thread" button said the same thing twice. */}
+          {state.started ? (
+            <button
+              className="wordmark wordmark--home"
+              onClick={reset}
+              title="Start a new thread"
+            >
+              {wordmark}
             </button>
+          ) : (
+            <div className="wordmark">{wordmark}</div>
           )}
         </div>
         <nav className="nav">
+          {/* Plain "Resume", as the design has it. The accents read as noise beside
+              "GitHub" and "LinkedIn" at 13.5px. */}
           <a href="/resume.pdf" target="_blank" rel="noreferrer">
-            Résumé
+            Resume
           </a>
           <a
             href="https://github.com/ziyangliu-666"
@@ -494,12 +503,15 @@ export default function ZiyangAgent({
 
       {!state.started ? (
         <main className="landing">
+          <Stickers onPick={(q) => void send(q)} />
+
           <h1 className="h1">
             Ask anything about{" "}
             <span className="tilt" ref={sheenRef}>
               ZIYANG
             </span>
           </h1>
+
 
           <div className="composer-wrap">
             <Composer
@@ -525,8 +537,6 @@ export default function ZiyangAgent({
                 ))}
               </div>
             )}
-
-            <Scope />
           </div>
         </main>
       ) : (

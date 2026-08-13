@@ -13,7 +13,6 @@ import { processTerm, tokenize } from "./tokenize";
 export type Kind =
   | "resume"
   | "paper"
-  | "writing"
   | "repo"
   | "profile"
   | "project";

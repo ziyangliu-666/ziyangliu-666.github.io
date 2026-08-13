@@ -153,6 +153,8 @@ textarea {
 /* ---------------------------------------------------------------- landing */
 
 .landing {
+  /* Containing block for the scattered keyword tags. */
+  position: relative;
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
@@ -855,12 +857,184 @@ textarea {
   background: #1b1b21;
 }
 
-/* The scope line under the landing composer. Sized and coloured like the chat footnote,
- * because it is the same kind of thing: quiet, factual, not asking to be read first. */
-.scope {
-  margin: 4px 0 0;
+
+/* Paper figures. Bordered and inset like the code blocks, because they are the same kind of
+ * thing in an answer: a quoted artifact rather than part of the prose. */
+.md-figure {
+  margin: 0 0 1.1em;
+}
+
+.md-img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid #1f1f26;
+  border-radius: 10px;
+  background: #f6f6f8;
+}
+
+.md-caption {
+  margin-top: 8px;
   font-size: 12px;
-  line-height: 1.6;
-  color: #5d5d65;
-  max-width: 620px;
+  line-height: 1.55;
+  color: #7b7b84;
+}
+
+/* The wordmark doubles as the way home once a thread has started. Styled as a button only
+ * so it is reachable by keyboard; it must look identical to the static version. */
+.wordmark--home {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color 140ms ease;
+}
+
+.wordmark--home:hover {
+  color: #ffffff;
+}
+
+
+
+/* Keyword tags scattered around the landing page. Positioned absolutely inside .landing,
+ * which is why that element becomes the containing block below.
+ *
+ * They sit behind the centre column in the stacking order and are individually clickable —
+ * the wrapper takes no pointer events so it can span the whole area without swallowing a
+ * click meant for the composer. */
+.stickers {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.sticker {
+  position: absolute;
+  pointer-events: auto;
+  transform-origin: center;
+  border: 1px solid #1c1c22;
+  border-radius: 9px;
+  background: #101014;
+  color: #64646d;
+  font-family: inherit;
+  line-height: 1;
+  font-size: var(--fs, 14.5px);
+  padding: 9px 14px;
+  white-space: nowrap;
+  cursor: pointer;
+  /* `scale` and the colours transition; `translate` and `rotate` are left alone because the
+     drift keyframe owns them, and a transition on those would fight it every frame. */
+  transition:
+    color 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease,
+    scale 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.sticker:hover,
+.sticker:focus-visible {
+  color: #ecedf1;
+  border-color: #43434f;
+  background: #1a1a20;
+  scale: 1.08;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+  /* Hold still while it is being read and aimed at. A target that is still drifting under
+     the cursor is a target you have to chase. Two values for the two animations: pausing the
+     shorthand would also pause the arrival fade, and hovering during those 520 ms would
+     strand the tag half-transparent until the pointer left. */
+  animation-play-state: running, paused;
+  z-index: 2;
+}
+
+.sticker:focus-visible {
+  outline: 1px solid #5a5a6a;
+  outline-offset: 3px;
+}
+
+.sticker:active {
+  scale: 0.98;
+  background: #101014;
+}
+
+/* Two animations on one element, comma-separated: the fade is one-shot on arrival, the drift
+ * runs forever. `--lag` is negative so each tag starts mid-circuit instead of every tag
+ * setting off from zero together. */
+@keyframes rl-sticker {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes rl-drift {
+  0% {
+    translate: 0 0;
+    rotate: var(--rot);
+  }
+  25% {
+    translate: var(--dx) calc(var(--dy) * -1);
+    rotate: calc(var(--rot) + 1.1deg);
+  }
+  50% {
+    translate: calc(var(--dx) * -0.55) calc(var(--dy) * -0.45);
+    rotate: calc(var(--rot) - 0.9deg);
+  }
+  75% {
+    translate: calc(var(--dx) * -0.3) var(--dy);
+    rotate: calc(var(--rot) + 0.5deg);
+  }
+  100% {
+    translate: 0 0;
+    rotate: var(--rot);
+  }
+}
+
+.sticker {
+  animation:
+    rl-sticker 520ms ease both,
+    rl-drift var(--dur, 20s) ease-in-out var(--lag, 0s) infinite;
+}
+
+.sticker:nth-child(3n) {
+  animation-delay: 160ms, var(--lag, 0s);
+}
+.sticker:nth-child(3n + 1) {
+  animation-delay: 300ms, var(--lag, 0s);
+}
+.sticker:nth-child(3n + 2) {
+  animation-delay: 440ms, var(--lag, 0s);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sticker {
+    animation: none;
+  }
+  .sticker:hover,
+  .sticker:focus-visible {
+    scale: 1;
+  }
+}
+
+/* Between 1000 and 1320 px the bands are narrow enough that the longest keywords reach the
+ * heading. The whole set steps down rather than those two tags alone, so the arrangement keeps
+ * one type size. */
+@media (max-width: 1320px) {
+  .sticker {
+    font-size: calc(var(--fs, 14.5px) * 0.88);
+    padding: 7px 11px;
+  }
+}
+
+/* Below this width the side bands are narrower than the longest keyword, so a tag would have
+ * to overlap the heading or be truncated. The keywords are texture, not content — a narrow
+ * window loses them rather than getting a broken version of them. Measured, not guessed:
+ * 1180 px is where "P2P sync and reorg handling" stops clearing the heading. */
+@media (max-width: 1180px) {
+  .stickers {
+    display: none;
+  }
 }

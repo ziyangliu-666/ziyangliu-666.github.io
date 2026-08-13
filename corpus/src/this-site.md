@@ -18,7 +18,7 @@ and fetch a URL — while validating that the request is one this site could pla
 made. It is a keyholder, not the agent.
 
 **Retrieval.** The corpus is built ahead of time from his résumé (English and Chinese),
-his arXiv preprints, his writing, and his own GitHub repositories, chunked and indexed
+his arXiv preprints, and his own GitHub repositories and pull requests, chunked and indexed
 into BM25. The index ships as a JSON file the page fetches on the first question. There
 is no vector database and no embedding call at query time: on a corpus this size, lexical
 retrieval with the model reformulating its own queries is both cheaper and easier to

@@ -44,10 +44,9 @@ export interface ToolDef {
 }
 
 const KIND_GROUPS: Record<string, Kind[]> = {
-  all: ["resume", "paper", "writing", "repo", "profile", "project"],
+  all: ["resume", "paper", "repo", "profile", "project"],
   resume: ["resume"],
   papers: ["paper"],
-  writing: ["writing"],
   repos: ["repo"],
   profile: ["profile", "project"],
 };
@@ -91,7 +90,7 @@ const retrieve: ToolDef = {
             type: "string",
             enum: Object.keys(KIND_GROUPS),
             description:
-              "Narrow to one part of the corpus. 'resume' for roles and dates, 'papers' for the arXiv preprints, 'writing' for blog posts, 'repos' for GitHub, 'profile' for the biography and the Exfer project. Omit to search everything.",
+              "Narrow to one part of the corpus. 'resume' for roles and dates, 'papers' for the arXiv preprints, 'repos' for GitHub repositories and pull requests, 'profile' for the biography and the Exfer project. Omit to search everything.",
           },
           limit: {
             type: "integer",
