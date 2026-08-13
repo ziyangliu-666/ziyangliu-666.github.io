@@ -407,12 +407,23 @@ const githubActivity: ToolDef = {
  * consent gate is actually implemented" can be answered from the code rather than from the
  * description of the code. */
 
-interface GhContentEntry {
-  name: string;
+/* GitHub's REST API is only partly usable from a browser. Verified against the live API
+ * from the deployed origin: `/users/:u/repos`, `/repos/:o/:r`, `/git/trees`, `/pulls/*`,
+ * `/issues/:n/comments`, `/search/issues` and raw.githubusercontent.com all send
+ * `Access-Control-Allow-Origin`. **`/repos/:o/:r/contents/*` sends none at all** and is
+ * therefore unreachable from the page. So the tree comes from the Git Trees API — one call
+ * for the whole repository rather than a request per directory — and file bodies come from
+ * raw.githubusercontent.com, which also skips the base64 round trip. */
+
+interface GhTreeEntry {
   path: string;
-  type: "file" | "dir" | string;
-  size: number;
+  type: "blob" | "tree" | string;
+  size?: number;
 }
+
+/** Build noise nobody asks about, and it would fill the listing. */
+const TREE_NOISE =
+  /(^|\/)(node_modules|target|dist|build|\.git|\.github\/workflows\/cache|__pycache__|\.venv|vendor|coverage)(\/|$)|(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|Cargo\.lock|poetry\.lock)$|\.(png|jpg|jpeg|gif|webp|ico|woff2?|ttf|otf|mp4|zip|gz|wasm|pdf)$/i;
 
 /** Resolve "exfer-mcp" or "exfer-stack/exfer-mcp" to an owner/name pair we are allowed to read. */
 async function resolveRepo(
@@ -485,28 +496,45 @@ const repoTree: ToolDef = {
     const resolved = await resolveRepo(str(args.repo), ctx.signal);
     if ("error" in resolved) return { result: resolved.error, display: "refused" };
 
-    const dir = str(args.path).replace(/^\/+|\/+$/g, "");
+    const prefix = str(args.path).replace(/^\/+|\/+$/g, "");
     const res = await fetch(
-      `https://api.github.com/repos/${resolved.owner}/${resolved.name}/contents/${dir}`,
+      `https://api.github.com/repos/${resolved.owner}/${resolved.name}/git/trees/HEAD?recursive=1`,
       { headers: { accept: "application/vnd.github+json" }, signal: ctx.signal },
     );
     if (!res.ok) {
       return {
-        result: githubFailure(res.status, `${resolved.name}/${dir || "(root)"}`),
+        result: githubFailure(res.status, `${resolved.name} tree`),
         display: `failed ${res.status}`,
       };
     }
 
-    const body = (await res.json()) as GhContentEntry[] | GhContentEntry;
-    const entries = Array.isArray(body) ? body : [body];
-    const listing = entries
-      .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === "dir" ? -1 : 1))
-      .map((e) => (e.type === "dir" ? `${e.path}/` : `${e.path}  (${e.size} bytes)`))
+    const body = (await res.json()) as { tree?: GhTreeEntry[]; truncated?: boolean };
+    const all = (body.tree ?? []).filter((e) => e.type === "blob");
+    const scoped = all
+      .filter((e) => !TREE_NOISE.test(e.path))
+      .filter((e) => !prefix || e.path === prefix || e.path.startsWith(`${prefix}/`));
+
+    if (!scoped.length) {
+      return {
+        result: `Nothing under "${prefix || "/"}" in ${resolved.name}. The repository has ${all.length} files; try a different path or omit it.`,
+        display: "0 files",
+      };
+    }
+
+    const shown = scoped.slice(0, 250);
+    const listing = shown
+      .sort((a, b) => a.path.localeCompare(b.path))
+      .map((e) => `${e.path}${e.size ? `  (${e.size} bytes)` : ""}`)
       .join("\n");
 
+    const note =
+      shown.length < scoped.length
+        ? `\n… ${scoped.length - shown.length} more; narrow with the path argument.`
+        : "";
+
     return {
-      result: `${resolved.owner}/${resolved.name}${dir ? `/${dir}` : ""}\n\n${clamp(listing, 3000)}`,
-      display: `${entries.length} entries`,
+      result: `${resolved.owner}/${resolved.name}${prefix ? `/${prefix}` : ""} — ${scoped.length} files\n\n${listing}${note}`,
+      display: `${scoped.length} files`,
       sources: [
         {
           label: `${resolved.owner}/${resolved.name}`,
@@ -547,8 +575,8 @@ const readFile: ToolDef = {
     if (!filePath) return { result: "Which file? Pass a path.", display: "no path" };
 
     const res = await fetch(
-      `https://api.github.com/repos/${resolved.owner}/${resolved.name}/contents/${filePath}`,
-      { headers: { accept: "application/vnd.github+json" }, signal: ctx.signal },
+      `https://raw.githubusercontent.com/${resolved.owner}/${resolved.name}/HEAD/${filePath}`,
+      { signal: ctx.signal },
     );
     if (!res.ok) {
       return {
@@ -557,32 +585,14 @@ const readFile: ToolDef = {
       };
     }
 
-    const body = (await res.json()) as {
-      content?: string;
-      encoding?: string;
-      size?: number;
-      type?: string;
-      html_url?: string;
-    };
-    if (body.type === "dir") {
+    const text = await res.text();
+    // A binary file arrives as U+FFFD replacement characters, not as an error.
+    if (/\uFFFD{3,}/.test(text.slice(0, 2000))) {
       return {
-        result: `${filePath} is a directory. Use github_repo_tree to list it.`,
-        display: "is a directory",
+        result: `${filePath} is binary, so there is nothing to read.`,
+        display: "binary",
       };
     }
-    if (body.encoding !== "base64" || !body.content) {
-      return {
-        result: `${filePath} is not readable as text (probably binary, ${body.size ?? "?"} bytes).`,
-        display: "not text",
-      };
-    }
-
-    // atob yields Latin-1; the bytes have to go through TextDecoder or every
-    // non-ASCII character in a source file arrives mangled.
-    const bytes = Uint8Array.from(atob(body.content.replace(/\n/g, "")), (c) =>
-      c.charCodeAt(0),
-    );
-    const text = new TextDecoder().decode(bytes);
 
     return {
       result: clamp(
@@ -593,9 +603,7 @@ const readFile: ToolDef = {
       sources: [
         {
           label: `${resolved.name}/${filePath}`,
-          url:
-            body.html_url ??
-            `https://github.com/${resolved.owner}/${resolved.name}/blob/HEAD/${filePath}`,
+          url: `https://github.com/${resolved.owner}/${resolved.name}/blob/HEAD/${filePath}`,
         },
       ],
     };
