@@ -68,7 +68,7 @@ const RUNS: Run[] = [
       "As of August 2026 he has just started an M.Tech. in Software Engineering at the National University of Singapore.\n\nImmediately before that, two things ran in parallel: a year at HKUST (Guangzhou) on LLM systems — agent memory, decoding, interpretability — which produced three arXiv preprints, and Exfer, where he spent the summer on the chain internals and the in-wallet agent.",
     sources: [
       { label: "Who Ziyang Liu is", url: "/resume.pdf" },
-      { label: "arXiv:2604.12376", url: "https://arxiv.org/pdf/2604.12376" },
+      { label: "arXiv:2604.12376", url: "https://arxiv.org/pdf/2604.12376v1" },
     ],
     suggestions: ["What were the preprints about?", "Why the move from virtualization to LLM systems?"],
     usage: { model: "offline demo", inputTokens: 11380, outputTokens: 168 },
@@ -102,7 +102,7 @@ const RUNS: Run[] = [
     text:
       "He came to LLM systems from three years of production virtualization, where a silent data corruption ends a company rather than a sprint. The habit that leaves is a preference for guarantees over demos.\n\nIt shows up in the research: a hosted provider's \"you are talking to the model you paid for\" becomes a commitment opened against a Merkle root; an editing model's \"most of this file is unchanged\" becomes a grammar where copying is a token and the copy is valid by construction. Same move as hashing both disks block by block instead of trusting that the transfer reported OK.",
     sources: [
-      { label: "arXiv:2604.18179", url: "https://arxiv.org/pdf/2604.18179" },
+      { label: "arXiv:2604.18179", url: "https://arxiv.org/pdf/2604.18179v1" },
       { label: "resume.pdf", url: "/resume.pdf" },
     ],
     suggestions: ["Explain the committed SAE-feature traces paper.", "What does he want to work on next?"],

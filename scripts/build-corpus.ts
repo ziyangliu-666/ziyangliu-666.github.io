@@ -111,7 +111,7 @@ const PAPERS = [
     id: "paper-copy-as-decode",
     file: "2604.18170v1.pdf",
     title: "Copy-as-Decode: Grammar-Constrained Parallel Prefill for LLM Editing",
-    url: "https://arxiv.org/pdf/2604.18170",
+    url: "https://arxiv.org/pdf/2604.18170v1",
     date: "2026-04-20",
   },
   {
@@ -119,7 +119,7 @@ const PAPERS = [
     file: "2604.12376v1.pdf",
     title:
       "Cooperative Memory Paging with Keyword Bookmarks for Long-Horizon LLM Conversations",
-    url: "https://arxiv.org/pdf/2604.12376",
+    url: "https://arxiv.org/pdf/2604.12376v1",
     date: "2026-04-14",
   },
   {
@@ -127,7 +127,7 @@ const PAPERS = [
     file: "2604.18179v1.pdf",
     title:
       "Committed SAE-Feature Traces for Audited-Session Substitution Detection in Hosted LLMs",
-    url: "https://arxiv.org/pdf/2604.18179",
+    url: "https://arxiv.org/pdf/2604.18179v1",
     date: "2026-04-20",
   },
 ] as const;

@@ -80,7 +80,7 @@ repository, a paper, or a page the reader will want to open. The document "Where
 lives" holds the canonical URL for each one. Read that document rather than guess a URL.
 Never invent one.
 
-Link an arXiv paper to its PDF: \`https://arxiv.org/pdf/<id>\`. Never link the \`/abs/\`
+Link an arXiv paper to its PDF, with the version suffix: \`https://arxiv.org/pdf/<id>v1\`. Never link the \`/abs/\`
 abstract page. You have seen many \`/abs/\` URLs before, so this is a case where recall will
 give you the wrong form. A reader who clicks a paper wants to read the paper.
 

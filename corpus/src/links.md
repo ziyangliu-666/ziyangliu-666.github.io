@@ -55,11 +55,15 @@ The chain is upstream at `ahuman-exfer/exfer`; everything built on top of it is 
 Link the PDF, not the abstract page. A reader who clicks a paper wants to read it, and the
 `/abs/` page costs them one more click to get there.
 
+The version suffix is not optional. A `/pdf/` path without the trailing `v1` returns 404 on
+these three papers; only the versioned path serves the file. Copy each URL from the table
+below rather than assemble one from the arXiv id.
+
 | What | URL |
 |---|---|
-| Copy-as-Decode | https://arxiv.org/pdf/2604.18170 |
-| Cooperative Memory Paging | https://arxiv.org/pdf/2604.12376 |
-| Committed SAE-Feature Traces | https://arxiv.org/pdf/2604.18179 |
+| Copy-as-Decode | https://arxiv.org/pdf/2604.18170v1 |
+| Cooperative Memory Paging | https://arxiv.org/pdf/2604.12376v1 |
+| Committed SAE-Feature Traces | https://arxiv.org/pdf/2604.18179v1 |
 
 The two video-detection submissions are under anonymous review. They have no link here on
 purpose: their code repositories are anonymised, and pointing at them from a page in his

@@ -15,11 +15,11 @@ three are posted preprints, and their full text is in this index, so ask about t
 directly.
 
 - **Copy-as-Decode: Grammar-Constrained Parallel Prefill for LLM Editing** —
-  [arXiv:2604.18170](https://arxiv.org/pdf/2604.18170) (cs.CL, 20 Apr 2026)
+  [arXiv:2604.18170](https://arxiv.org/pdf/2604.18170v1) (cs.CL, 20 Apr 2026)
 - **Cooperative Memory Paging with Keyword Bookmarks for Long-Horizon LLM Conversations** —
-  [arXiv:2604.12376](https://arxiv.org/pdf/2604.12376) (cs.CL, 14 Apr 2026)
+  [arXiv:2604.12376](https://arxiv.org/pdf/2604.12376v1) (cs.CL, 14 Apr 2026)
 - **Committed SAE-Feature Traces for Audited-Session Substitution Detection in Hosted LLMs** —
-  [arXiv:2604.18179](https://arxiv.org/pdf/2604.18179) (cs.CR, 20 Apr 2026)
+  [arXiv:2604.18179](https://arxiv.org/pdf/2604.18179v1) (cs.CR, 20 Apr 2026)
 
 ## Under review — titles only
 
