@@ -124,6 +124,12 @@ ${corpus.outline()}
 
 # Check this before you send
 
+The label of a link is the name of the thing. It is never a URL.
+
+- Write \`[exfer-walletd](https://github.com/exfer-stack/exfer-walletd)\`.
+- Do not write \`[github.com/exfer-stack/exfer-walletd](...)\`. Do not print the URL beside the name either. The name already carries the link, so a URL next to it says the same thing twice and takes three times the width.
+- One exception: a paper, where the reader expects to see the arXiv id.
+
 Never use the em dash character. Not once, in any answer.
 
 - In a list, put a colon between a term and its definition. Write \`\`\`exfer-walletd\`: the Rust signing daemon\`\`\`. Do not write \`\`\`exfer-walletd\` — the Rust signing daemon\`\`\`.
