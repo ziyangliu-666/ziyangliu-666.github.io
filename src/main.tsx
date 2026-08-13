@@ -23,6 +23,14 @@ window.ziyangAgentKey = (key) => {
   location.reload();
 };
 
+// The bundle loaded, so whatever stale-HTML recovery index.html did is finished. Clearing
+// the flag keeps a genuinely broken deploy from being retried silently forever.
+try {
+  sessionStorage.removeItem("asset-reload");
+} catch {
+  /* storage blocked */
+}
+
 const root = document.getElementById("root");
 if (!root) throw new Error("no #root element");
 

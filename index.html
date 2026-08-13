@@ -26,6 +26,34 @@
         background: #0b0b0d;
       }
     </style>
+    <!--
+      GitHub Pages serves this file with `cache-control: max-age=600` and replaces the
+      whole artifact on deploy, so for ten minutes after a release a returning visitor
+      holds a cached index.html pointing at a hashed bundle that is now a 404 — and the
+      app never boots, showing nothing at all. Catching the asset error and reloading
+      once past the HTML cache turns that blank page into a flicker. The flag is cleared
+      on a successful mount, so a genuinely broken deploy fails visibly instead of
+      looping.
+    -->
+    <script>
+      addEventListener(
+        "error",
+        function (event) {
+          var el = event.target;
+          if (!el || !el.tagName) return;
+          var url = el.src || el.href || "";
+          if (url.indexOf("/assets/") === -1) return;
+          try {
+            if (sessionStorage.getItem("asset-reload") === "1") return;
+            sessionStorage.setItem("asset-reload", "1");
+          } catch (e) {
+            return; // storage blocked: better a blank page than a reload loop
+          }
+          location.replace(location.pathname + "?v=" + Date.now());
+        },
+        true,
+      );
+    </script>
   </head>
   <body>
     <div id="root"></div>
