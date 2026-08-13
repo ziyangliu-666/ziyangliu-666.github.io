@@ -44,7 +44,27 @@ const UNDER_REVIEW_MARKERS = [
   "Anonymous Author(s)",
 ];
 
+/* Ziyang works under two GitHub accounts. `exfer-stack` is his own second account, the one
+ * the Exfer work was published from — the corpus has to say so, or the agent reports his
+ * own repositories as somebody else's. */
+const GITHUB_ACCOUNTS = ["ziyangliu-666", "exfer-stack"] as const;
 const GITHUB_USER = "ziyangliu-666";
+
+/* Pull requests carry the engineering detail that a repo description cannot: what was
+ * broken, what the fix was, what was verified. These are the accounts whose PRs are his. */
+const PR_SEARCH = "org:exfer-stack type:pr";
+
+/* exfer.info is the project's own documentation, 223k characters of it. Only the chapters
+ * that explain what the system is and why it is shaped that way are indexed — a visitor
+ * asks this agent what Ziyang built, not how to back up a node. */
+const EXFER_DOC_PAGES = [
+  { path: "", title: "Exfer documentation — introduction" },
+  { path: "concepts/why-machines.html", title: "Exfer — why a chain for machines" },
+  { path: "mining/how-it-works.html", title: "Exfer — how mining works" },
+  { path: "nodes.html", title: "Exfer — nodes" },
+  { path: "rpc/index.html", title: "Exfer — RPC surface" },
+  { path: "use/vault.html", title: "Exfer — vault" },
+] as const;
 
 type Kind = "resume" | "paper" | "writing" | "repo" | "profile" | "project";
 
@@ -447,13 +467,13 @@ function gh(endpoint: string): unknown {
   }
 }
 
-function repoDocs(): Doc[] {
+function repoDocs(account: string): Doc[] {
   const repos = gh(
-    `users/${GITHUB_USER}/repos?per_page=100&sort=pushed`,
+    `users/${account}/repos?per_page=100&sort=pushed`,
   ) as GhRepo[] | null;
   if (!repos) {
     console.warn(
-      "! gh api failed — skipping repo docs. Run `gh auth login` for a complete corpus.",
+      `! gh api failed for ${account} — skipping its repos. Run \`gh auth login\` for a complete corpus.`,
     );
     return [];
   }
@@ -479,7 +499,7 @@ function repoDocs(): Doc[] {
       },
     ];
 
-    const readme = gh(`repos/${GITHUB_USER}/${r.name}/readme`) as {
+    const readme = gh(`repos/${account}/${r.name}/readme`) as {
       content?: string;
       encoding?: string;
     } | null;
@@ -495,7 +515,7 @@ function repoDocs(): Doc[] {
 
     return {
       id: `repo-${r.name.toLowerCase()}`,
-      title: `GitHub: ${r.name}`,
+      title: `GitHub: ${account}/${r.name}`,
       kind: "repo" as const,
       lang: "en" as const,
       url: r.html_url,
@@ -503,6 +523,124 @@ function repoDocs(): Doc[] {
       sections,
     };
   });
+}
+
+/* ------------------------------------------------------------- pull requests
+ *
+ * A PR body is the most detailed thing he writes about his own engineering: the failure,
+ * the contract that replaced it, and what was verified. One document per PR keeps
+ * retrieval precise — a question about the MCP handshake should land on that PR, not on a
+ * repository page that happens to mention MCP. */
+
+interface GhSearchItem {
+  number: number;
+  title: string;
+  body: string | null;
+  html_url: string;
+  state: string;
+  closed_at: string | null;
+  created_at: string;
+  repository_url: string;
+  user: { login: string };
+}
+
+function pullRequestDocs(): Doc[] {
+  const found = gh(
+    `search/issues?q=${encodeURIComponent(PR_SEARCH)}&per_page=100`,
+  ) as { items?: GhSearchItem[] } | null;
+  if (!found?.items?.length) {
+    console.warn("! no pull requests found — skipping");
+    return [];
+  }
+
+  return found.items
+    .filter((pr) => pr.body && pr.body.trim().length > 120)
+    .map((pr) => {
+      const repo = pr.repository_url.split("/").pop() ?? "repo";
+      const body = (pr.body ?? "")
+        // The Claude Code trailer is on most of them and says nothing about the change.
+        .replace(/🤖 Generated with \[Claude Code\][\s\S]*$/, "")
+        .replace(/<!--[\s\S]*?-->/g, "")
+        .trim();
+
+      return {
+        id: `pr-${repo}-${pr.number}`.toLowerCase(),
+        title: `${repo} #${pr.number}: ${pr.title}`,
+        kind: "repo" as const,
+        lang: "en" as const,
+        url: pr.html_url,
+        date: (pr.closed_at ?? pr.created_at).slice(0, 10),
+        sections: [
+          {
+            heading: `Pull request — ${repo} #${pr.number} (${pr.state})`,
+            text: `${pr.title}\n\n${body}`,
+          },
+        ],
+      };
+    });
+}
+
+/* -------------------------------------------------------------- exfer.info docs */
+
+async function exferDocs(): Promise<Doc[]> {
+  const out: Doc[] = [];
+
+  for (const page of EXFER_DOC_PAGES) {
+    const url = `https://exfer.info/${page.path}`;
+    let html: string;
+    try {
+      const res = await fetch(url, {
+        headers: { "user-agent": "ziyang-agent-corpus-builder" },
+      });
+      if (!res.ok) {
+        console.warn(`  ! ${url} returned ${res.status} — skipped`);
+        continue;
+      }
+      html = await res.text();
+    } catch (err) {
+      console.warn(`  ! ${url} unreachable (${String(err)}) — skipped`);
+      continue;
+    }
+
+    // mdBook wraps the chapter in <main>; taking only that drops the nav, the theme
+    // picker and the keyboard-shortcut help, which would otherwise be indexed on
+    // every single page and outrank the actual prose on short queries.
+    const main = /<main[^>]*>([\s\S]*?)<\/main>/i.exec(html);
+    const body = main?.[1] ?? html;
+
+    const text = body
+      .replace(/<(script|style|nav|svg)[\s\S]*?<\/\1>/gi, " ")
+      .replace(/<!--[\s\S]*?-->/g, " ")
+      .replace(/<\/(p|div|li|h[1-6]|tr|pre|blockquote)>/gi, "\n")
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .split("\n")
+      .map((l) => l.replace(/[ \t]+/g, " ").trim())
+      .filter(Boolean)
+      .join("\n");
+
+    if (text.length < 300) {
+      console.warn(`  ! ${url} extracted only ${text.length} chars — skipped`);
+      continue;
+    }
+
+    out.push({
+      id: `exfer-${page.path.replace(/[/.]/g, "-") || "index"}`,
+      title: page.title,
+      kind: "project",
+      lang: "en",
+      url,
+      sections: [{ heading: page.title, text }],
+    });
+  }
+
+  return out;
 }
 
 // ------------------------------------------------------------------------- build
@@ -537,7 +675,7 @@ function chunkDoc(doc: Doc): Chunk[] {
   return chunks;
 }
 
-function main() {
+async function main() {
   console.log("Building corpus…");
 
   const docs: Doc[] = [];
@@ -555,8 +693,14 @@ function main() {
   console.log("· profile notes");
   docs.push(...handwrittenDocs());
 
-  console.log("· github");
-  docs.push(...repoDocs());
+  console.log("· github repos");
+  for (const account of GITHUB_ACCOUNTS) docs.push(...repoDocs(account));
+
+  console.log("· pull requests");
+  docs.push(...pullRequestDocs());
+
+  console.log("· exfer documentation");
+  docs.push(...(await exferDocs()));
 
   const chunks = docs.flatMap(chunkDoc);
 
@@ -642,4 +786,4 @@ function main() {
   }
 }
 
-main();
+await main();

@@ -62,6 +62,16 @@ export const DENY_REPOS = new Set(["sae-feature-traces", "vidtide-anon"]);
 
 export const GITHUB_USER = "ziyangliu-666";
 
+/* Both of Ziyang's accounts. `exfer-stack` is his own second account, the one the Exfer
+ * work was published from. The repo-reading tools resolve a bare repository name against
+ * these two and refuse anything else — the agent reads his code, not the whole of GitHub.
+ *
+ * These calls go straight from the browser to api.github.com rather than through the
+ * proxy, and that is deliberate: unauthenticated GitHub allows 60 requests an hour per IP,
+ * so each visitor spends their own budget. Routed through the proxy, every visitor would
+ * share one 60/hour bucket and the first curious reader each hour would exhaust it. */
+export const GITHUB_ACCOUNTS = ["ziyangliu-666", "exfer-stack"] as const;
+
 export const LIMITS = {
   /** Tool-calling rounds in the main loop before we stop and answer with what we have. */
   maxIterations: 8,

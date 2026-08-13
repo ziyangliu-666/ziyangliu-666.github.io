@@ -27,10 +27,14 @@ const corpus = Corpus.fromBundle(
 const argv = process.argv.slice(2);
 const selfTest = argv.includes("--self-test");
 const kindIdx = argv.indexOf("--kind");
-const kinds =
-  kindIdx >= 0 ? ([argv[kindIdx + 1]] as Kind[]) : undefined;
+const kinds = kindIdx >= 0 ? ([argv[kindIdx + 1]] as Kind[]) : undefined;
+// Guard on kindIdx >= 0 before comparing indices: with --kind absent it is -1, and
+// `i !== kindIdx + 1` then silently swallowed the first word of every query.
 const query = argv
-  .filter((a, i) => a !== "--self-test" && i !== kindIdx && i !== kindIdx + 1)
+  .filter(
+    (a, i) =>
+      a !== "--self-test" && (kindIdx < 0 || (i !== kindIdx && i !== kindIdx + 1)),
+  )
   .join(" ")
   .trim();
 

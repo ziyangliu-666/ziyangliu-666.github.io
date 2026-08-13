@@ -6,7 +6,16 @@ url: https://exfer.info
 
 Exfer (May 2026 – August 2026, full-stack engineer, [exfer.info](https://exfer.info))
 is a proof-of-work chain for machine-to-machine payments, built with one other developer,
-plus the wallets and the in-wallet agent on top of it. The transaction fee is fixed in
+plus the wallets and the in-wallet agent on top of it.
+
+**The code is on GitHub under [exfer-stack](https://github.com/exfer-stack), which is
+Ziyang's own second account** — not a third party, not a dependency he happened to use.
+Everything under that account is his work on this project: `exfer-walletd` (the Rust signing
+daemon), `exfer-walletd-desktop` and `exfer-walletd-mobile` (the apps), `exfer-mcp` (the MCP
+server the agent spends through), `exfer-py` (the typed client), `exfer-indexer` (query an
+address without running a node), `exfer-honor` (release goods against a signed quote),
+`exfer-agent-miner`, and `get` (the installer). The chain itself is `exfer`, where the
+upstream pull requests landed. The documentation at exfer.info is the project's own. The transaction fee is fixed in
 the protocol rather than set by a fee market, because the payer is a machine that needs a
 predictable price. It has been live 90+ days with 550+ nodes across 28 countries, 180+
 miners, and 1.36 MH/s of hash rate.

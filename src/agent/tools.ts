@@ -7,7 +7,13 @@
 
 import type { Corpus, Kind } from "../rag/corpus";
 import type { Source } from "./events";
-import { DENY_REPOS, GITHUB_USER, LIMITS, PROXY_URL } from "./config";
+import {
+  DENY_REPOS,
+  GITHUB_ACCOUNTS,
+  GITHUB_USER,
+  LIMITS,
+  PROXY_URL,
+} from "./config";
 import type { ToolSpec } from "./provider";
 
 export interface ToolOutcome {
@@ -46,7 +52,7 @@ const KIND_GROUPS: Record<string, Kind[]> = {
   profile: ["profile", "project"],
 };
 
-function clamp(text: string, max = LIMITS.toolResultChars): string {
+function clamp(text: string, max: number = LIMITS.toolResultChars): string {
   if (text.length <= max) return text;
   return `${text.slice(0, max)}\n… [truncated at ${max} characters]`;
 }
@@ -394,6 +400,329 @@ const githubActivity: ToolDef = {
   },
 };
 
+/* ------------------------------------------------------- reading the repositories
+ *
+ * The indexed snapshot holds each repository's README and each pull request's body. These
+ * three tools go further and read the live repository, so a question like "show me how the
+ * consent gate is actually implemented" can be answered from the code rather than from the
+ * description of the code. */
+
+interface GhContentEntry {
+  name: string;
+  path: string;
+  type: "file" | "dir" | string;
+  size: number;
+}
+
+/** Resolve "exfer-mcp" or "exfer-stack/exfer-mcp" to an owner/name pair we are allowed to read. */
+async function resolveRepo(
+  input: string,
+  signal: AbortSignal,
+): Promise<{ owner: string; name: string } | { error: string }> {
+  const raw = str(input).trim().replace(/^https?:\/\/github\.com\//, "");
+  const parts = raw.split("/").filter(Boolean);
+
+  if (parts.length >= 2) {
+    const [owner, name] = parts as [string, string];
+    if (!GITHUB_ACCOUNTS.includes(owner as (typeof GITHUB_ACCOUNTS)[number])) {
+      return {
+        error: `This tool only reads Ziyang's own accounts (${GITHUB_ACCOUNTS.join(", ")}). "${owner}" is not one of them.`,
+      };
+    }
+    if (DENY_REPOS.has(name)) return { error: repoDenied(name) };
+    return { owner, name };
+  }
+
+  const name = parts[0] ?? "";
+  if (!name) return { error: "Which repository? Pass a name like exfer-mcp." };
+  if (DENY_REPOS.has(name)) return { error: repoDenied(name) };
+
+  // Bare name: try each account rather than making the model guess the owner.
+  for (const owner of GITHUB_ACCOUNTS) {
+    const res = await fetch(`https://api.github.com/repos/${owner}/${name}`, {
+      headers: { accept: "application/vnd.github+json" },
+      signal,
+    });
+    if (res.ok) return { owner, name };
+  }
+  return {
+    error: `No repository "${name}" under ${GITHUB_ACCOUNTS.join(" or ")}. Use github_activity to list what exists.`,
+  };
+}
+
+function repoDenied(name: string): string {
+  return `"${name}" is the anonymised artifact of a paper under review and is deliberately out of reach. Say the paper is under review and stop there.`;
+}
+
+const repoTree: ToolDef = {
+  spec: {
+    type: "function",
+    function: {
+      name: "github_repo_tree",
+      description:
+        "List what is in one of Ziyang's repositories: files and directories at a path. Use it to find the file worth reading before calling github_read_file — guessing a path wastes a call.",
+      parameters: {
+        type: "object",
+        properties: {
+          repo: {
+            type: "string",
+            description:
+              "Repository name, e.g. exfer-mcp, or owner/name for exactness.",
+          },
+          path: {
+            type: "string",
+            description: "Directory inside the repository. Omit for the root.",
+          },
+        },
+        required: ["repo"],
+        additionalProperties: false,
+      },
+    },
+  },
+  display: (args) =>
+    `${str(args.repo)}${args.path ? `/${str(args.path)}` : ""}`,
+  async run(args, ctx) {
+    const resolved = await resolveRepo(str(args.repo), ctx.signal);
+    if ("error" in resolved) return { result: resolved.error, display: "refused" };
+
+    const dir = str(args.path).replace(/^\/+|\/+$/g, "");
+    const res = await fetch(
+      `https://api.github.com/repos/${resolved.owner}/${resolved.name}/contents/${dir}`,
+      { headers: { accept: "application/vnd.github+json" }, signal: ctx.signal },
+    );
+    if (!res.ok) {
+      return {
+        result: githubFailure(res.status, `${resolved.name}/${dir || "(root)"}`),
+        display: `failed ${res.status}`,
+      };
+    }
+
+    const body = (await res.json()) as GhContentEntry[] | GhContentEntry;
+    const entries = Array.isArray(body) ? body : [body];
+    const listing = entries
+      .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === "dir" ? -1 : 1))
+      .map((e) => (e.type === "dir" ? `${e.path}/` : `${e.path}  (${e.size} bytes)`))
+      .join("\n");
+
+    return {
+      result: `${resolved.owner}/${resolved.name}${dir ? `/${dir}` : ""}\n\n${clamp(listing, 3000)}`,
+      display: `${entries.length} entries`,
+      sources: [
+        {
+          label: `${resolved.owner}/${resolved.name}`,
+          url: `https://github.com/${resolved.owner}/${resolved.name}`,
+        },
+      ],
+    };
+  },
+};
+
+const readFile: ToolDef = {
+  spec: {
+    type: "function",
+    function: {
+      name: "github_read_file",
+      description:
+        "Read one file from one of Ziyang's repositories. Quote the parts that answer the question rather than pasting the whole file, and name the path so the reader can follow the link.",
+      parameters: {
+        type: "object",
+        properties: {
+          repo: { type: "string", description: "Repository name or owner/name." },
+          path: {
+            type: "string",
+            description: "Path inside the repository, e.g. src/server.py.",
+          },
+        },
+        required: ["repo", "path"],
+        additionalProperties: false,
+      },
+    },
+  },
+  display: (args) => `${str(args.repo)}/${str(args.path)}`,
+  async run(args, ctx) {
+    const resolved = await resolveRepo(str(args.repo), ctx.signal);
+    if ("error" in resolved) return { result: resolved.error, display: "refused" };
+
+    const filePath = str(args.path).replace(/^\/+/, "");
+    if (!filePath) return { result: "Which file? Pass a path.", display: "no path" };
+
+    const res = await fetch(
+      `https://api.github.com/repos/${resolved.owner}/${resolved.name}/contents/${filePath}`,
+      { headers: { accept: "application/vnd.github+json" }, signal: ctx.signal },
+    );
+    if (!res.ok) {
+      return {
+        result: githubFailure(res.status, `${resolved.name}/${filePath}`),
+        display: `failed ${res.status}`,
+      };
+    }
+
+    const body = (await res.json()) as {
+      content?: string;
+      encoding?: string;
+      size?: number;
+      type?: string;
+      html_url?: string;
+    };
+    if (body.type === "dir") {
+      return {
+        result: `${filePath} is a directory. Use github_repo_tree to list it.`,
+        display: "is a directory",
+      };
+    }
+    if (body.encoding !== "base64" || !body.content) {
+      return {
+        result: `${filePath} is not readable as text (probably binary, ${body.size ?? "?"} bytes).`,
+        display: "not text",
+      };
+    }
+
+    // atob yields Latin-1; the bytes have to go through TextDecoder or every
+    // non-ASCII character in a source file arrives mangled.
+    const bytes = Uint8Array.from(atob(body.content.replace(/\n/g, "")), (c) =>
+      c.charCodeAt(0),
+    );
+    const text = new TextDecoder().decode(bytes);
+
+    return {
+      result: clamp(
+        `${resolved.owner}/${resolved.name}/${filePath}\n\n${text}`,
+        8000,
+      ),
+      display: `${text.split("\n").length} lines`,
+      sources: [
+        {
+          label: `${resolved.name}/${filePath}`,
+          url:
+            body.html_url ??
+            `https://github.com/${resolved.owner}/${resolved.name}/blob/HEAD/${filePath}`,
+        },
+      ],
+    };
+  },
+};
+
+const readPull: ToolDef = {
+  spec: {
+    type: "function",
+    function: {
+      name: "github_pull",
+      description:
+        "Read a pull request from one of Ziyang's repositories: its description, the review discussion, and which files it touched. The index already holds the descriptions — reach for this when the discussion or the diff matters.",
+      parameters: {
+        type: "object",
+        properties: {
+          repo: { type: "string", description: "Repository name or owner/name." },
+          number: { type: "integer", description: "Pull request number." },
+        },
+        required: ["repo", "number"],
+        additionalProperties: false,
+      },
+    },
+  },
+  display: (args) => `${str(args.repo)} #${num(args.number, 0)}`,
+  async run(args, ctx) {
+    const resolved = await resolveRepo(str(args.repo), ctx.signal);
+    if ("error" in resolved) return { result: resolved.error, display: "refused" };
+
+    const number = num(args.number, 0);
+    if (!number) return { result: "Which pull request? Pass a number.", display: "no number" };
+
+    const base = `https://api.github.com/repos/${resolved.owner}/${resolved.name}`;
+    const headers = { accept: "application/vnd.github+json" };
+
+    const [prRes, filesRes, commentsRes, reviewsRes] = await Promise.all([
+      fetch(`${base}/pulls/${number}`, { headers, signal: ctx.signal }),
+      fetch(`${base}/pulls/${number}/files?per_page=100`, { headers, signal: ctx.signal }),
+      fetch(`${base}/issues/${number}/comments?per_page=50`, { headers, signal: ctx.signal }),
+      fetch(`${base}/pulls/${number}/comments?per_page=50`, { headers, signal: ctx.signal }),
+    ]);
+
+    if (!prRes.ok) {
+      return {
+        result: githubFailure(prRes.status, `${resolved.name}#${number}`),
+        display: `failed ${prRes.status}`,
+      };
+    }
+
+    const pr = (await prRes.json()) as {
+      title: string;
+      body: string | null;
+      state: string;
+      merged: boolean;
+      html_url: string;
+      additions: number;
+      deletions: number;
+      changed_files: number;
+      created_at: string;
+    };
+
+    const files = filesRes.ok
+      ? ((await filesRes.json()) as { filename: string; additions: number; deletions: number }[])
+      : [];
+    const comments = commentsRes.ok
+      ? ((await commentsRes.json()) as { user: { login: string }; body: string }[])
+      : [];
+    const reviews = reviewsRes.ok
+      ? ((await reviewsRes.json()) as {
+          user: { login: string };
+          path?: string;
+          body: string;
+        }[])
+      : [];
+
+    const parts = [
+      `${resolved.owner}/${resolved.name} #${number}: ${pr.title}`,
+      `${pr.state}${pr.merged ? ", merged" : ""} · +${pr.additions}/-${pr.deletions} across ${pr.changed_files} files · opened ${pr.created_at.slice(0, 10)}`,
+      "",
+      (pr.body ?? "(no description)").replace(
+        /🤖 Generated with \[Claude Code\][\s\S]*$/,
+        "",
+      ),
+    ];
+
+    if (files.length) {
+      parts.push(
+        "",
+        "Files changed:",
+        files
+          .slice(0, 40)
+          .map((f) => `  ${f.filename}  +${f.additions}/-${f.deletions}`)
+          .join("\n"),
+      );
+    }
+
+    const discussion = [
+      ...comments.map((c) => `${c.user.login}: ${c.body}`),
+      ...reviews.map(
+        (c) => `${c.user.login}${c.path ? ` on ${c.path}` : ""}: ${c.body}`,
+      ),
+    ].filter((line) => line.trim().length > 10);
+
+    if (discussion.length) {
+      parts.push("", "Discussion:", discussion.join("\n\n"));
+    }
+
+    return {
+      result: clamp(parts.join("\n")),
+      display: `+${pr.additions}/-${pr.deletions}, ${pr.changed_files} files, ${discussion.length} comments`,
+      sources: [
+        { label: `${resolved.name} #${number}`, url: pr.html_url },
+      ],
+    };
+  },
+};
+
+function githubFailure(status: number, what: string): string {
+  if (status === 404) {
+    return `GitHub has no ${what}. Check the path with github_repo_tree, or the repository name with github_activity.`;
+  }
+  if (status === 403) {
+    return "GitHub is rate-limiting this visitor (60 unauthenticated requests an hour). Answer from the index and say the live read was not available.";
+  }
+  return `GitHub returned ${status} for ${what}.`;
+}
+
 /* ------------------------------------------------------------- spawn_subagent */
 
 const spawnSubagent: ToolDef = {
@@ -447,13 +776,20 @@ export const TOOLS: Record<string, ToolDef> = {
   web_search: webSearch,
   fetch_url: fetchUrl,
   github_activity: githubActivity,
+  github_repo_tree: repoTree,
+  github_read_file: readFile,
+  github_pull: readPull,
   spawn_subagent: spawnSubagent,
 };
 
-/** Tools a sub-agent gets: read the index, report back. No web, no further spawning. */
+
+/* A sub-agent reads the index and the repositories, and reports back. No web, no further
+ * spawning — its job is to compress reading, not to start its own investigation. */
 export const SUBAGENT_TOOLS: Record<string, ToolDef> = {
   retrieve,
   read_document: readDocument,
+  github_repo_tree: repoTree,
+  github_read_file: readFile,
 };
 
 export function specsFor(tools: Record<string, ToolDef>): ToolSpec[] {

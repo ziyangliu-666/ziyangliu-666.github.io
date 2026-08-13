@@ -16,6 +16,11 @@ He is reachable at ziyang.liu.r@outlook.com, on GitHub as
 [ziyangliu-666](https://github.com/ziyangliu-666), and on
 [LinkedIn](https://www.linkedin.com/in/ziyangliu666).
 
+He publishes from two GitHub accounts, both his own:
+[ziyangliu-666](https://github.com/ziyangliu-666) for personal work, and
+[exfer-stack](https://github.com/exfer-stack) for the Exfer project — the chain, the
+wallets, the daemon, the MCP server, the indexer.
+
 ## The through-line
 
 Systems work under a correctness constraint. At SmartX he owned V2V OS, the product

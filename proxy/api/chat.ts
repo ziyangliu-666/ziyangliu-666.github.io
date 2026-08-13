@@ -23,6 +23,9 @@ const ALLOWED_TOOLS = new Set([
   "web_search",
   "fetch_url",
   "github_activity",
+  "github_repo_tree",
+  "github_read_file",
+  "github_pull",
   "spawn_subagent",
 ]);
 
