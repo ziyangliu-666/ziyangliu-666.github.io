@@ -1,0 +1,645 @@
+/* Corpus builder.
+ *
+ * Reads the source material, chunks it, builds a BM25 index, and writes everything
+ * the browser needs into public/corpus/.
+ *
+ * This runs LOCALLY, not in CI: the résumé and paper PDFs live outside the repository
+ * (~/Projects/resume, ~/Downloads) and are deliberately not committed. The build output
+ * IS committed, so `vite build` in CI needs nothing but the repo.
+ *
+ *   npm run corpus
+ *
+ * Anonymity rule, enforced here rather than left to discipline:
+ *   - The three under-review submissions contribute NO body text. Their titles live in
+ *     corpus/src/research.md, hand-written, and their PDFs are never read.
+ *   - Repositories that are anonymised artifacts of those submissions are on DENY_REPOS.
+ *     Linking them from a site in his name would defeat the anonymous review they are in.
+ * `npm run corpus` fails if either rule is violated.
+ */
+
+import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import matter from "gray-matter";
+import MiniSearch from "minisearch";
+import { processTerm, tokenize } from "../src/rag/tokenize";
+
+// ---------------------------------------------------------------- configuration
+
+const ROOT = path.resolve(import.meta.dirname, "..");
+const OUT_DIR = path.join(ROOT, "public", "corpus");
+const HOME = os.homedir();
+
+const RESUME_DIR = path.join(HOME, "Projects", "resume");
+const DOWNLOADS = path.join(HOME, "Downloads");
+
+/** Anonymised artifacts of papers still in anonymous review. Never index or link. */
+const DENY_REPOS = new Set(["sae-feature-traces", "vidtide-anon"]);
+
+/** Titles that must never appear in indexed body text (only in the hand-written note). */
+const UNDER_REVIEW_MARKERS = [
+  "Anonymous ACL submission",
+  "Anonymous Author(s)",
+];
+
+const GITHUB_USER = "ziyangliu-666";
+
+type Kind = "resume" | "paper" | "writing" | "repo" | "profile" | "project";
+
+interface Section {
+  heading: string;
+  text: string;
+}
+
+interface Doc {
+  id: string;
+  title: string;
+  kind: Kind;
+  lang: "en" | "zh";
+  url?: string;
+  date?: string;
+  sections: Section[];
+}
+
+interface Chunk {
+  id: string;
+  docId: string;
+  docTitle: string;
+  heading: string;
+  kind: Kind;
+  lang: "en" | "zh";
+  url?: string;
+  date?: string;
+  text: string;
+}
+
+const PAPERS = [
+  {
+    id: "paper-copy-as-decode",
+    file: "2604.18170v1.pdf",
+    title: "Copy-as-Decode: Grammar-Constrained Parallel Prefill for LLM Editing",
+    url: "https://arxiv.org/abs/2604.18170",
+    date: "2026-04-20",
+  },
+  {
+    id: "paper-memory-paging",
+    file: "2604.12376v1.pdf",
+    title:
+      "Cooperative Memory Paging with Keyword Bookmarks for Long-Horizon LLM Conversations",
+    url: "https://arxiv.org/abs/2604.12376",
+    date: "2026-04-14",
+  },
+  {
+    id: "paper-sae-traces",
+    file: "2604.18179v1.pdf",
+    title:
+      "Committed SAE-Feature Traces for Audited-Session Substitution Detection in Hosted LLMs",
+    url: "https://arxiv.org/abs/2604.18179",
+    date: "2026-04-20",
+  },
+] as const;
+
+// ---------------------------------------------------------------------- helpers
+
+const sourceHashes: Record<string, string> = {};
+
+function readSource(file: string): Buffer {
+  if (!fs.existsSync(file)) {
+    throw new Error(
+      `Missing source: ${file}\n` +
+        `The corpus is built from files outside the repo. Fix the path in scripts/build-corpus.ts ` +
+        `or restore the file, then re-run \`npm run corpus\`.`,
+    );
+  }
+  const buf = fs.readFileSync(file);
+  sourceHashes[path.relative(HOME, file)] = createHash("sha256")
+    .update(buf)
+    .digest("hex")
+    .slice(0, 16);
+  return buf;
+}
+
+function pdfToText(file: string, opts: { layout?: boolean } = {}): string {
+  readSource(file); // presence + hash
+  const args = ["-nopgbrk", "-enc", "UTF-8"];
+  if (opts.layout) args.push("-layout");
+  args.push(file, "-");
+  try {
+    return execFileSync("pdftotext", args, {
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024,
+    });
+  } catch (err) {
+    throw new Error(
+      `pdftotext failed on ${file}. Install poppler (\`brew install poppler\`).\n${String(err)}`,
+    );
+  }
+}
+
+/** pdftotext leaves justification hyphens at line ends; rejoin those words. */
+function dehyphenate(text: string): string {
+  return text.replace(/(\p{Ll})[-‑]\n\s*(\p{Ll})/gu, "$1$2");
+}
+
+function normalizeLines(text: string): string[] {
+  return dehyphenate(text)
+    .split("\n")
+    .map((l) => l.replace(/\s+/g, " ").trim());
+}
+
+/** Group paragraphs into chunks of roughly `target` characters, never splitting one. */
+function packParagraphs(paragraphs: string[], target: number): string[] {
+  const out: string[] = [];
+  let buf = "";
+  for (const p of paragraphs) {
+    if (!p) continue;
+    if (buf && buf.length + p.length + 2 > target) {
+      out.push(buf);
+      buf = p;
+    } else {
+      buf = buf ? `${buf}\n\n${p}` : p;
+    }
+  }
+  if (buf) out.push(buf);
+  return out;
+}
+
+/** A paragraph longer than `limit` is split on sentence boundaries. */
+function splitLongParagraph(p: string, limit: number): string[] {
+  if (p.length <= limit) return [p];
+  const sentences = p.split(/(?<=[.!?。！？])\s+/);
+  return packParagraphs(sentences, limit);
+}
+
+// ------------------------------------------------------------- résumé extraction
+
+const EN_SECTIONS = [
+  "EDUCATION",
+  "EXPERIENCE",
+  "PROJECT",
+  "PROJECTS",
+  "RESEARCH",
+  "SKILLS",
+  "HONOURS",
+  "HONORS",
+];
+const ZH_SECTIONS = [
+  "教育经历",
+  "工作经历",
+  "项目经历",
+  "项目",
+  "研究经历",
+  "研究",
+  "技能",
+  "荣誉",
+  "荣誉奖项",
+];
+
+/** `Jul 2024 – Sep 2025` or `2024.07 – 2025.09` or `May 2026 – Aug 2026` */
+const DATE_RANGE =
+  /((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}|\d{4}\.\d{2})\s*[–—-]\s*(Present|至今|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}|\d{4}\.\d{2})/;
+
+/* A bullet in this résumé opens with a short label and a colon —
+ * "Transfer throughput:", "VDDK version isolation:", "・VMTools：" in the Chinese one.
+ * Wrapped continuation lines have neither. Detecting the opening lets each bullet stay
+ * whole through chunking, so a retrieved chunk never starts halfway through a claim. */
+const BULLET_START =
+  /^(?:[・•]\s*)?(?:[A-Z][A-Za-z0-9 ()./+&-]{1,48}:|[\p{Script=Han}][^：]{1,24}：|[・•])/u;
+
+function resumeDoc(file: string, lang: "en" | "zh"): Doc {
+  const headings = lang === "en" ? EN_SECTIONS : ZH_SECTIONS;
+  const lines = normalizeLines(pdfToText(file, { layout: true }));
+
+  const sections: Section[] = [];
+  const header: string[] = [];
+  let current: { heading: string; blocks: { sub: string; bullets: string[] }[] } | null =
+    null;
+
+  const pushBlock = (sub: string) => {
+    if (!current) return;
+    current.blocks.push({ sub, bullets: [] });
+  };
+
+  for (const line of lines) {
+    if (!line) continue;
+    const isHeading = headings.some(
+      (h) => line === h || line.toUpperCase() === h.toUpperCase(),
+    );
+    if (isHeading) {
+      if (current) sections.push(...flattenResumeSection(current));
+      current = { heading: line, blocks: [] };
+      pushBlock("");
+      continue;
+    }
+    if (!current) {
+      header.push(line); // name and contact line, before the first section
+      continue;
+    }
+    // A line carrying a date range starts a new block and titles it.
+    if (DATE_RANGE.test(line)) {
+      pushBlock(line);
+      continue;
+    }
+    const block = current.blocks[current.blocks.length - 1]!;
+    if (BULLET_START.test(line) || block.bullets.length === 0) {
+      block.bullets.push(line);
+    } else {
+      // Wrapped continuation of the bullet above.
+      block.bullets[block.bullets.length - 1] += ` ${line}`;
+    }
+  }
+  if (current) sections.push(...flattenResumeSection(current));
+  if (header.length) sections.unshift({ heading: "Header", text: header.join("\n") });
+
+  const title =
+    lang === "en" ? "Résumé (English)" : "Résumé (Chinese) / 中文简历";
+  return {
+    id: lang === "en" ? "resume-en" : "resume-zh",
+    title,
+    kind: "resume",
+    lang,
+    url: lang === "en" ? "/resume.pdf" : "/resume-zh.pdf",
+    sections: sections.filter((s) => s.text.trim()),
+  };
+}
+
+function flattenResumeSection(section: {
+  heading: string;
+  blocks: { sub: string; bullets: string[] }[];
+}): Section[] {
+  const blocks = section.blocks
+    .map((b) => ({
+      sub: b.sub,
+      body: b.bullets.join("\n\n").trim(),
+    }))
+    .filter((b) => b.body || b.sub);
+  if (!blocks.length) return [];
+
+  const total = blocks.reduce((n, b) => n + b.sub.length + b.body.length, 0);
+
+  // Short sections — Education, Skills, Honours — read as one unit. Splitting them
+  // per date-range line would leave chunks of a dozen characters, which BM25 scores
+  // as suspiciously relevant to any query that happens to touch them.
+  if (total < 900) {
+    return [
+      {
+        heading: section.heading,
+        text: blocks
+          .map((b) => [b.sub, b.body].filter(Boolean).join("\n"))
+          .join("\n\n"),
+      },
+    ];
+  }
+
+  return blocks.map((b) => ({
+    heading: b.sub ? `${section.heading} — ${b.sub}` : section.heading,
+    text: [b.sub, b.body].filter(Boolean).join("\n"),
+  }));
+}
+
+// -------------------------------------------------------------- paper extraction
+
+const PAPER_HEADING =
+  /^(?:\d+(?:\.\d+)*\.?\s+)?(Abstract|Introduction|Related Work|Background|Method(?:s|ology)?|Approach|Preliminaries|Experiments?|Evaluation|Results?|Analysis|Ablations?|Discussion|Limitations?|Conclusions?|Threat Model|Protocol|Implementation|Setup)\b.{0,60}$/i;
+
+function paperDoc(spec: (typeof PAPERS)[number]): Doc {
+  const raw = pdfToText(path.join(DOWNLOADS, spec.file));
+
+  for (const marker of UNDER_REVIEW_MARKERS) {
+    if (raw.includes(marker)) {
+      throw new Error(
+        `${spec.file} looks like an anonymous submission ("${marker}"). ` +
+          `Under-review papers must not be indexed — see the anonymity rule at the top of this file.`,
+      );
+    }
+  }
+
+  // Everything from the bibliography on is citations; it adds noise, not answers.
+  const cut = raw.search(/\n\s*(References|REFERENCES|Bibliography)\s*\n/);
+  const body = cut > 0 ? raw.slice(0, cut) : raw;
+
+  const lines = normalizeLines(body).filter(
+    (l) => !/^arXiv:\d{4}\.\d{4,5}v\d+\s+\[/.test(l),
+  );
+
+  const sections: Section[] = [];
+  let heading = "Abstract";
+  let buf: string[] = [];
+  const flush = () => {
+    const text = buf.join("\n").trim();
+    if (text) sections.push({ heading, text });
+    buf = [];
+  };
+  for (const line of lines) {
+    if (PAPER_HEADING.test(line) && line.length < 80) {
+      flush();
+      heading = line.replace(/^\d+(?:\.\d+)*\.?\s+/, "");
+      continue;
+    }
+    buf.push(line);
+  }
+  flush();
+
+  return {
+    id: spec.id,
+    title: spec.title,
+    kind: "paper",
+    lang: "en",
+    url: spec.url,
+    date: spec.date,
+    sections,
+  };
+}
+
+// ------------------------------------------------------------ markdown / writing
+
+function splitMarkdownSections(body: string): Section[] {
+  const out: Section[] = [];
+  let heading = "";
+  let buf: string[] = [];
+  const flush = () => {
+    const text = buf.join("\n").trim();
+    if (text) out.push({ heading, text });
+    buf = [];
+  };
+  for (const line of body.split("\n")) {
+    const m = /^#{2,3}\s+(.*)$/.exec(line);
+    if (m) {
+      flush();
+      heading = m[1]!.trim();
+      continue;
+    }
+    buf.push(line);
+  }
+  flush();
+  return out;
+}
+
+function writingDocs(): Doc[] {
+  const dir = path.join(ROOT, "content", "blog");
+  if (!fs.existsSync(dir)) return [];
+  return fs
+    .readdirSync(dir)
+    .filter((f) => f.endsWith(".mdx"))
+    .map((file) => {
+      const slug = file.replace(/\.mdx$/, "");
+      const raw = readSource(path.join(dir, file)).toString("utf8");
+      const { data, content } = matter(raw);
+      const summary = typeof data.summary === "string" ? data.summary : "";
+      const sections = splitMarkdownSections(content);
+      if (summary) sections.unshift({ heading: "Summary", text: summary });
+      return {
+        id: `writing-${slug}`,
+        title: (data.title as string) ?? slug,
+        kind: "writing" as const,
+        lang: "en" as const,
+        date: data.date as string | undefined,
+        sections,
+      };
+    });
+}
+
+function handwrittenDocs(): Doc[] {
+  const dir = path.join(ROOT, "corpus", "src");
+  if (!fs.existsSync(dir)) return [];
+  return fs
+    .readdirSync(dir)
+    .filter((f) => f.endsWith(".md"))
+    .map((file) => {
+      const raw = readSource(path.join(dir, file)).toString("utf8");
+      const { data, content } = matter(raw);
+      return {
+        id: `about-${file.replace(/\.md$/, "")}`,
+        title: (data.title as string) ?? file,
+        kind: ((data.kind as Kind) ?? "profile") as Kind,
+        lang: "en" as const,
+        url: data.url as string | undefined,
+        sections: splitMarkdownSections(content),
+      };
+    });
+}
+
+// ------------------------------------------------------------------ GitHub repos
+
+interface GhRepo {
+  name: string;
+  description: string | null;
+  html_url: string;
+  language: string | null;
+  stargazers_count: number;
+  pushed_at: string;
+  fork: boolean;
+  archived: boolean;
+  topics?: string[];
+}
+
+function gh(endpoint: string): unknown {
+  try {
+    const out = execFileSync("gh", ["api", endpoint], {
+      encoding: "utf8",
+      maxBuffer: 16 * 1024 * 1024,
+    });
+    return JSON.parse(out);
+  } catch {
+    return null;
+  }
+}
+
+function repoDocs(): Doc[] {
+  const repos = gh(
+    `users/${GITHUB_USER}/repos?per_page=100&sort=pushed`,
+  ) as GhRepo[] | null;
+  if (!repos) {
+    console.warn(
+      "! gh api failed — skipping repo docs. Run `gh auth login` for a complete corpus.",
+    );
+    return [];
+  }
+
+  const own = repos.filter((r) => !r.fork && !DENY_REPOS.has(r.name));
+  const skipped = repos.filter((r) => !r.fork && DENY_REPOS.has(r.name));
+  for (const r of skipped) {
+    console.log(`  · skipped ${r.name} (anonymity denylist)`);
+  }
+
+  return own.map((r) => {
+    const sections: Section[] = [
+      {
+        heading: "Repository",
+        text: [
+          `${r.name} — ${r.description ?? "no description"}`,
+          `Language: ${r.language ?? "n/a"}. Stars: ${r.stargazers_count}. Last push: ${r.pushed_at.slice(0, 10)}.`,
+          r.topics?.length ? `Topics: ${r.topics.join(", ")}.` : "",
+          r.archived ? "This repository is archived." : "",
+        ]
+          .filter(Boolean)
+          .join("\n"),
+      },
+    ];
+
+    const readme = gh(`repos/${GITHUB_USER}/${r.name}/readme`) as {
+      content?: string;
+      encoding?: string;
+    } | null;
+    if (readme?.content && readme.encoding === "base64") {
+      const text = Buffer.from(readme.content, "base64")
+        .toString("utf8")
+        .replace(/<!--[\s\S]*?-->/g, "")
+        .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+        .trim()
+        .slice(0, 4000);
+      if (text) sections.push({ heading: "README", text });
+    }
+
+    return {
+      id: `repo-${r.name.toLowerCase()}`,
+      title: `GitHub: ${r.name}`,
+      kind: "repo" as const,
+      lang: "en" as const,
+      url: r.html_url,
+      date: r.pushed_at.slice(0, 10),
+      sections,
+    };
+  });
+}
+
+// ------------------------------------------------------------------------- build
+
+function chunkDoc(doc: Doc): Chunk[] {
+  // Papers are dense and argue across paragraphs, so they get bigger chunks;
+  // résumé bullets are self-contained and read better small.
+  const target = doc.kind === "paper" ? 1300 : 750;
+  const chunks: Chunk[] = [];
+  let n = 0;
+
+  for (const section of doc.sections) {
+    const paragraphs = section.text
+      .split(/\n{2,}/)
+      .flatMap((p) => splitLongParagraph(p.trim(), target * 2))
+      .filter(Boolean);
+
+    for (const text of packParagraphs(paragraphs, target)) {
+      chunks.push({
+        id: `${doc.id}#${n++}`,
+        docId: doc.id,
+        docTitle: doc.title,
+        heading: section.heading,
+        kind: doc.kind,
+        lang: doc.lang,
+        url: doc.url,
+        date: doc.date,
+        text,
+      });
+    }
+  }
+  return chunks;
+}
+
+function main() {
+  console.log("Building corpus…");
+
+  const docs: Doc[] = [];
+
+  console.log("· résumé");
+  docs.push(resumeDoc(path.join(RESUME_DIR, "resume.pdf"), "en"));
+  docs.push(resumeDoc(path.join(RESUME_DIR, "resume-zh.pdf"), "zh"));
+
+  console.log("· preprints");
+  for (const spec of PAPERS) docs.push(paperDoc(spec));
+
+  console.log("· writing");
+  docs.push(...writingDocs());
+
+  console.log("· profile notes");
+  docs.push(...handwrittenDocs());
+
+  console.log("· github");
+  docs.push(...repoDocs());
+
+  const chunks = docs.flatMap(chunkDoc);
+
+  // Anonymity assertion: nothing under review may have leaked into a chunk.
+  const denied = [...DENY_REPOS];
+  for (const chunk of chunks) {
+    for (const name of denied) {
+      if (chunk.text.includes(name) && chunk.kind !== "profile") {
+        throw new Error(
+          `Chunk ${chunk.id} mentions denylisted repo "${name}". Remove it before shipping.`,
+        );
+      }
+    }
+  }
+
+  const mini = new MiniSearch<Chunk>({
+    idField: "id",
+    fields: ["text", "heading", "docTitle"],
+    storeFields: ["docId", "docTitle", "heading", "kind", "lang", "url", "date"],
+    tokenize,
+    processTerm,
+  });
+  mini.addAll(chunks);
+
+  fs.rmSync(OUT_DIR, { recursive: true, force: true });
+  fs.mkdirSync(path.join(OUT_DIR, "docs"), { recursive: true });
+
+  const manifest = docs.map((d) => ({
+    id: d.id,
+    title: d.title,
+    kind: d.kind,
+    lang: d.lang,
+    url: d.url,
+    date: d.date,
+    sections: d.sections.map((s) => s.heading),
+    chunks: chunks.filter((c) => c.docId === d.id).length,
+  }));
+
+  const bundle = {
+    version: 1,
+    builtAt: new Date().toISOString().slice(0, 10),
+    docs: manifest,
+    chunks: Object.fromEntries(chunks.map((c) => [c.id, c.text])),
+    index: mini.toJSON(),
+  };
+
+  fs.writeFileSync(
+    path.join(OUT_DIR, "index.json"),
+    JSON.stringify(bundle),
+    "utf8",
+  );
+
+  for (const doc of docs) {
+    fs.writeFileSync(
+      path.join(OUT_DIR, "docs", `${doc.id}.json`),
+      JSON.stringify(doc),
+      "utf8",
+    );
+  }
+
+  // The header's Résumé link needs the PDF served from the site.
+  fs.copyFileSync(
+    path.join(RESUME_DIR, "resume.pdf"),
+    path.join(ROOT, "public", "resume.pdf"),
+  );
+  fs.copyFileSync(
+    path.join(RESUME_DIR, "resume-zh.pdf"),
+    path.join(ROOT, "public", "resume-zh.pdf"),
+  );
+
+  fs.writeFileSync(
+    path.join(ROOT, "corpus.lock.json"),
+    JSON.stringify({ builtAt: bundle.builtAt, sources: sourceHashes }, null, 2),
+    "utf8",
+  );
+
+  const bytes = fs.statSync(path.join(OUT_DIR, "index.json")).size;
+  console.log(
+    `\n${docs.length} documents, ${chunks.length} chunks, index.json ${(bytes / 1024).toFixed(0)} KB`,
+  );
+  for (const d of manifest) {
+    console.log(`  ${d.chunks.toString().padStart(3)}  ${d.kind.padEnd(8)} ${d.title}`);
+  }
+}
+
+main();

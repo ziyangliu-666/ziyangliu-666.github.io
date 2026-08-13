@@ -1,0 +1,1 @@
+{"root":["./scripts/build-corpus.ts","./scripts/query-corpus.ts","./vite.config.ts"],"version":"5.9.3"}

@@ -1,25 +1,29 @@
 {
   "name": "ziyangliu-666.github.io",
-  "version": "0.1.0",
   "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Ziyang Agent — ask anything about Ziyang. The agent harness runs in the browser.",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start"
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "corpus": "tsx scripts/build-corpus.ts",
+    "typecheck": "tsc -b --noEmit"
   },
   "dependencies": {
-    "gray-matter": "^4.0.3",
-    "next": "16.1.6",
-    "next-mdx-remote": "^6.0.0",
-    "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "minisearch": "^7.1.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "gray-matter": "^4.0.3",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vite": "^7.1.0"
   }
 }

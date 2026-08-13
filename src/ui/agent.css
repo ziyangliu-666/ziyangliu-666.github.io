@@ -1,0 +1,672 @@
+/* Ported from `Ziyang Agent.dc.html`. Every value here came from an inline style in that
+ * file; classes replace the inline attributes so hover and active states can be real CSS
+ * rather than the design tool's `style-hover` attribute. Keep the values in step with the
+ * design project — if a colour changes there, change it here, not by eye. */
+
+:root {
+  --bg: #0b0b0d;
+  --ink: #f2f2f4;
+  --surface: #16161a;
+  --surface-2: #1b1b20;
+  --line: #23232a;
+  --muted: #9a9aa1;
+  --muted-2: #7b7b84;
+  --faint: #5c5c65;
+  --btn: #2b2b32;
+  --btn-hover: #3a3a43;
+  --btn-active: #232329;
+  --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+}
+
+a {
+  color: #c9c9ce;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #ffffff;
+}
+
+textarea {
+  font-family: inherit;
+}
+
+::selection {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.35);
+  outline-offset: 2px;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #26262b;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@keyframes rl-fade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes rl-pulse {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* ------------------------------------------------------------------ shell */
+
+.app {
+  min-height: 100vh;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 32px;
+  flex: 0 0 auto;
+  gap: 16px;
+}
+
+.hdr-left {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.wordmark {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  color: #f7f7f9;
+}
+
+.linkbtn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 12.5px;
+  color: #63636b;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.linkbtn:hover {
+  color: #b9b9c0;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+.nav a {
+  color: var(--muted);
+}
+
+.nav a:hover {
+  color: var(--ink);
+}
+
+/* ---------------------------------------------------------------- landing */
+
+.landing {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 24px 8vh;
+}
+
+.h1 {
+  margin: 0 0 36px;
+  text-align: center;
+  font-size: 44px;
+  line-height: 1.15;
+  font-weight: 450;
+  letter-spacing: -0.024em;
+  color: #f4f4f6;
+  perspective: 520px;
+}
+
+.tilt {
+  display: inline-block;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.composer-wrap {
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px 14px 14px 18px;
+}
+
+.composer textarea {
+  flex: 1 1 auto;
+  resize: none;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1.5;
+  padding: 6px 0;
+  max-height: 180px;
+}
+
+.iconbtn {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  border: none;
+  background: var(--btn);
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+
+.iconbtn:hover {
+  background: var(--btn-hover);
+}
+
+.iconbtn:active {
+  background: var(--btn-active);
+}
+
+.iconbtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  border: 1px solid #212128;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13.5px;
+  line-height: 1;
+  padding: 10px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    color 140ms ease,
+    border-color 140ms ease,
+    background 140ms ease;
+  font-family: inherit;
+}
+
+.chip:hover {
+  color: var(--ink);
+  border-color: #33333c;
+  background: #131317;
+}
+
+/* ------------------------------------------------------------------- chat */
+
+.chat {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px 24px 24px;
+}
+
+.thread {
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 38px;
+}
+
+.msg {
+  animation: rl-fade 240ms ease both;
+}
+
+.user-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.user-bubble {
+  max-width: 80%;
+  background: var(--surface-2);
+  border-radius: 16px 16px 4px 16px;
+  padding: 12px 16px;
+  font-size: 15.5px;
+  line-height: 1.55;
+  color: var(--ink);
+  white-space: pre-wrap;
+}
+
+.agent {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.seg {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.activity {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.act-toggle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  align-self: flex-start;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--muted-2);
+  text-align: left;
+}
+
+.act-toggle:hover {
+  color: #b9b9c0;
+}
+
+.pulse {
+  flex: 0 0 auto;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #3f3f47;
+}
+
+.pulse--live {
+  background: #d9d9de;
+  animation: rl-pulse 1s ease-in-out infinite;
+}
+
+.chev {
+  display: inline-block;
+  font-size: 14px;
+  line-height: 1;
+  color: #4d4d55;
+  transition: transform 160ms ease;
+}
+
+.chev--open {
+  transform: rotate(90deg);
+}
+
+.act-items {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 2px 0 4px 6px;
+  border-left: 1px solid #1f1f26;
+  margin-left: 2px;
+}
+
+.act-item {
+  display: flex;
+  gap: 11px;
+  padding-left: 14px;
+}
+
+.dot {
+  flex: 0 0 auto;
+  width: 5px;
+  height: 5px;
+  margin-top: 7px;
+  border-radius: 50%;
+  background: #4e4e58;
+}
+
+.dot--live {
+  background: #d9d9de;
+  animation: rl-pulse 1s ease-in-out infinite;
+}
+
+.act-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.reasoning {
+  font-size: 13px;
+  line-height: 1.62;
+  color: #83838d;
+  font-style: italic;
+  text-wrap: pretty;
+}
+
+.tool {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.tool-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tool-name {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: #b6b6bf;
+}
+
+.tool-args {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--faint);
+  overflow-wrap: anywhere;
+}
+
+.tool-result {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #6c6c75;
+  overflow-wrap: anywhere;
+}
+
+.sub-label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.sub-task {
+  font-size: 12px;
+  color: var(--faint);
+}
+
+.answer {
+  font-size: 16px;
+  line-height: 1.68;
+  color: #dcdce1;
+  white-space: pre-wrap;
+  text-wrap: pretty;
+}
+
+.caret {
+  display: inline-block;
+  width: 7px;
+  height: 17px;
+  margin-left: 3px;
+  vertical-align: -3px;
+  background: #6b6b73;
+}
+
+.err {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #a9a0a0;
+}
+
+.sources {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.sources-label {
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #55555d;
+  margin-right: 2px;
+}
+
+.source {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--muted);
+  background: #141418;
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+
+.source:hover {
+  color: #f0f0f3;
+  background: #1b1b21;
+}
+
+.source-n {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--faint);
+}
+
+.usage {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: #4c4c54;
+}
+
+.followups {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.followup {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: none;
+  background: transparent;
+  padding: 7px 0;
+  font-family: inherit;
+  font-size: 13.5px;
+  color: #8b8b93;
+  cursor: pointer;
+  text-align: left;
+}
+
+.followup:hover {
+  color: #f0f0f3;
+}
+
+.followup .arrow {
+  color: #4a4a52;
+}
+
+/* ------------------------------------------------------------------- dock */
+
+.dock {
+  flex: 0 0 auto;
+  padding: 0 24px 26px;
+}
+
+.composer--dock {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 12px 12px 12px 18px;
+}
+
+.composer--dock textarea {
+  font-size: 15.5px;
+  max-height: 160px;
+}
+
+.composer--dock .iconbtn {
+  width: 34px;
+  height: 34px;
+}
+
+.stop-square {
+  width: 9px;
+  height: 9px;
+  background: currentColor;
+  border-radius: 2px;
+}
+
+.footnote {
+  max-width: 720px;
+  margin: 10px auto 0;
+  font-size: 11.5px;
+  color: #5d5d65;
+}
+
+.footnote a {
+  color: #6f6f78;
+  text-decoration: underline;
+  text-decoration-color: #35353d;
+}
+
+.footnote a:hover {
+  color: #b9b9c0;
+}
+
+/* ----------------------------------------------------------------- mobile
+ * Not in the design, which was drawn at desktop width only. Without this the
+ * 44px heading and 32px header gutters overflow a phone. Values chosen to keep
+ * the same proportions rather than to introduce a second look. */
+
+@media (max-width: 620px) {
+  .hdr {
+    padding: 16px 18px;
+  }
+  .nav {
+    gap: 16px;
+    font-size: 13px;
+  }
+  .h1 {
+    font-size: 30px;
+    margin-bottom: 28px;
+  }
+  .landing {
+    padding: 0 18px 6vh;
+  }
+  .scroll {
+    padding: 8px 18px 20px;
+  }
+  .dock {
+    padding: 0 18px 18px;
+  }
+  .user-bubble {
+    max-width: 90%;
+  }
+}
+
+/* At phone width the header runs out of room: wordmark, New thread and three
+ * links. Tighten rather than drop anything — New thread is the only way back to
+ * the landing state. */
+@media (max-width: 480px) {
+  .hdr {
+    padding: 14px 14px;
+    gap: 10px;
+  }
+  .nav {
+    gap: 13px;
+    font-size: 12.5px;
+  }
+  .nav a {
+    white-space: nowrap;
+  }
+  .hdr-left {
+    gap: 9px;
+  }
+  .wordmark {
+    letter-spacing: 0.16em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .msg {
+    animation: none;
+  }
+  .pulse--live,
+  .dot--live {
+    animation: none;
+    opacity: 0.85;
+  }
+  .chev {
+    transition: none;
+  }
+}
