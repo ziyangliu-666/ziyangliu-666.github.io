@@ -60,4 +60,4 @@ Two of his papers are under anonymous review; the index holds only their titles.
 
 export const FOLLOWUP_PROMPT = `Given the exchange below, write the two questions a curious visitor would most likely ask next.
 
-Rules: one per line, no numbering, no quotes, under 60 characters each. They must be answerable from Ziyang's résumé, papers, repositories or writing. Do not repeat what was just answered. Write them as a visitor would type them, in the language of the exchange.`;
+The visitor is asking a third party about Ziyang, not talking to him — so write "he" and "his", never "you" or "your". One question per line, no numbering, no quotes, under 60 characters each. They must be answerable from his résumé, papers, repositories or writing. Do not repeat what was just answered. Use the language of the exchange.`;
