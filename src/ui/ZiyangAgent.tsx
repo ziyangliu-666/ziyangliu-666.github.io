@@ -15,6 +15,7 @@ import {
 } from "react";
 import type { AgentEvent, Transport } from "../agent/events";
 import { initialState, reducer, type AgentMessage, type Segment } from "./state";
+import { plainify } from "./plainify";
 import "./agent.css";
 
 const SEED_QUESTIONS = [
@@ -282,7 +283,7 @@ function AgentTurn({
           )}
           {seg.text && (
             <div className="answer">
-              {seg.text}
+              {plainify(seg.text)}
               {running && <span className="caret" />}
             </div>
           )}
