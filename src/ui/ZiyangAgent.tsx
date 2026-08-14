@@ -310,7 +310,13 @@ function AgentTurn({
           )}
           {seg.text && (
             <div className="answer">
-              <Markdown text={seg.text} caret={running} />
+              {/* Only the live segment carries the cursor. `running` alone put one at the end
+                  of every segment, so the moment the model wrote a paragraph and then reached
+                  for a tool, that finished paragraph kept blinking for the rest of the turn. */}
+              <Markdown
+                text={seg.text}
+                caret={running && si === message.segments.length - 1}
+              />
             </div>
           )}
         </div>

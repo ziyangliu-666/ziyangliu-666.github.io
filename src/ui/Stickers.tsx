@@ -70,8 +70,8 @@ const SLOTS: Slot[] = [
   { x: 3, y: 37, rot: 8, depth: 0.7 },
   { x: 4, y: 48, rot: -4, depth: 0.4 },
   { x: 6, y: 59, rot: 6, scale: 0.94, depth: 0.85 },
-  { x: 12, y: 72, rot: -8, depth: 0.55 },
-  { x: 8, y: 83, rot: 3, depth: 0.95 },
+  { x: 12, y: 70, rot: -8, depth: 0.55 },
+  { x: 8, y: 79, rot: 3, depth: 0.95 },
 
   // Right band, anchored on the right edge. Pulled to x 96–97 across the centre column's
   // height for the same reason, and only shorter keywords are placed there.
@@ -80,14 +80,16 @@ const SLOTS: Slot[] = [
   { x: 97, y: 36, rot: -8, depth: 0.45 },
   { x: 96, y: 47, rot: 4, depth: 0.8 },
   { x: 97, y: 58, rot: -3, scale: 0.95, depth: 0.5 },
-  { x: 92, y: 70, rot: 7, depth: 0.9 },
-  { x: 82, y: 82, rot: -6, depth: 0.65 },
+  { x: 92, y: 69, rot: 7, depth: 0.9 },
+  { x: 82, y: 78, rot: -6, depth: 0.65 },
 
-  // Above the heading and below the chips, where the column is clear.
+  /* Above the heading and below the chips, where the column is clear. The lowest row used to
+     sit at 91 and 92, hard against the bottom edge, which left the set trailing away from the
+     content instead of framing it. The chips end near 66%, so 85 is as high as these can go. */
   { x: 33, y: 7, rot: -4, scale: 0.94, depth: 0.75 },
   { x: 57, y: 5, rot: 5, depth: 0.45 },
-  { x: 29, y: 91, rot: 6, depth: 0.85 },
-  { x: 63, y: 92, rot: -5, scale: 0.96, depth: 0.6 },
+  { x: 30, y: 85, rot: 6, depth: 0.85 },
+  { x: 62, y: 86, rot: -5, scale: 0.96, depth: 0.6 },
 ];
 
 /* Which keywords go in which slot. Fixed rather than shuffled: the page should look the same

@@ -182,6 +182,11 @@ There is no fifth block type. Do not invent one, and do not write \`mermaid\`, \
 
 # Check this before you send
 
+No emoji and no icons. Not in a heading, not on a bullet, not to mark a status, not one. A
+recruiter reading about someone's work does not need a rocket beside a shipped product, and a
+decorative glyph in an answer about a real person's career reads as a chat bot rather than as a
+record. The words carry the answer.
+
 If the answer has a shape, draw it with one of the four blocks above. If it does not, do not.
 
 The label of a link is the name of the thing. It is never a URL.
