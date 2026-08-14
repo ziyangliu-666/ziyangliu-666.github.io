@@ -290,12 +290,12 @@ textarea {
   background-image: linear-gradient(
     99deg,
     rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.55) 38%,
-    rgba(255, 255, 255, 0.95) 50%,
-    rgba(255, 255, 255, 0.55) 62%,
+    rgba(255, 255, 255, 0.28) 30%,
+    rgba(255, 255, 255, 1) 50%,
+    rgba(255, 255, 255, 0.28) 70%,
     rgba(255, 255, 255, 0) 100%
   );
-  background-size: 42% 100%;
+  background-size: 26% 100%;
   background-repeat: no-repeat;
 
   -webkit-background-clip: text;
@@ -303,23 +303,26 @@ textarea {
   color: transparent;
   -webkit-text-fill-color: transparent;
 
-  animation: rl-sheen 7.5s linear infinite;
+  animation: rl-sheen 4s linear infinite;
 }
 
 /* These two numbers are the seamlessness, so they are derived rather than eyeballed.
  *
  * A percentage background-position places the image at (P/100) x (elementWidth - imageWidth).
- * With background-size 42%, the band clears the word only when P <= -72.4% at the start and
- * P >= 172.4% at the end. -60% and 160% were the first attempt and both leave a tail of about
- * 7% of the word covered, so the loop point flicked a faint sliver from the right edge to the
- * left one. At -85% and 185% the band is entirely off the letters at both ends, both frames
- * are drawn purely from the base colour, and the wrap is a jump between two identical frames. */
+ * With background-size 26%, the band clears the word only when P <= -35.1% at the start and
+ * P >= 135.1% at the end. Outside those bounds the letters are drawn purely from the base
+ * colour, so the frame before the wrap and the frame after it are identical and the loop has
+ * no seam. -40% and 140% leave a little margin on each side.
+ *
+ * The band was 42% wide over a 7.5s sweep at first, and the effect was invisible: a wide soft
+ * band crossing slowly changes any one letter's brightness so gradually that the eye reads it
+ * as a still image. Narrow and quick is what makes it legible as movement. */
 @keyframes rl-sheen {
   from {
-    background-position: -85% 0;
+    background-position: -40% 0;
   }
   to {
-    background-position: 185% 0;
+    background-position: 140% 0;
   }
 }
 
