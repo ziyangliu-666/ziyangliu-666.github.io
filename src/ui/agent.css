@@ -259,38 +259,77 @@ textarea {
  * An earlier version rotated the word in 3D with a chromatic fringe. It was a trick rather
  * than an effect — loud, and at odds with a page whose whole argument is restraint. A moving
  * highlight is the version that survives being looked at twice. */
+/* The wordmark keeps a gleam travelling across it, on its own, forever.
+ *
+ * It followed the pointer until now. Autoplay is better here: the highlight is the one moving
+ * thing on a landing page a visitor may look at before touching the mouse at all, and a
+ * decoration that needs input to be seen is not decoration.
+ *
+ * Seamless by construction, which is the part worth explaining. The band is a separate
+ * background image travelling over a solid background-color, and both are clipped to the text.
+ * The colour is what the letters are made of; the image only brightens what it passes. So the
+ * loop point costs nothing: at each end of the sweep the band sits entirely off the word, the
+ * letters are drawn purely from the base colour, and the jump from one end back to the other is
+ * a jump between two identical frames.
+ *
+ * The alternative was animating the --sheen percentage the pointer version used. That needs
+ * @property registration to interpolate at all, and without it the value steps at the midpoint
+ * instead of sliding. This needs nothing beyond background-position. */
 .tilt {
-  --sheen: 50%;
-
   display: inline-block;
   font-weight: 600;
   letter-spacing: 0.06em;
 
-  /* A narrow band rather than a broad wash: a gleam crossing the letters reads as light on
-   * a surface, where a wide gradient just looks like uneven text. The base sits below the
-   * heading's own #f4f4f6 so the band has somewhere to travel to — the delta is small on a
-   * still and obvious in motion, which is the right way round for something this quiet. */
+  /* The ink. Sits below the heading's own #f4f4f6 so the gleam has somewhere brighter to go:
+     the delta is small on a still and obvious in motion, which is the right way round for
+     something this quiet. */
+  background-color: #c2c2cb;
+
+  /* A narrow band rather than a broad wash. A gleam crossing the letters reads as light on a
+     surface; a wide gradient just looks like unevenly coloured text. */
   background-image: linear-gradient(
-    93deg,
-    #c2c2cb 0%,
-    #c2c2cb calc(var(--sheen) - 13%),
-    #ffffff var(--sheen),
-    #c2c2cb calc(var(--sheen) + 13%),
-    #c2c2cb 100%
+    99deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.55) 38%,
+    rgba(255, 255, 255, 0.95) 50%,
+    rgba(255, 255, 255, 0.55) 62%,
+    rgba(255, 255, 255, 0) 100%
   );
+  background-size: 42% 100%;
+  background-repeat: no-repeat;
+
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   -webkit-text-fill-color: transparent;
+
+  animation: rl-sheen 7.5s linear infinite;
 }
 
-/* No pointer, no highlight to track — a phone should get the plain word, not a band frozen
- * at wherever the last touch happened to land. */
-@media (hover: none) {
+/* These two numbers are the seamlessness, so they are derived rather than eyeballed.
+ *
+ * A percentage background-position places the image at (P/100) x (elementWidth - imageWidth).
+ * With background-size 42%, the band clears the word only when P <= -72.4% at the start and
+ * P >= 172.4% at the end. -60% and 160% were the first attempt and both leave a tail of about
+ * 7% of the word covered, so the loop point flicked a faint sliver from the right edge to the
+ * left one. At -85% and 185% the band is entirely off the letters at both ends, both frames
+ * are drawn purely from the base colour, and the wrap is a jump between two identical frames. */
+@keyframes rl-sheen {
+  from {
+    background-position: -85% 0;
+  }
+  to {
+    background-position: 185% 0;
+  }
+}
+
+/* No animation, so no band: the letters fall back to the base colour on their own, and the
+ * word simply reads flat. Nothing to park and nothing to hide. */
+@media (prefers-reduced-motion: reduce) {
   .tilt {
+    animation: none;
     background-image: none;
-    color: #f4f4f6;
-    -webkit-text-fill-color: #f4f4f6;
+    background-color: #f4f4f6;
   }
 }
 

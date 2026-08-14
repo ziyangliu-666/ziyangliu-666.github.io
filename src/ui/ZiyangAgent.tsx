@@ -53,52 +53,6 @@ interface Props {
   transport: Transport;
 }
 
-/* ---------------------------------------------------------------- wordmark sheen
- * A highlight that follows the pointer across ZIYANG. The word itself does not move: only
- * the light on it does, tracking horizontally, eased so it trails the cursor slightly
- * rather than snapping to it.
- *
- * Written straight to a CSS custom property on the node. Putting it in React state would
- * re-render the whole thread at 60fps for a decoration. */
-function useSheen() {
-  const el = useRef<HTMLSpanElement | null>(null);
-
-  useEffect(() => {
-    if (window.matchMedia("(hover: none)").matches) return; // no pointer to follow
-    const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const ease = calm ? 1 : 0.12;
-
-    let at = 50;
-    let target = 50;
-    let raf = 0;
-
-    const loop = () => {
-      at += (target - at) * ease;
-      el.current?.style.setProperty("--sheen", `${at.toFixed(1)}%`);
-      raf = Math.abs(target - at) > 0.15 ? requestAnimationFrame(loop) : 0;
-    };
-
-    const onPointer = (e: PointerEvent) => {
-      if (!el.current) return;
-      /* Mapped across the whole viewport rather than across the word: crossing the page
-       * sweeps the highlight over the letters exactly once, so the light reads as a fixed
-       * source in the room that the cursor moves past. Measuring against the word's own
-       * box instead left the highlight parked at one end for most of the screen. */
-      const across = e.clientX / Math.max(1, window.innerWidth);
-      target = across * 130 - 15;
-      if (!raf) raf = requestAnimationFrame(loop);
-    };
-
-    window.addEventListener("pointermove", onPointer, { passive: true });
-    return () => {
-      window.removeEventListener("pointermove", onPointer);
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, []);
-
-  return el;
-}
-
 /* ----------------------------------------------------------------------- rays
  * The background line field answers the pointer on three axes. Vertical position sets the gap
  * and slides the field along its own normal, so moving down spreads the lines and pushes them
@@ -424,7 +378,6 @@ export default function ZiyangAgent({
   transport,
 }: Props) {
   const [state, dispatch] = useReducer(reducer, initialState);
-  const sheenRef = useSheen();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const stickToBottom = useRef(true);
   const cancelled = useRef(false);
@@ -583,7 +536,7 @@ export default function ZiyangAgent({
 
           <h1 className="h1">
             Ask anything about{" "}
-            <span className="tilt" ref={sheenRef}>
+            <span className="tilt">
               ZIYANG
             </span>
           </h1>
