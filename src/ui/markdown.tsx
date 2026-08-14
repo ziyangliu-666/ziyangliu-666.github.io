@@ -17,6 +17,8 @@
 
 import type { ReactNode } from "react";
 
+import { diagram } from "./diagrams";
+
 /* ---------------------------------------------------------------------- inline */
 
 /** Only schemes that cannot execute. `javascript:` and `data:` never reach an href. */
@@ -158,6 +160,8 @@ interface Block {
   level?: number;
   lines: string[];
   lang?: string;
+  /** Fenced blocks only: false while the closing fence has not arrived yet. */
+  closed?: boolean;
 }
 
 function blocks(src: string): Block[] {
@@ -176,8 +180,9 @@ function blocks(src: string): Block[] {
       const body: string[] = [];
       i++;
       while (i < lines.length && !/^ {0,3}```+/.test(lines[i]!)) body.push(lines[i++]!);
-      if (i < lines.length) i++; // closing fence
-      out.push({ kind: "pre", lines: body, lang: fence[1] || undefined });
+      const closed = i < lines.length;
+      if (closed) i++; // closing fence
+      out.push({ kind: "pre", lines: body, lang: fence[1] || undefined, closed });
       continue;
     }
 
@@ -327,13 +332,19 @@ export function Markdown({
             {trailing}
           </blockquote>
         );
-      case "pre":
+      case "pre": {
+        /* Only draw once the closing fence has arrived. Mid-stream a six-step flow would
+         * otherwise appear one step at a time, each arrival reflowing the ones before it.
+         * Until then it stays a code block, which is honest about what is happening. */
+        const drawn = b.closed ? diagram(b.lang, b.lines, i) : null;
+        if (drawn) return drawn;
         return (
           <pre className="md-pre" key={i}>
             <code>{b.lines.join("\n")}</code>
             {trailing}
           </pre>
         );
+      }
       case "hr":
         return <div className="md-hr" key={i} />;
       case "table": {

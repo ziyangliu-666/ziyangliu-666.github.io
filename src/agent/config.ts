@@ -87,7 +87,14 @@ export const LIMITS = {
   maxSubagentIterations: 4,
   /** Concurrent sub-agents per turn. */
   maxSubagents: 3,
-  maxTokens: 2000,
+  /* Reasoning and answer share this budget on DeepSeek. 2000 was set before the prompt asked
+   * the model to choose a diagram shape, and that choice turned out to be worth a great deal
+   * of deliberation: on a broad question it spent the whole 2000 thinking, including drafting
+   * the answer inside its own reasoning, and emitted no answer at all. Flash output is
+   * $0.28/1M, so 6000 tokens is about a sixth of a cent per answer. */
+  maxTokens: 6000,
+  /* The tools-withheld retry runs with thinking off, so all of this goes to the answer. */
+  retryMaxTokens: 3000,
   subagentMaxTokens: 900,
   /** Turns of prior conversation replayed to the model. */
   historyTurns: 8,

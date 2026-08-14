@@ -44,7 +44,11 @@ const ALLOWED_TOP_LEVEL = new Set([
 ]);
 
 const MAX_MESSAGES = 48;
-const MAX_TOKENS = 2000;
+/* The ceiling that stops this endpoint becoming a cheap DeepSeek relay. It has to sit above
+ * LIMITS.maxTokens in src/agent/config.ts, or the app's own requests are rejected here. On
+ * DeepSeek this budget covers reasoning_content as well as the answer, which is why 2000 was
+ * not enough once the prompt gave the model a real decision to think about. */
+const MAX_TOKENS = 8000;
 const MAX_TOTAL_CHARS = 220_000;
 
 function validate(body: Record<string, unknown>): string | null {

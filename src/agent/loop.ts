@@ -129,6 +129,7 @@ export async function runAgent(o: RunOptions): Promise<void> {
       const calls = new ToolCallBuffer();
       let text = "";
       let reasoningOpen = false;
+      let truncated = false;
 
       for await (const delta of chat({
         model: MODELS.main,
@@ -166,6 +167,13 @@ export async function runAgent(o: RunOptions): Promise<void> {
             break;
 
           case "finish":
+            /* "length" means the model was cut off at max_tokens. On DeepSeek that budget
+             * covers reasoning_content and the answer together, so a long deliberation can
+             * consume all of it and leave nothing to say. Discarding this reason cost a
+             * visitor a whole answer: the run emitted no tool calls, the check below read
+             * that as "it has finished", and the retry built for exactly this case never
+             * fired. */
+            truncated = delta.reason === "length";
             break;
         }
       }
@@ -175,7 +183,9 @@ export async function runAgent(o: RunOptions): Promise<void> {
 
       const toolCalls = calls.finish();
       if (!toolCalls.length) {
-        answered = true;
+        /* No tool calls and no text is not an answer. Leave `answered` false so the
+         * tools-withheld retry below runs, which is the recovery path. */
+        answered = Boolean(text.trim()) || !truncated;
         break;
       }
 
@@ -283,22 +293,25 @@ export async function runAgent(o: RunOptions): Promise<void> {
       }
     }
 
-    /* Out of tool rounds with no answer written. Ask once more with tools withheld, so
-     * the visitor gets a conclusion from what was already retrieved instead of a column
-     * of activity rows and nothing under them. */
-    if (!answered && !stop()) {
+    /* No answer written, because the tool rounds ran out or a pass was truncated. Ask once
+     * more with tools withheld and thinking off, so the visitor gets a conclusion from what
+     * was already retrieved instead of a column of activity rows and nothing under them.
+     *
+     * Thinking off is the load-bearing part. If the previous pass died because reasoning ate
+     * the whole token budget, repeating it with reasoning on would fail the same way. */
+    if ((!answered || !answer.trim()) && !stop()) {
       emit({ type: "status", text: "Wrapping up" });
       messages.push({
         role: "user",
         content:
-          "You have used the tool budget for this question. Answer now from what you already retrieved, and say plainly anything you could not confirm.",
+          "Answer now, in prose, from what you already retrieved. Do not call another tool. Say plainly anything you could not confirm.",
       });
 
       for await (const delta of chat({
         model: MODELS.main,
         messages,
         thinking: false,
-        maxTokens: LIMITS.maxTokens,
+        maxTokens: LIMITS.retryMaxTokens,
         signal: controller.signal,
       })) {
         if (stop()) return;

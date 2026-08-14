@@ -16,6 +16,7 @@ import {
 import type { AgentEvent, Transport } from "../agent/events";
 import { initialState, reducer, type AgentMessage, type Segment } from "./state";
 import { Markdown } from "./markdown";
+import { startFavicon } from "./favicon";
 import { Stickers } from "./Stickers";
 import "./agent.css";
 
@@ -99,6 +100,48 @@ function useSheen() {
   }, []);
 
   return el;
+}
+
+/* ------------------------------------------------------------- ambient light
+ * The light source behind the page follows the pointer. Same shape as useSheen: write two
+ * custom properties straight to the node, ease them in a rAF loop, never touch React state.
+ * A light this soft costs nothing to move and is the reason the glass surfaces read as glass
+ * — a frosted panel over a flat background is indistinguishable from a darker panel. */
+function useAmbientLight(el: React.RefObject<HTMLDivElement | null>) {
+  useEffect(() => {
+    if (window.matchMedia("(hover: none)").matches) return;
+    const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const ease = calm ? 1 : 0.09;
+
+    let atX = 50;
+    let atY = 34;
+    let toX = 50;
+    let toY = 34;
+    let raf = 0;
+
+    const loop = () => {
+      atX += (toX - atX) * ease;
+      atY += (toY - atY) * ease;
+      el.current?.style.setProperty("--lx", `${atX.toFixed(2)}%`);
+      el.current?.style.setProperty("--ly", `${atY.toFixed(2)}%`);
+      raf =
+        Math.abs(toX - atX) > 0.08 || Math.abs(toY - atY) > 0.08
+          ? requestAnimationFrame(loop)
+          : 0;
+    };
+
+    const onPointer = (e: PointerEvent) => {
+      toX = (e.clientX / window.innerWidth) * 100;
+      toY = (e.clientY / window.innerHeight) * 100;
+      if (!raf) raf = requestAnimationFrame(loop);
+    };
+
+    window.addEventListener("pointermove", onPointer, { passive: true });
+    return () => {
+      window.removeEventListener("pointermove", onPointer);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [el]);
 }
 
 /* --------------------------------------------------------------------- composer */
@@ -364,6 +407,7 @@ export default function ZiyangAgent({
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const stickToBottom = useRef(true);
   const cancelled = useRef(false);
+  const appRef = useRef<HTMLDivElement | null>(null);
   const busyRef = useRef(false);
   const [override, setOverride] = useState<Transport | null>(null);
 
@@ -448,6 +492,13 @@ export default function ZiyangAgent({
     };
   }, [send, stop, reset]);
 
+  /* The tab icon spins while a turn is in flight. Reading `busyRef` through a getter rather
+   * than passing a boolean keeps this effect out of the render path: the icon loop starts once
+   * and polls, instead of being torn down and rebuilt on every token that arrives. */
+  useEffect(() => startFavicon(() => (busyRef.current ? "busy" : "idle")), []);
+
+  useAmbientLight(appRef);
+
   // Follow the stream, but let go the moment the reader scrolls up to re-read something.
   useEffect(() => {
     const el = scrollRef.current;
@@ -465,7 +516,7 @@ export default function ZiyangAgent({
   const lastIndex = state.messages.length - 1;
 
   return (
-    <div className="app">
+    <div className="app" ref={appRef}>
       <header className="hdr">
         <div className="hdr-left">
           {/* The wordmark is the way back to the start, the way a masthead is on any site.

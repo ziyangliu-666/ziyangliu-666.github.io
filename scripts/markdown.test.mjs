@@ -132,6 +132,86 @@ const checks = [
       return r.classes.includes("caret");
     },
   },
+  /* --- structured blocks ------------------------------------------------ */
+  {
+    name: "timeline draws spans, dates and details",
+    md: "```timeline\n2022-10 → 2024-07 | R&D Intern, SmartX | V2V OS 1.2.0 to 1.6.0\n2024-07 → 2025-09 | R&D Engineer, SmartX\n```",
+    want: (r) =>
+      r.classes.includes("dg dg-timeline") &&
+      r.classes.filter((c) => c === "dg-span").length === 2 &&
+      r.classes.includes("dg-when") &&
+      r.classes.includes("dg-detail") &&
+      r.text.includes("2022-10 → 2024-07") &&
+      r.text.includes("V2V OS 1.2.0 to 1.6.0") &&
+      !r.tags.includes("pre"),
+  },
+  {
+    name: "timeline row with no event is dropped, not drawn empty",
+    md: "```timeline\n2022-10\n2024-07 → 2025-09 | R&D Engineer\n```",
+    want: (r) => r.classes.filter((c) => c === "dg-span").length === 1,
+  },
+  {
+    name: "flow accepts one line of pipes",
+    md: "```flow\nsnapshot | CBT scan | async read | volume\n```",
+    want: (r) =>
+      r.classes.includes("dg-flow") &&
+      r.classes.filter((c) => c === "dg-step").length === 4 &&
+      // Three arrows for four boxes: the first step has nothing to point from.
+      r.classes.filter((c) => c === "dg-arrow").length === 3,
+  },
+  {
+    name: "flow accepts arrows and one step per line",
+    md: "```flow\nsnapshot -> CBT scan\nasync read\nvolume\n```",
+    want: (r) => r.classes.filter((c) => c === "dg-step").length === 4,
+  },
+  {
+    name: "flow of one step is a sentence, so it stays a code block",
+    md: "```flow\njust the one\n```",
+    want: (r) => r.tags.includes("pre") && !r.classes.includes("dg-flow"),
+  },
+  {
+    name: "stack splits layers on the colon and items on commas",
+    md: "```stack\nWallets: desktop, mobile\nDaemon: exfer-walletd\n```",
+    want: (r) =>
+      r.classes.includes("dg dg-stack") &&
+      r.classes.filter((c) => c === "dg-layer").length === 2 &&
+      r.classes.filter((c) => c === "dg-pill").length === 3 &&
+      r.text.includes("Wallets"),
+  },
+  {
+    name: "metrics keeps value and label apart",
+    md: "```metrics\n290 MB/s | sustained transfer\n10,000+ | VMs migrated\n```",
+    want: (r) =>
+      r.classes.includes("dg dg-metrics") &&
+      r.classes.filter((c) => c === "dg-value").length === 2 &&
+      r.text.includes("290 MB/s") &&
+      r.text.includes("VMs migrated"),
+  },
+  {
+    name: "a bare number with no label is not a metric",
+    md: "```metrics\n290\n```",
+    want: (r) => r.tags.includes("pre") && !r.classes.includes("dg dg-metrics"),
+  },
+  {
+    name: "an unknown fence language is still a code block",
+    md: "```mermaid\ngraph TD; A-->B;\n```",
+    want: (r) => r.tags.includes("pre") && r.text.includes("graph TD"),
+  },
+  {
+    name: "an empty block body degrades instead of drawing nothing",
+    md: "```timeline\n\n```",
+    want: (r) => r.tags.includes("pre") && !r.classes.includes("dg dg-timeline"),
+  },
+  {
+    name: "an unclosed fence mid-stream never draws half a diagram",
+    md: "```timeline\n2022-10 → 2024-07 | R&D Intern, SmartX",
+    want: (r) => r.tags.includes("pre") && !r.classes.includes("dg dg-timeline"),
+  },
+  {
+    name: "real code blocks are untouched by any of this",
+    md: "```python\nprint('hi')\n```",
+    want: (r) => r.tags.includes("pre") && r.text.includes("print('hi')"),
+  },
 ];
 
 let failed = 0;

@@ -83,6 +83,53 @@ textarea {
   }
 }
 
+/* ------------------------------------------------------------------- light
+ *
+ * One soft light source behind the page, tracked to the pointer. Glass is only worth having
+ * if there is something behind it to blur, and on a #0b0b0d ground there was nothing: every
+ * frosted panel looked identical to a flat one. This is that something.
+ *
+ * Two layers, because one wide gradient reads as a grey wash rather than as light: a narrow
+ * warm-neutral core, and a much wider, fainter fill. Both sit at 0 opacity of hue — the
+ * palette stays hueless — and vary only in luminance.
+ *
+ * Painted on a fixed pseudo-element under everything, so it costs one composited layer and
+ * scrolls with nothing. --lx and --ly are written by useAmbientLight at 60fps. */
+.app {
+  --lx: 50%;
+  --ly: 34%;
+  position: relative;
+  isolation: isolate;
+}
+
+.app::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      420px circle at var(--lx) var(--ly),
+      rgba(255, 255, 255, 0.055),
+      rgba(255, 255, 255, 0) 70%
+    ),
+    radial-gradient(
+      1100px circle at var(--lx) var(--ly),
+      rgba(255, 255, 255, 0.022),
+      rgba(255, 255, 255, 0) 72%
+    );
+}
+
+/* A phone has no pointer to track, so the light would sit wherever the last touch landed.
+ * Park it above the heading instead, where a fixed source would sensibly be. */
+@media (hover: none) {
+  .app {
+    --lx: 50% !important;
+    --ly: 26% !important;
+  }
+}
+
 /* ------------------------------------------------------------------ shell */
 
 .app {
@@ -227,10 +274,18 @@ textarea {
   display: flex;
   align-items: flex-end;
   gap: 12px;
-  background: var(--surface);
-  border: 1px solid var(--line);
+  /* Translucent, so the light behind the page shows through the field. The blur is what makes
+     it read as glass rather than as a lower opacity. */
+  background: rgba(22, 22, 27, 0.66);
+  backdrop-filter: blur(16px) saturate(120%);
+  -webkit-backdrop-filter: blur(16px) saturate(120%);
+  border: 1px solid rgba(255, 255, 255, 0.075);
   border-radius: 16px;
   padding: 14px 14px 14px 18px;
+  /* A hairline of light along the top edge, which is what sells a pane as having thickness. */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 18px 50px rgba(0, 0, 0, 0.4);
 }
 
 .composer textarea {
@@ -280,8 +335,10 @@ textarea {
 }
 
 .chip {
-  border: 1px solid #212128;
-  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(19, 19, 23, 0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   color: var(--muted);
   font-size: 13.5px;
   line-height: 1;
@@ -297,8 +354,8 @@ textarea {
 
 .chip:hover {
   color: var(--ink);
-  border-color: #33333c;
-  background: #131317;
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(30, 30, 37, 0.72);
 }
 
 /* ------------------------------------------------------------------- chat */
@@ -914,6 +971,216 @@ textarea {
 
 
 
+/* ------------------------------------------------------- structured blocks */
+
+/* timeline, flow, stack, metrics. No new colours: every value below is a token already in
+ * this file, so a block reads as part of the answer rather than as an embedded widget. */
+
+.dg {
+  margin: 0 0 1.15em;
+}
+
+/* --- timeline: a rail with the dates in mono down the left ---------------- */
+
+.dg-timeline {
+  list-style: none;
+  padding: 0 0 0 22px;
+  position: relative;
+}
+
+/* One rail for the whole list, drawn on the container. Per-item borders would leave a seam
+   at every row boundary. */
+.dg-timeline::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 7px;
+  bottom: 7px;
+  width: 1px;
+  background: var(--line);
+}
+
+.dg-span {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  padding: 0 0 18px;
+}
+
+.dg-span:last-child {
+  padding-bottom: 0;
+}
+
+.dg-span::before {
+  content: "";
+  position: absolute;
+  left: -22px;
+  top: 6px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #3a3a44;
+  /* Sits on the rail, so it needs the page behind it to hide the line it covers. */
+  box-shadow: 0 0 0 3px var(--bg);
+}
+
+.dg-when {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+  color: var(--faint);
+}
+
+.dg-what {
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.dg-detail {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+/* --- flow: a chain of boxes that wraps, so all of it is visible ----------- */
+
+/* This scrolled horizontally at first, to keep a long chain from widening the 720px answer
+ * column. That was the wrong trade: a diagram whose second half is off-screen is worse than
+ * no diagram. It wraps instead. The arrow sits inside its step and before the box, so a step
+ * pushed to the next line starts with "→ box" and still reads as a continuation. */
+
+.dg-flow-wrap {
+  /* Kept as a wrapper so the list has something to sit in, but it no longer scrolls. */
+  overflow: visible;
+}
+
+.dg-flow {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  /* Row gap separates wrapped lines. Column spacing is the arrow's own padding, so the
+     chain reads as continuous rather than as a row of unrelated chips. */
+  row-gap: 8px;
+}
+
+.dg-step {
+  display: flex;
+  align-items: center;
+}
+
+.dg-box {
+  border: 1px solid #212128;
+  background: #131317;
+  border-radius: 8px;
+  padding: 9px 13px;
+  font-size: 13.5px;
+  line-height: 1.35;
+  color: #c8c8d0;
+  /* A long step wraps inside its own box rather than forcing the row wider than the column. */
+  white-space: normal;
+  max-width: 100%;
+}
+
+.dg-arrow {
+  padding: 0 9px;
+  font-size: 14px;
+  color: var(--faint);
+  flex: 0 0 auto;
+}
+
+/* --- stack: layer name, then what sits in that layer ---------------------- */
+
+.dg-stack {
+  display: grid;
+  gap: 8px;
+}
+
+.dg-layer {
+  display: grid;
+  grid-template-columns: 132px 1fr;
+  gap: 14px;
+  align-items: baseline;
+  padding: 10px 0;
+  border-top: 1px solid #1b1b21;
+}
+
+.dg-layer:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.dg-layer-name {
+  font-size: 12.5px;
+  color: var(--faint);
+  text-align: right;
+}
+
+.dg-layer-items {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* The same pill vocabulary as the source chips, so a layer reads as the same kind of object. */
+.dg-pill {
+  font-size: 13px;
+  line-height: 1;
+  color: #c8c8d0;
+  background: #16161a;
+  border: 1px solid #212128;
+  border-radius: 7px;
+  padding: 7px 10px;
+}
+
+/* --- metrics: the numbers, at a size that admits they are the point ------- */
+
+.dg-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.dg-metric {
+  border: 1px solid #1c1c22;
+  background: #101014;
+  border-radius: 10px;
+  padding: 14px 15px;
+}
+
+.dg-value {
+  font-size: 25px;
+  font-weight: 450;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: #f4f4f6;
+}
+
+.dg-label {
+  margin: 5px 0 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+/* One column below the answer column's own breakpoint: three 150px cards plus gaps do not
+ * fit a phone, and a squeezed grid turns every label into four lines. */
+@media (max-width: 560px) {
+  .dg-metrics {
+    grid-template-columns: 1fr;
+  }
+  .dg-layer {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .dg-layer-name {
+    text-align: left;
+  }
+}
+
 /* Keyword tags scattered around the landing page. Positioned absolutely inside .landing,
  * which is why that element becomes the containing block below.
  *
@@ -924,15 +1191,30 @@ textarea {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  /* Written by useParallax once per frame; each plane multiplies them by its own --depth. */
+  --px: 0px;
+  --py: 0px;
+}
+
+/* The parallax plane. It owns `translate` and nothing else, which is what keeps the pointer
+ * offset from fighting the drift keyframe on the button inside it. */
+.sticker-plane {
+  position: absolute;
+  translate: calc(var(--px) * var(--depth, 0.7)) calc(var(--py) * var(--depth, 0.7));
+  /* No transition: the easing lives in the rAF loop, and a CSS transition on top of it would
+     add a second lag and read as sludge. */
+  will-change: translate;
 }
 
 .sticker {
-  position: absolute;
   pointer-events: auto;
   transform-origin: center;
-  border: 1px solid #1c1c22;
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 9px;
-  background: #101014;
+  /* Frosted, so a tag samples the light behind it instead of sitting on a flat plate. */
+  background: rgba(20, 20, 26, 0.55);
+  backdrop-filter: blur(9px) saturate(115%);
+  -webkit-backdrop-filter: blur(9px) saturate(115%);
   color: #64646d;
   font-family: inherit;
   line-height: 1;
@@ -953,10 +1235,10 @@ textarea {
 .sticker:hover,
 .sticker:focus-visible {
   color: #ecedf1;
-  border-color: #43434f;
-  background: #1a1a20;
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(32, 32, 40, 0.72);
   scale: 1.08;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.5);
   /* Hold still while it is being read and aimed at. A target that is still drifting under
      the cursor is a target you have to chase. Two values for the two animations: pausing the
      shorthand would also pause the arrival fade, and hovering during those 520 ms would
@@ -972,7 +1254,6 @@ textarea {
 
 .sticker:active {
   scale: 0.98;
-  background: #101014;
 }
 
 /* Two animations on one element, comma-separated: the fade is one-shot on arrival, the drift
@@ -1016,13 +1297,13 @@ textarea {
     rl-drift var(--dur, 20s) ease-in-out var(--lag, 0s) infinite;
 }
 
-.sticker:nth-child(3n) {
+.sticker-plane:nth-child(3n) .sticker {
   animation-delay: 160ms, var(--lag, 0s);
 }
-.sticker:nth-child(3n + 1) {
+.sticker-plane:nth-child(3n + 1) .sticker {
   animation-delay: 300ms, var(--lag, 0s);
 }
-.sticker:nth-child(3n + 2) {
+.sticker-plane:nth-child(3n + 2) .sticker {
   animation-delay: 440ms, var(--lag, 0s);
 }
 
