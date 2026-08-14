@@ -1219,8 +1219,12 @@ textarea {
 /* Narrow: the label column and the dates cost more than they give, so the bar goes full
  * width under its own label. The axis loses its offset with it. */
 @media (max-width: 620px) {
+  /* Both margins, not just the left one. The rows go to a single column here, so the track is
+     full width; leaving margin-right at the date column's width made the axis 112px narrower
+     than the track it labels, and every year tick sat left of the month it marks. */
   .dg-axis {
     margin-left: 0;
+    margin-right: 0;
   }
   .dg-bar-row {
     grid-template-columns: 1fr;
