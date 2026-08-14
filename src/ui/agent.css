@@ -280,22 +280,24 @@ textarea {
   font-weight: 600;
   letter-spacing: 0.06em;
 
-  /* The ink. Sits below the heading's own #f4f4f6 so the gleam has somewhere brighter to go:
-     the delta is small on a still and obvious in motion, which is the right way round for
-     something this quiet. */
-  background-color: #c2c2cb;
+  /* The ink. It sits well below the heading's own #f4f4f6 because the gleam has nowhere to go
+     above white: every bit of contrast in this effect is bought by darkening the base. At
+     #c2c2cb the travelling peak was 55 levels above the ink and easy to miss; at #a6a6b1 it is
+     about 85, and the gleam briefly takes the word past the words around it, which is what
+     makes a highlight read as light rather than as a colour change. */
+  background-color: #a6a6b1;
 
   /* A narrow band rather than a broad wash. A gleam crossing the letters reads as light on a
      surface; a wide gradient just looks like unevenly coloured text. */
   background-image: linear-gradient(
     99deg,
     rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.28) 30%,
+    rgba(255, 255, 255, 0.22) 28%,
     rgba(255, 255, 255, 1) 50%,
-    rgba(255, 255, 255, 0.28) 70%,
+    rgba(255, 255, 255, 0.22) 72%,
     rgba(255, 255, 255, 0) 100%
   );
-  background-size: 26% 100%;
+  background-size: 22% 100%;
   background-repeat: no-repeat;
 
   -webkit-background-clip: text;
@@ -303,14 +305,14 @@ textarea {
   color: transparent;
   -webkit-text-fill-color: transparent;
 
-  animation: rl-sheen 4s linear infinite;
+  animation: rl-sheen 3.2s linear infinite;
 }
 
 /* These two numbers are the seamlessness, so they are derived rather than eyeballed.
  *
  * A percentage background-position places the image at (P/100) x (elementWidth - imageWidth).
- * With background-size 26%, the band clears the word only when P <= -35.1% at the start and
- * P >= 135.1% at the end. Outside those bounds the letters are drawn purely from the base
+ * With background-size 22%, the band clears the word only when P <= -28.2% at the start and
+ * P >= 128.2% at the end. Outside those bounds the letters are drawn purely from the base
  * colour, so the frame before the wrap and the frame after it are identical and the loop has
  * no seam. -40% and 140% leave a little margin on each side.
  *
@@ -319,10 +321,10 @@ textarea {
  * as a still image. Narrow and quick is what makes it legible as movement. */
 @keyframes rl-sheen {
   from {
-    background-position: -40% 0;
+    background-position: -34% 0;
   }
   to {
-    background-position: 140% 0;
+    background-position: 134% 0;
   }
 }
 
@@ -341,7 +343,9 @@ textarea {
   max-width: 720px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  /* Close enough that the chips read as belonging to the field above them rather than as a
+     separate block that happens to sit underneath it. */
+  gap: 10px;
 }
 
 .composer {
@@ -405,7 +409,7 @@ textarea {
 .suggestions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .chip {
