@@ -63,7 +63,7 @@ export function guard(req: Request): { origin: string | null } | Response {
   const list = allowedOrigins();
   if (!origin || !list.includes(origin.replace(/\/+$/, ""))) {
     return fail(
-      "This endpoint only serves ziyangliu-666.github.io. It is the key holder for that site's agent, not a public API.",
+      "This endpoint only serves ziy.bio. It is the key holder for that site's agent, not a public API.",
       403,
       origin,
     );

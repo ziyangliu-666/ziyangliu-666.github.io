@@ -78,4 +78,5 @@ name would undo that.
 | `nullify` — Tauri/React CS2 config installer | https://github.com/ziyangliu-666/nullify |
 | `jerkie_man` — 2D multiplayer extraction shooter | https://github.com/ziyangliu-666/jerkie_man |
 | `EasyTrainer` — few-line image classification training | https://github.com/ziyangliu-666/EasyTrainer |
-| This site | https://github.com/ziyangliu-666/ziyangliu-666.github.io |
+| This site | https://ziy.bio |
+| This site, the source | https://github.com/ziyangliu-666/ziyangliu-666.github.io |

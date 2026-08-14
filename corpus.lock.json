@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-08-13",
+  "builtAt": "2026-08-14",
   "sources": {
     "Projects/resume/resume.pdf": "0417687774d5e137",
     "Projects/resume/resume-zh.pdf": "9bf296e685a858a5",
@@ -9,8 +9,8 @@
     "Projects/self-intro-agent/corpus/src/about.md": "382261df38e9f68b",
     "Projects/self-intro-agent/corpus/src/contact.md": "fc5a1239cb539b84",
     "Projects/self-intro-agent/corpus/src/exfer.md": "5ec81336da3909cc",
-    "Projects/self-intro-agent/corpus/src/links.md": "a4ac2c79380e5f75",
+    "Projects/self-intro-agent/corpus/src/links.md": "d5f32644ff78eb37",
     "Projects/self-intro-agent/corpus/src/research.md": "14c1b4d0d18642d3",
-    "Projects/self-intro-agent/corpus/src/this-site.md": "4a4f6b82e2e3467f"
+    "Projects/self-intro-agent/corpus/src/this-site.md": "21e6aa409122a6c3"
   }
 }

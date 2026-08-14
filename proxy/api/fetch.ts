@@ -81,7 +81,7 @@ async function fetchChecked(start: URL): Promise<Response> {
         // Identify the caller honestly. A site that does not want an agent reading it
         // should be able to see who is asking.
         "user-agent":
-          "ZiyangAgent/1.0 (+https://ziyangliu-666.github.io) reader on behalf of a visitor",
+          "ZiyangAgent/1.0 (+https://ziy.bio) reader on behalf of a visitor",
         accept: "text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.5",
       },
       signal: AbortSignal.timeout(10_000),
