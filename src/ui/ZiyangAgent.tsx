@@ -20,15 +20,23 @@ import { startFavicon } from "./favicon";
 import { Stickers } from "./Stickers";
 import "./agent.css";
 
-/* Each of these demonstrates a different thing the agent can actually do — breadth, a
- * number buried in the résumé, a paper's real result, and reading live code — rather than
- * four phrasings of "tell me about yourself". A visitor learns more from what the openers
- * imply is answerable than from any description of the site. */
+/* Four openers a visitor can ask on arrival, knowing nothing.
+ *
+ * The first set asked about transfer throughput going from 70 to 290 MB/s, what the
+ * copy-as-decode paper proves, and how the wallet's consent gate is implemented. Every one of
+ * those is a question you can only think of after you already know the answer exists. They
+ * demonstrated the agent's range to someone who did not need the demonstration, and told a
+ * recruiter opening the page cold that they were in the wrong place.
+ *
+ * These still cover four different capabilities — a summary, a chronology, current work, and
+ * reading the live repositories — because a visitor learns more from what the openers imply is
+ * answerable than from any description of the site. The difference is that each one is now a
+ * question a stranger would actually have. */
 const SEED_QUESTIONS = [
-  "What has Ziyang built?",
-  "How did he take transfer throughput from 70 to 290 MB/s?",
-  "What does the copy-as-decode paper actually prove?",
-  "Show me how the wallet's consent gate is implemented.",
+  "Who is Ziyang?",
+  "Walk me through his career.",
+  "What is he researching?",
+  "Show me some of his actual code.",
 ];
 
 /** Sources shown before the list is folded. */
