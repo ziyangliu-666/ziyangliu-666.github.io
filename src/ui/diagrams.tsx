@@ -61,6 +61,122 @@ export function parseTimeline(lines: string[]): Span[] {
   return out;
 }
 
+/* Dates, so overlapping spans can be drawn as overlapping.
+ *
+ * His internship at SmartX ran inside his degree at UESTC, and Exfer ran inside the research
+ * year at HKUST. A rail that stacks rows in order draws all of those as a sequence, which is a
+ * plain misstatement of what happened. With dates parsed, each span becomes a bar on a shared
+ * axis, and two things that happened at once sit above each other.
+ *
+ * Every span has to parse for that to be honest. If one row cannot be read, the whole block
+ * falls back to the plain rail: a mixed diagram, where most bars are placed by date and one is
+ * guessed, would be worse than the simple version. */
+
+const MONTH_NAMES = [
+  "jan", "feb", "mar", "apr", "may", "jun",
+  "jul", "aug", "sep", "oct", "nov", "dec",
+];
+
+/** Months since year 0, so arithmetic on spans is subtraction. */
+function months(text: string, now: number): number | null {
+  const s = text.trim().toLowerCase();
+  if (!s || /^(now|present|today|current|ongoing|现在|至今)$/.test(s)) return now;
+
+  // 2024-07, 2024/07, 2024.07
+  const numeric = /^(\d{4})\s*[-/.]\s*(\d{1,2})$/.exec(s);
+  if (numeric) {
+    const m = Number(numeric[2]);
+    if (m < 1 || m > 12) return null;
+    return Number(numeric[1]) * 12 + (m - 1);
+  }
+
+  // Jul 2024, July 2024, 2024 Jul
+  const named = /^(?:([a-z]{3,9})\.?\s+(\d{4})|(\d{4})\s+([a-z]{3,9})\.?)$/.exec(s);
+  if (named) {
+    const word = (named[1] ?? named[4])!.slice(0, 3);
+    const year = Number(named[2] ?? named[3]);
+    const m = MONTH_NAMES.indexOf(word);
+    if (m >= 0) return year * 12 + m;
+  }
+
+  // A bare year starts in January.
+  const year = /^(\d{4})$/.exec(s);
+  if (year) return Number(year[1]) * 12;
+
+  return null;
+}
+
+/* An en dash, an em dash, an arrow, the word "to", or a hyphen with space around it. A bare
+ * hyphen is not a separator: it is the one inside "2024-07". */
+const RANGE = /\s*(?:→|->|–|—|\bto\b|\s-\s)\s*/;
+
+export interface Bar {
+  from: number;
+  to: number;
+}
+
+export function parseWhen(when: string, now: number): Bar | null {
+  const parts = when.split(RANGE).map((s) => s.trim()).filter(Boolean);
+  if (!parts.length || parts.length > 2) return null;
+
+  const from = months(parts[0]!, now);
+  if (from == null) return null;
+  if (parts.length === 1) return { from, to: from };
+
+  const to = months(parts[1]!, now);
+  if (to == null || to < from) return null;
+  return { from, to };
+}
+
+function axisYears(from: number, to: number): number[] {
+  const first = Math.ceil(from / 12);
+  const last = Math.floor(to / 12);
+  const out: number[] = [];
+  // At most one label per year, and never so many that they collide in a 500px track.
+  const step = Math.max(1, Math.ceil((last - first + 1) / 7));
+  for (let y = first; y <= last; y += step) out.push(y);
+  return out;
+}
+
+function gantt(spans: Span[], bars: Bar[], key: number): ReactNode {
+  const from = Math.min(...bars.map((b) => b.from));
+  const to = Math.max(...bars.map((b) => b.to));
+  // A degenerate span of one month would divide by zero; give it a year of width.
+  const width = Math.max(to - from, 12);
+  const at = (m: number) => ((m - from) / width) * 100;
+
+  return (
+    <div className="dg dg-gantt" key={key}>
+      <div className="dg-axis" aria-hidden="true">
+        {axisYears(from, to).map((y) => (
+          <span className="dg-tick" key={y} style={{ left: `${at(y * 12)}%` }}>
+            {y}
+          </span>
+        ))}
+      </div>
+      <ol className="dg-bars">
+        {spans.map((s, i) => {
+          const b = bars[i]!;
+          // A point event still has to be visible, so it gets a minimum width, and a span that
+          // ends at the right edge has to be pulled back inside it rather than overhanging.
+          const span = Math.max(at(b.to) - at(b.from), 1.5);
+          const left = Math.min(at(b.from), 100 - span);
+          return (
+            <li className="dg-bar-row" key={i}>
+              <span className="dg-bar-label">{s.what}</span>
+              <span className="dg-track">
+                <span className="dg-bar" style={{ left: `${left}%`, width: `${span}%` }} />
+              </span>
+              <span className="dg-bar-when">{s.when}</span>
+              {s.detail && <span className="dg-bar-detail">{s.detail}</span>}
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
 function timeline(spans: Span[], key: number): ReactNode {
   return (
     <ol className="dg dg-timeline" key={key}>
@@ -181,6 +297,11 @@ function metrics(items: Metric[], key: number): ReactNode {
 
 /* ----------------------------------------------------------------- dispatch */
 
+/** Today, in months since year 0. Takes a date so a test can pin it. */
+export function nowMonths(d: Date = new Date()): number {
+  return d.getFullYear() * 12 + d.getMonth();
+}
+
 /** Languages that draw. Anything else is a code block, which is what it was already. */
 const KINDS = new Set(["timeline", "flow", "stack", "metrics"]);
 
@@ -202,7 +323,13 @@ export function diagram(lang: string | undefined, lines: string[], key: number):
   switch (lang!.toLowerCase()) {
     case "timeline": {
       const spans = parseTimeline(lines);
-      return spans.length ? timeline(spans, key) : null;
+      if (!spans.length) return null;
+      const now = nowMonths();
+      const bars = spans.map((s) => parseWhen(s.when, now));
+      if (spans.length > 1 && bars.every((b): b is Bar => b !== null)) {
+        return gantt(spans, bars as Bar[], key);
+      }
+      return timeline(spans, key);
     }
     case "flow": {
       const steps = parseFlow(lines);

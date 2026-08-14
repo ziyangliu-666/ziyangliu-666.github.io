@@ -8,7 +8,7 @@
  * free DeepSeek endpoint with an unbounded prompt and an unbounded model choice.
  */
 
-import { corsHeaders, fail, guard, overBudget, readJson } from "./_lib";
+import { corsHeaders, fail, guard, logAsk, overBudget, readJson } from "./_lib";
 
 export const config = { runtime: "edge" };
 
@@ -168,6 +168,29 @@ export default async function handler(req: Request): Promise<Response> {
     globalPerDay: Number(process.env.CHAT_GLOBAL_DAILY ?? 3000),
   });
   if (limited) return limited;
+
+  /* Logged after the rate limiter, so a flood shows up as 429s rather than as thousands of
+   * lines, and before the upstream call, so a question that fails to answer is still visible.
+   *
+   * Only the opening call of a turn is logged, and it takes two conditions to find it.
+   *
+   * The last message must be the visitor's. The agent loop calls this endpoint once per tool
+   * round and every round repeats the same question, so without this one question wrote five
+   * to twelve lines; on a later round the last message is a tool result.
+   *
+   * The request must also carry tools. The follow-up generator passes the whole exchange as a
+   * user message, so it satisfies the first condition and logged a 300-character "Question:
+   * ... Answer: ..." blob after every real question. Only the main loop sends tools. */
+  const messages = body.messages as { role?: string; content?: unknown }[];
+  const last = messages[messages.length - 1];
+  const isOpeningCall = last?.role === "user" && Array.isArray(body.tools) && body.tools.length > 0;
+  if (isOpeningCall) {
+    void logAsk(req, {
+      q: typeof last.content === "string" ? last.content.slice(0, 300) : null,
+      turn: messages.filter((m) => m.role === "user").length,
+      model: body.model,
+    });
+  }
 
   let upstream: Response;
   try {

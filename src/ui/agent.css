@@ -1120,6 +1120,121 @@ textarea {
   color: var(--muted);
 }
 
+/* --- timeline on a shared axis: overlaps look like overlaps ---------------- */
+
+.dg-gantt {
+  display: grid;
+  gap: 6px;
+
+  /* The three column widths live here, once, because the axis and the bar rows are separate
+     grids and a year tick has to sit exactly above the month it marks. Hard-coding the offset
+     on the axis alone drifted: the rows sized their date column with `auto`, so the track was
+     narrower than the axis and every tick sat about 30px right of its bar. */
+  --dg-label: 164px;
+  --dg-when: 104px;
+  --dg-gap: 8px;
+}
+
+.dg-axis {
+  position: relative;
+  height: 15px;
+  margin-left: calc(var(--dg-label) + var(--dg-gap));
+  margin-right: calc(var(--dg-when) + var(--dg-gap));
+  border-bottom: 1px solid #1c1c22;
+}
+
+.dg-tick {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--faint);
+  white-space: nowrap;
+}
+
+.dg-bars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.dg-bar-row {
+  display: grid;
+  /* label | track | dates, with the detail wrapping under the track. */
+  grid-template-columns: var(--dg-label) 1fr var(--dg-when);
+  grid-template-areas:
+    "label track when"
+    ".     detail detail";
+  align-items: center;
+  gap: 4px var(--dg-gap);
+}
+
+.dg-bar-label {
+  grid-area: label;
+  font-size: 13.5px;
+  line-height: 1.35;
+  color: var(--ink);
+  text-align: right;
+}
+
+.dg-track {
+  grid-area: track;
+  position: relative;
+  height: 20px;
+  /* The lane the bar sits in. Visible, so a short bar reads as short against the whole span
+     rather than as floating in nothing. */
+  background: #101014;
+  border-radius: 5px;
+}
+
+.dg-bar {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  background: #3f3f4b;
+  border-radius: 4px;
+  /* A hairline along the top so a bar has an edge against the lane behind it. */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09);
+  min-width: 3px;
+}
+
+.dg-bar-when {
+  grid-area: when;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--faint);
+  white-space: nowrap;
+}
+
+.dg-bar-detail {
+  grid-area: detail;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+/* Narrow: the label column and the dates cost more than they give, so the bar goes full
+ * width under its own label. The axis loses its offset with it. */
+@media (max-width: 620px) {
+  .dg-axis {
+    margin-left: 0;
+  }
+  .dg-bar-row {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "label"
+      "track"
+      "when"
+      "detail";
+  }
+  .dg-bar-label {
+    text-align: left;
+  }
+}
+
 /* --- flow: a chain of boxes that wraps, so all of it is visible ----------- */
 
 /* This scrolled horizontally at first, to keep a long chain from widening the 720px answer

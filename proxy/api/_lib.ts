@@ -178,3 +178,43 @@ export async function readJson(req: Request): Promise<Record<string, unknown>> {
   }
   return parsed as Record<string, unknown>;
 }
+
+/* ------------------------------------------------------------------ request log
+ *
+ * One JSON line per question, to stdout, which Vercel keeps as runtime logs. `npm run logs`
+ * in this directory tails them. No database, no dashboard, no extra service to keep alive: a
+ * greppable line is enough to see what people actually ask, and what people actually ask is
+ * the only interesting thing here.
+ *
+ * The visitor is a hash, never an address. Salted with the DeepSeek key, which is already a
+ * secret on this project and never leaves the server, so the digest cannot be reversed by
+ * anyone holding the logs. Eight hex characters is enough to tell "one person asked five
+ * questions" from "five people asked one", and too few to single anyone out.
+ *
+ * Vercel's own geo headers give a country without any lookup of our own.
+ */
+export async function logAsk(
+  req: Request,
+  fields: Record<string, unknown>,
+): Promise<void> {
+  try {
+    const salt = process.env.DEEPSEEK_API_KEY ?? "unsalted";
+    const raw = new TextEncoder().encode(`${clientIp(req)}|${salt}`);
+    const digest = await crypto.subtle.digest("SHA-256", raw);
+    const visitor = Array.from(new Uint8Array(digest).slice(0, 4))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+
+    console.log(
+      JSON.stringify({
+        tag: "ask",
+        at: new Date().toISOString(),
+        visitor,
+        country: req.headers.get("x-vercel-ip-country") ?? null,
+        ...fields,
+      }),
+    );
+  } catch {
+    /* A log line must never be the reason an answer fails. */
+  }
+}

@@ -134,16 +134,55 @@ const checks = [
   },
   /* --- structured blocks ------------------------------------------------ */
   {
-    name: "timeline draws spans, dates and details",
+    name: "timeline draws every field: date, event and detail",
     md: "```timeline\n2022-10 → 2024-07 | R&D Intern, SmartX | V2V OS 1.2.0 to 1.6.0\n2024-07 → 2025-09 | R&D Engineer, SmartX\n```",
+    want: (r) =>
+      // Both rows carry dates, so this is the dated view rather than the plain rail.
+      r.classes.filter((c) => c === "dg-bar-label").length === 2 &&
+      r.classes.includes("dg-bar-when") &&
+      r.classes.includes("dg-bar-detail") &&
+      r.text.includes("2022-10 → 2024-07") &&
+      r.text.includes("R&D Intern, SmartX") &&
+      r.text.includes("V2V OS 1.2.0 to 1.6.0") &&
+      !r.tags.includes("pre"),
+  },
+  {
+    name: "undated rows still draw as the plain rail",
+    md: "```timeline\nEarly on | Wrote the migration service\nLater | Led the product design\n```",
     want: (r) =>
       r.classes.includes("dg dg-timeline") &&
       r.classes.filter((c) => c === "dg-span").length === 2 &&
-      r.classes.includes("dg-when") &&
-      r.classes.includes("dg-detail") &&
-      r.text.includes("2022-10 → 2024-07") &&
-      r.text.includes("V2V OS 1.2.0 to 1.6.0") &&
-      !r.tags.includes("pre"),
+      r.classes.includes("dg-when"),
+  },
+  {
+    name: "dated spans become bars on a shared axis, so overlaps overlap",
+    md: "```timeline\n2020-09 → 2024-06 | B.Eng., UESTC\n2022-10 → 2024-07 | R&D Intern, SmartX\n2024-07 → 2025-09 | R&D Engineer, SmartX\n```",
+    want: (r) =>
+      r.classes.includes("dg dg-gantt") &&
+      r.classes.filter((c) => c === "dg-bar").length === 3 &&
+      // The axis spans 2020-09 to 2025-09, so it carries a tick for every year in between.
+      r.classes.filter((c) => c === "dg-tick").length >= 4 &&
+      !r.classes.includes("dg dg-timeline"),
+  },
+  {
+    name: "one unreadable date drops the whole block back to the plain rail",
+    md: "```timeline\n2020-09 → 2024-06 | B.Eng., UESTC\nsometime later | Something else\n```",
+    want: (r) => r.classes.includes("dg dg-timeline") && !r.classes.includes("dg dg-gantt"),
+  },
+  {
+    name: "month names and open-ended spans parse too",
+    md: "```timeline\nSep 2025 → Aug 2026 | Research, HKUST\nAug 2026 → now | M.Tech., NUS\n```",
+    want: (r) => r.classes.includes("dg dg-gantt") && r.classes.filter((c) => c === "dg-bar").length === 2,
+  },
+  {
+    name: "a single dated span stays a rail, since one bar has nothing to overlap",
+    md: "```timeline\n2024-07 → 2025-09 | R&D Engineer, SmartX\n```",
+    want: (r) => r.classes.includes("dg dg-timeline") && !r.classes.includes("dg dg-gantt"),
+  },
+  {
+    name: "a backwards range is not a span",
+    md: "```timeline\n2025-09 → 2024-07 | Backwards\n2024-07 → 2025-09 | Forwards\n```",
+    want: (r) => r.classes.includes("dg dg-timeline") && !r.classes.includes("dg dg-gantt"),
   },
   {
     name: "timeline row with no event is dropped, not drawn empty",

@@ -7,7 +7,9 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "dev": "vercel dev",
-    "deploy": "vercel deploy --prod"
+    "deploy": "vercel deploy --prod",
+    "logs": "vercel logs ziyang-agent-proxy.vercel.app --follow",
+    "asks": "vercel logs ziyang-agent-proxy.vercel.app --follow | grep --line-buffered '\"tag\":\"ask\"'"
   },
   "devDependencies": {
     "typescript": "^5.7.2"

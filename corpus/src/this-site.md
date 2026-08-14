@@ -35,5 +35,12 @@ collapsed activity line above each answer. Open it. The interface reports what t
 did rather than asserting that it worked, which is the same reason the migration checker
 in V2V OS compares disks block by block instead of trusting that the transfer said OK.
 
+**What is recorded.** The edge function writes one line per question to its runtime log:
+the question text, the time, the country the request came from, and a short hash that stands
+in for the visitor. The hash is salted with a server-side secret, so it cannot be turned back
+into an address by anyone reading the logs. It exists so Ziyang can see what people ask this
+page, which is the useful part. No account, no cookie, no analytics script, and no third party
+receives any of it.
+
 The design of this interface came from Claude's design tool; the harness behind it was
 written for this site.
