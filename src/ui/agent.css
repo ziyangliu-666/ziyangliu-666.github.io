@@ -83,21 +83,23 @@ textarea {
   }
 }
 
-/* ------------------------------------------------------------------- light
+/* ------------------------------------------------------------------- rays
  *
- * One soft light source behind the page, tracked to the pointer. Glass is only worth having
- * if there is something behind it to blur, and on a #0b0b0d ground there was nothing: every
- * frosted panel looked identical to a flat one. This is that something.
+ * A field of very fine parallel lines behind everything. The gap between them tracks the
+ * pointer, so moving the mouse expands or compresses the whole field and the page reads as
+ * advancing or receding.
  *
- * Two layers, because one wide gradient reads as a grey wash rather than as light: a narrow
- * warm-neutral core, and a much wider, fainter fill. Both sit at 0 opacity of hue — the
- * palette stays hueless — and vary only in luminance.
+ * The lines stay parallel on purpose. Letting them converge toward a vanishing point would be
+ * a stronger effect and the wrong one: a floor grid in perspective is a statement, and this
+ * page argues for restraint. Uniform spacing that changes is enough to carry the motion, and
+ * an even field also gives the frosted surfaces something worth blurring.
  *
- * Painted on a fixed pseudo-element under everything, so it costs one composited layer and
- * scrolls with nothing. --lx and --ly are written by useAmbientLight at 60fps. */
+ * One fixed pseudo-element, one repeating gradient, two custom properties. --gap and --slide
+ * are written by useRays; the compositor does the rest, and nothing re-renders.
+ */
 .app {
-  --lx: 50%;
-  --ly: 34%;
+  --gap: 26px;
+  --slide: 0px;
   position: relative;
   isolation: isolate;
 }
@@ -105,28 +107,45 @@ textarea {
 .app::before {
   content: "";
   position: fixed;
-  inset: 0;
+  /* Overhung on every side so a change in --slide never drags an edge into view. */
+  inset: -8vh -8vw;
   z-index: -1;
   pointer-events: none;
-  background:
-    radial-gradient(
-      420px circle at var(--lx) var(--ly),
-      rgba(255, 255, 255, 0.055),
-      rgba(255, 255, 255, 0) 70%
-    ),
-    radial-gradient(
-      1100px circle at var(--lx) var(--ly),
-      rgba(255, 255, 255, 0.022),
-      rgba(255, 255, 255, 0) 72%
-    );
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(255, 255, 255, 0.08) 0px,
+    rgba(255, 255, 255, 0.08) 1px,
+    rgba(255, 255, 255, 0) 1px,
+    rgba(255, 255, 255, 0) var(--gap)
+  );
+  background-position: 0 var(--slide);
+  /* Fades toward the edges so it reads as light in a room rather than as ruled paper, but only
+     dips a little in the middle. The first version pushed the centre down to 0.28 to protect
+     the heading, which put the quietest part of the field exactly where the eye is: the
+     spacing changed and almost nothing appeared to move. The glass panels already separate the
+     text from the lines, so the field can stay legible across the whole screen. */
+  -webkit-mask-image: radial-gradient(
+    120% 95% at 50% 42%,
+    rgba(0, 0, 0, 0.62) 0%,
+    rgba(0, 0, 0, 0.95) 40%,
+    rgba(0, 0, 0, 0.5) 74%,
+    rgba(0, 0, 0, 0) 96%
+  );
+  mask-image: radial-gradient(
+    120% 95% at 50% 42%,
+    rgba(0, 0, 0, 0.62) 0%,
+    rgba(0, 0, 0, 0.95) 40%,
+    rgba(0, 0, 0, 0.5) 74%,
+    rgba(0, 0, 0, 0) 96%
+  );
 }
 
-/* A phone has no pointer to track, so the light would sit wherever the last touch landed.
- * Park it above the heading instead, where a fixed source would sensibly be. */
+/* No pointer to drive the spacing, so the field would sit at whatever the last touch set.
+ * Park it at a middle gap and leave it still. */
 @media (hover: none) {
   .app {
-    --lx: 50% !important;
-    --ly: 26% !important;
+    --gap: 26px !important;
+    --slide: 0px !important;
   }
 }
 

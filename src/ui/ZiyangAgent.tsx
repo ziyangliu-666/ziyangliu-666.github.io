@@ -102,37 +102,49 @@ function useSheen() {
   return el;
 }
 
-/* ------------------------------------------------------------- ambient light
- * The light source behind the page follows the pointer. Same shape as useSheen: write two
- * custom properties straight to the node, ease them in a rAF loop, never touch React state.
- * A light this soft costs nothing to move and is the reason the glass surfaces read as glass
- * — a frosted panel over a flat background is indistinguishable from a darker panel. */
-function useAmbientLight(el: React.RefObject<HTMLDivElement | null>) {
+/* ----------------------------------------------------------------------- rays
+ * The background line field breathes with the pointer. Vertical position sets the gap, so
+ * moving up compresses the lines and moving down spreads them, which reads as the page
+ * receding and advancing. Horizontal position slides the field along its own normal, which
+ * adds lateral travel to the same illusion.
+ *
+ * Same shape as useSheen: two custom properties written straight to the node, eased in a rAF
+ * loop, never in React state. A gradient repaint is more expensive than a composited
+ * transform, so this eases slower than the sheen does and settles sooner. */
+const GAP_NEAR = 42;
+const GAP_FAR = 15;
+
+function useRays(el: React.RefObject<HTMLDivElement | null>) {
   useEffect(() => {
     if (window.matchMedia("(hover: none)").matches) return;
     const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const ease = calm ? 1 : 0.09;
+    const ease = calm ? 1 : 0.075;
 
-    let atX = 50;
-    let atY = 34;
-    let toX = 50;
-    let toY = 34;
+    let gap = 26;
+    let slide = 0;
+    let toGap = 26;
+    let toSlide = 0;
     let raf = 0;
 
     const loop = () => {
-      atX += (toX - atX) * ease;
-      atY += (toY - atY) * ease;
-      el.current?.style.setProperty("--lx", `${atX.toFixed(2)}%`);
-      el.current?.style.setProperty("--ly", `${atY.toFixed(2)}%`);
+      gap += (toGap - gap) * ease;
+      slide += (toSlide - slide) * ease;
+      const node = el.current;
+      if (node) {
+        node.style.setProperty("--gap", `${gap.toFixed(2)}px`);
+        node.style.setProperty("--slide", `${slide.toFixed(1)}px`);
+      }
       raf =
-        Math.abs(toX - atX) > 0.08 || Math.abs(toY - atY) > 0.08
+        Math.abs(toGap - gap) > 0.05 || Math.abs(toSlide - slide) > 0.4
           ? requestAnimationFrame(loop)
           : 0;
     };
 
     const onPointer = (e: PointerEvent) => {
-      toX = (e.clientX / window.innerWidth) * 100;
-      toY = (e.clientY / window.innerHeight) * 100;
+      const down = e.clientY / Math.max(1, window.innerHeight);
+      // Top of the screen is the far field, bottom is the near field.
+      toGap = GAP_FAR + down * (GAP_NEAR - GAP_FAR);
+      toSlide = (e.clientX / Math.max(1, window.innerWidth)) * 220 - 110;
       if (!raf) raf = requestAnimationFrame(loop);
     };
 
@@ -497,7 +509,7 @@ export default function ZiyangAgent({
    * and polls, instead of being torn down and rebuilt on every token that arrives. */
   useEffect(() => startFavicon(() => (busyRef.current ? "busy" : "idle")), []);
 
-  useAmbientLight(appRef);
+  useRays(appRef);
 
   // Follow the stream, but let go the moment the reader scrolls up to re-read something.
   useEffect(() => {
