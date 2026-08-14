@@ -85,21 +85,25 @@ textarea {
 
 /* ------------------------------------------------------------------- rays
  *
- * A field of very fine parallel lines behind everything. The gap between them tracks the
- * pointer, so moving the mouse expands or compresses the whole field and the page reads as
- * advancing or receding.
+ * A field of fine parallel lines behind everything, driven by the pointer on three axes:
+ * vertical position sets the gap, so the field expands and compresses and the page reads as
+ * advancing and receding; vertical position also slides it along its own normal; horizontal
+ * position tilts the whole field.
  *
- * The lines stay parallel on purpose. Letting them converge toward a vanishing point would be
- * a stronger effect and the wrong one: a floor grid in perspective is a statement, and this
- * page argues for restraint. Uniform spacing that changes is enough to carry the motion, and
- * an even field also gives the frosted surfaces something worth blurring.
+ * The lines stay parallel to each other. Letting them converge on a vanishing point would be a
+ * stronger effect and the wrong one: a floor grid in perspective is a statement, and this page
+ * argues for restraint. Spacing and tilt carry the motion on their own.
  *
- * One fixed pseudo-element, one repeating gradient, two custom properties. --gap and --slide
- * are written by useRays; the compositor does the rest, and nothing re-renders.
+ * The lines are hard-edged. A soft shoulder either side of each core was tried and dropped: it
+ * turned a field of lines into a field of smudges, and at the wider gaps it read as haze rather
+ * than as light. Two crisp pixels say the same thing with less.
+ *
+ * One fixed pseudo-element, one repeating gradient, three custom properties written by useRays.
  */
 .app {
-  --gap: 26px;
+  --gap: 32px;
   --slide: 0px;
+  --angle: 0deg;
   position: relative;
   isolation: isolate;
 }
@@ -107,18 +111,26 @@ textarea {
 .app::before {
   content: "";
   position: fixed;
-  /* Overhung on every side so a change in --slide never drags an edge into view. */
-  inset: -8vh -8vw;
+  /* Overhung enough that neither the tilt nor the slide can drag an edge into view. Covering a
+     1440x900 viewport with an 11deg rotation needs about 130px of vertical slack, and the slide
+     adds up to 130px more. Horizontal slack is small because the tilt is shallow. */
+  inset: -32vh -10vw;
   z-index: -1;
   pointer-events: none;
+  /* The tilt and the slide are transforms, not gradient parameters. Rotating the gradient
+     itself was measurably worse: it re-rasterises the whole layer every frame, which took the
+     90th-percentile frame from 17ms to 33ms and dropped one frame in nine during a fast sweep.
+     As transforms they stay on the compositor, and --gap is left as the only property that
+     forces a repaint. */
+  rotate: var(--angle);
+  translate: 0 var(--slide);
   background-image: repeating-linear-gradient(
     0deg,
-    rgba(255, 255, 255, 0.08) 0px,
-    rgba(255, 255, 255, 0.08) 1px,
-    rgba(255, 255, 255, 0) 1px,
+    rgba(255, 255, 255, 0.085) 0px,
+    rgba(255, 255, 255, 0.085) 2px,
+    rgba(255, 255, 255, 0) 2px,
     rgba(255, 255, 255, 0) var(--gap)
   );
-  background-position: 0 var(--slide);
   /* Fades toward the edges so it reads as light in a room rather than as ruled paper, but only
      dips a little in the middle. The first version pushed the centre down to 0.28 to protect
      the heading, which put the quietest part of the field exactly where the eye is: the
@@ -140,12 +152,13 @@ textarea {
   );
 }
 
-/* No pointer to drive the spacing, so the field would sit at whatever the last touch set.
- * Park it at a middle gap and leave it still. */
+/* No pointer to drive any of it, so the field would sit wherever the last touch left it.
+ * Park it at a middle gap, level, and leave it still. */
 @media (hover: none) {
   .app {
-    --gap: 26px !important;
+    --gap: 32px !important;
     --slide: 0px !important;
+    --angle: 0deg !important;
   }
 }
 

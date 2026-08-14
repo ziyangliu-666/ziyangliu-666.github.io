@@ -103,48 +103,60 @@ function useSheen() {
 }
 
 /* ----------------------------------------------------------------------- rays
- * The background line field breathes with the pointer. Vertical position sets the gap, so
- * moving up compresses the lines and moving down spreads them, which reads as the page
- * receding and advancing. Horizontal position slides the field along its own normal, which
- * adds lateral travel to the same illusion.
+ * The background line field answers the pointer on three axes. Vertical position sets the gap
+ * and slides the field along its own normal, so moving down spreads the lines and pushes them
+ * past you. Horizontal position tilts the field.
  *
- * Same shape as useSheen: two custom properties written straight to the node, eased in a rAF
- * loop, never in React state. A gradient repaint is more expensive than a composited
- * transform, so this eases slower than the sheen does and settles sooner. */
-const GAP_NEAR = 42;
-const GAP_FAR = 15;
+ * Same shape as useSheen: custom properties written straight to the node, eased in a rAF loop,
+ * never in React state. The easing is far slower than the sheen's 0.12 on purpose. The sheen is
+ * a highlight the eye expects to keep up with the cursor; this is a room the page sits in, and
+ * a room that answers instantly reads as a gimmick.
+ *
+ * Lines are a hard 2px, so the gap can run tighter than it could when each one carried a
+ * soft shoulder and neighbours merged into haze. */
+const GAP_NEAR = 54;
+const GAP_FAR = 22;
+const TILT = 11;
 
 function useRays(el: React.RefObject<HTMLDivElement | null>) {
   useEffect(() => {
     if (window.matchMedia("(hover: none)").matches) return;
     const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const ease = calm ? 1 : 0.075;
+    const ease = calm ? 1 : 0.032;
 
-    let gap = 26;
+    let gap = 32;
     let slide = 0;
-    let toGap = 26;
+    let angle = 0;
+    let toGap = 32;
     let toSlide = 0;
+    let toAngle = 0;
     let raf = 0;
 
     const loop = () => {
       gap += (toGap - gap) * ease;
       slide += (toSlide - slide) * ease;
+      angle += (toAngle - angle) * ease;
       const node = el.current;
       if (node) {
         node.style.setProperty("--gap", `${gap.toFixed(2)}px`);
         node.style.setProperty("--slide", `${slide.toFixed(1)}px`);
+        node.style.setProperty("--angle", `${angle.toFixed(2)}deg`);
       }
       raf =
-        Math.abs(toGap - gap) > 0.05 || Math.abs(toSlide - slide) > 0.4
+        Math.abs(toGap - gap) > 0.04 ||
+        Math.abs(toSlide - slide) > 0.3 ||
+        Math.abs(toAngle - angle) > 0.02
           ? requestAnimationFrame(loop)
           : 0;
     };
 
     const onPointer = (e: PointerEvent) => {
       const down = e.clientY / Math.max(1, window.innerHeight);
+      const across = e.clientX / Math.max(1, window.innerWidth);
       // Top of the screen is the far field, bottom is the near field.
       toGap = GAP_FAR + down * (GAP_NEAR - GAP_FAR);
-      toSlide = (e.clientX / Math.max(1, window.innerWidth)) * 220 - 110;
+      toSlide = down * 260 - 130;
+      toAngle = (across * 2 - 1) * TILT;
       if (!raf) raf = requestAnimationFrame(loop);
     };
 
