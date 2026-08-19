@@ -136,7 +136,13 @@ export async function runAgent(o: RunOptions): Promise<void> {
         messages,
         tools: specsFor(TOOLS),
         thinking: true,
-        effort: "medium",
+        /* Medium on the opening round, low after it. The opening round is the one with a real
+         * decision in it: which tools to call, and with which keywords, against an index the
+         * model cannot see. Every later round already holds the retrieved text, so the only
+         * choices left are "search once more" and "which shape fits", and both are one line of
+         * thinking. Medium on the final round has nothing to spend the budget on, and it spent
+         * it drafting the answer in full before writing it. */
+        effort: iteration === 0 ? "medium" : "low",
         maxTokens: LIMITS.maxTokens,
         signal: controller.signal,
       })) {
