@@ -204,26 +204,38 @@ export async function* chat(req: ChatRequest): AsyncGenerator<ProviderDelta> {
   }
 }
 
+/* The proxy's own errors are `{ error: { message } }`, and only those are shown to a visitor
+ * verbatim. Anything else reaching this function is a body we did not write: Vercel's firewall
+ * answers a burst limit with its own page, and a gateway between here and there can answer with
+ * whatever it likes. Slicing 200 characters off an HTML document and printing that under a
+ * question about someone's career is worse than saying nothing about the cause. */
+function ourMessage(text: string): string | null {
+  try {
+    const parsed = JSON.parse(text) as { error?: { message?: string } | string };
+    if (typeof parsed.error === "string") return parsed.error;
+    if (typeof parsed.error?.message === "string") return parsed.error.message;
+  } catch {
+    /* not ours */
+  }
+  return null;
+}
+
 async function describeFailure(res: Response): Promise<string> {
   let detail = "";
   try {
-    const text = await res.text();
-    try {
-      const parsed = JSON.parse(text) as { error?: { message?: string } | string };
-      detail =
-        typeof parsed.error === "string"
-          ? parsed.error
-          : parsed.error?.message ?? text.slice(0, 200);
-    } catch {
-      detail = text.slice(0, 200);
-    }
+    detail = ourMessage(await res.text()) ?? "";
   } catch {
     /* body already consumed or empty */
   }
 
   if (res.status === 429) {
-    // The proxy writes a sentence meant for a visitor. Pass it through rather than wrapping it.
-    return detail || "This site limits how much it will spend per visitor. Try again shortly.";
+    /* Our own 429 carries a sentence written for a visitor, so it goes through as written. The
+     * firewall's 429 carries a page instead, and the visitor gets this sentence, which says the
+     * same thing without the markup. */
+    return (
+      detail ||
+      "Too many requests from your network for a moment. Wait a little and ask again."
+    );
   }
   if (res.status === 401 || res.status === 403) {
     return `the model endpoint rejected the request (${res.status}${detail ? `: ${detail}` : ""})`;
