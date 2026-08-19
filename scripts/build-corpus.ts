@@ -644,6 +644,42 @@ interface GhSearchItem {
   created_at: string;
   repository_url: string;
   user: { login: string };
+  draft?: boolean;
+  pull_request?: { merged_at: string | null };
+}
+
+/* The state a reader cares about, which the search API does not give directly.
+ *
+ * `state` is "closed" for a merged pull request and for a rejected one alike, so all 26 of his
+ * merged upstream contributions were indexed as "(closed)" next to the 2 that were closed
+ * unmerged. A model reading either cannot tell a landed change from a refused one, which on a
+ * page about someone's work is the wrong way round to be wrong. */
+function prState(pr: GhSearchItem): string {
+  if (pr.pull_request?.merged_at) return "merged";
+  if (pr.state === "open") return pr.draft ? "draft" : "open";
+  return "closed without merging";
+}
+
+/* Repositories under his own accounts that are forks of somebody else's project.
+ *
+ * Pull requests on those are dropped, the same way the repo pass drops forks. The org-wide PR
+ * search sweeps exfer-stack/exfer, which is a fork of ahuman-exfer/exfer, the chain the credit
+ * rules in src/agent/prompt.ts explicitly call not his. Its one pull request was indexed as "In
+ * exfer-stack/exfer, his own repository", which claims the chain as his. Relabelling it upstream
+ * was worse: it then read as a contribution to "exfer-stack/exfer, the Exfer chain itself", and
+ * its id collided with the real upstream numbering. The change is also a duplicate of upstream
+ * #27, which is indexed, so nothing is lost by dropping it.
+ *
+ * Read once, cached, because the repo pass already paid for these calls. */
+const forkNames = new Map<string, Set<string>>();
+
+function forksOf(account: string): Set<string> {
+  const cached = forkNames.get(account);
+  if (cached) return cached;
+  const repos = (gh(`users/${account}/repos?per_page=100`) as GhRepo[] | null) ?? [];
+  const set = new Set(repos.filter((r) => r.fork).map((r) => r.name));
+  forkNames.set(account, set);
+  return set;
 }
 
 function pullRequestDocs(): Doc[] {
@@ -663,9 +699,19 @@ function pullRequestDocs(): Doc[] {
 
   return items
     .filter((pr) => pr.body && pr.body.trim().length > 120)
+    .filter((pr) => {
+      const [owner, repo] = pr.repository_url.split("/").slice(-2);
+      if (!owner || !repo || !forksOf(owner).has(repo)) return true;
+      console.log(`  · skipped ${owner}/${repo}#${pr.number} (a fork, not his project)`);
+      return false;
+    })
     .map((pr) => {
       const repo = pr.repository_url.split("/").pop() ?? "repo";
       const owner = pr.repository_url.split("/").slice(-2)[0] ?? "";
+      /* Forks are already filtered out, so a repo under his own account is genuinely his.
+       * Note for later: the id below is `pr-upstream-<repo>-<number>`, which would collide if a
+       * second upstream project ever shared a repository name and a PR number. One upstream
+       * today, so it holds. Add the owner to the id before adding a second. */
       const upstream = owner !== "exfer-stack";
       const body = (pr.body ?? "")
         // The Claude Code trailer is on most of them and says nothing about the change.
@@ -687,12 +733,13 @@ function pullRequestDocs(): Doc[] {
         date: (pr.closed_at ?? pr.created_at).slice(0, 10),
         sections: [
           {
-            heading: `Pull request — ${owner}/${repo} #${pr.number} (${pr.state})`,
+            heading: `Pull request — ${owner}/${repo} #${pr.number} (${prState(pr)})`,
             text: [
               `${pr.title}`,
               upstream
                 ? `Contributed by Ziyang (as exfer-stack) upstream to ${owner}/${repo}, the Exfer chain itself.`
                 : `In ${owner}/${repo}, his own repository.`,
+              `This pull request is ${prState(pr)}.`,
               pr.html_url,
               "",
               trimmed,

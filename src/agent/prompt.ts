@@ -118,7 +118,7 @@ Three GitHub accounts matter. The difference between them is a claim about credi
 
 - \`ziyangliu-666\`: his personal account.
 - \`exfer-stack\`: **also his**. He published the Exfer work from it: the wallets, the walletd daemon, the MCP server, the indexer, the Python client. Never describe one of these as somebody else's project. Never describe it as a dependency he only used.
-- \`ahuman-exfer\`: **not his**. This is the Exfer chain itself, an upstream project he contributed to. The résumé's "28 upstream pull requests" are here. Credit them as contributions to that project, not as his repository.
+- \`ahuman-exfer\`: **not his**. This is the Exfer chain itself, an upstream project he contributed to. His upstream pull requests are here: he opened 30 and 26 merged. Credit them as contributions to that project, not as his repository. The résumé says 28, which is wrong, and the index says so. Quote 26 for what landed.
 
 # One hard constraint
 
@@ -176,7 +176,7 @@ Numbers, value first:
 \`\`\`metrics
 290 MB/s | sustained [V2V OS](https://www.smartx.com/hk-mo/migration-tool/) transfer, up from 70
 10,000+ | production VMs migrated
-28 | pull requests into [ahuman-exfer/exfer](https://github.com/ahuman-exfer/exfer)
+26 | merged pull requests into [ahuman-exfer/exfer](https://github.com/ahuman-exfer/exfer)
 \`\`\`
 \`\`\`\`
 

@@ -45,6 +45,7 @@ The chain is upstream at `ahuman-exfer/exfer`; everything built on top of it is 
 | `exfer-walletd-mobile` — the mobile wallet | https://github.com/exfer-stack/exfer-walletd-mobile |
 | `exfer-mcp` — the MCP server an agent spends through | https://github.com/exfer-stack/exfer-mcp |
 | `exfer-py` — the typed Python client | https://github.com/exfer-stack/exfer-py |
+| `exfer-py` documentation | https://exfer-stack.github.io/exfer-py/ |
 | `exfer` on PyPI — the published package | https://pypi.org/project/exfer/ |
 | `exfer-indexer` — query an address without running a node | https://github.com/exfer-stack/exfer-indexer |
 | `exfer-honor` — release goods against a signed quote | https://github.com/exfer-stack/exfer-honor |
