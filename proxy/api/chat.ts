@@ -162,17 +162,8 @@ export default async function handler(req: Request): Promise<Response> {
   const problem = validate(body);
   if (problem) return fail(problem, 400, origin);
 
-  const limited = await overBudget("chat", req, origin, {
-    perMinute: 24,
-    perDay: 240,
-    globalPerDay: Number(process.env.CHAT_GLOBAL_DAILY ?? 3000),
-  });
-  if (limited) return limited;
-
-  /* Logged after the rate limiter, so a flood shows up as 429s rather than as thousands of
-   * lines, and before the upstream call, so a question that fails to answer is still visible.
-   *
-   * Only the opening call of a turn is logged, and it takes two conditions to find it.
+  /* Which call opens a question, which is both what gets logged and what the rate limiter
+   * charges for. It takes two conditions to find it.
    *
    * The last message must be the visitor's. The agent loop calls this endpoint once per tool
    * round and every round repeats the same question, so without this one question wrote five
@@ -184,6 +175,25 @@ export default async function handler(req: Request): Promise<Response> {
   const messages = body.messages as { role?: string; content?: unknown }[];
   const last = messages[messages.length - 1];
   const isOpeningCall = last?.role === "user" && Array.isArray(body.tools) && body.tools.length > 0;
+
+  const budget = await overBudget(
+    "chat",
+    req,
+    origin,
+    {
+      questionsPerMinute: 8,
+      questionsPerHour: 60,
+      questionsPerDay: 150,
+      requestsPerMinute: 90,
+      requestsPerDay: 900,
+      globalPerDay: Number(process.env.CHAT_GLOBAL_DAILY ?? 3000),
+    },
+    isOpeningCall,
+  );
+  if (budget instanceof Response) return budget;
+
+  /* Logged after the rate limiter, so a flood shows up as 429s rather than as thousands of
+   * lines, and before the upstream call, so a question that fails to answer is still visible. */
   if (isOpeningCall) {
     void logAsk(req, {
       q: typeof last.content === "string" ? last.content.slice(0, 300) : null,
@@ -229,6 +239,8 @@ export default async function handler(req: Request): Promise<Response> {
       "cache-control": "no-cache, no-transform",
       connection: "keep-alive",
       "x-accel-buffering": "no",
+      // So the client can warn a visitor before the wall instead of at it.
+      "x-ratelimit-remaining": String(budget.questionsLeftToday),
       ...corsHeaders(origin),
     },
   });

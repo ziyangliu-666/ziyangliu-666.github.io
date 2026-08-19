@@ -82,12 +82,24 @@ export default async function handler(req: Request): Promise<Response> {
   if (!query) return fail("query is required", 400, origin);
   if (query.length > 300) return fail("query must be under 300 characters", 400, origin);
 
-  const limited = await overBudget("search", req, origin, {
-    perMinute: 12,
-    perDay: 80,
-    globalPerDay: Number(process.env.SEARCH_GLOBAL_DAILY ?? 600),
-  });
-  if (limited) return limited;
+  /* Never a question: this endpoint is only ever reached by a tool call inside a question the
+   * chat endpoint already allowed. Refusing one here breaks an answer that is already on
+   * screen, so only the per-IP backstop and the global ceiling apply. */
+  const budget = await overBudget(
+    "search",
+    req,
+    origin,
+    {
+      questionsPerMinute: 0,
+      questionsPerHour: 0,
+      questionsPerDay: 0,
+      requestsPerMinute: 40,
+      requestsPerDay: 400,
+      globalPerDay: Number(process.env.SEARCH_GLOBAL_DAILY ?? 600),
+    },
+    false,
+  );
+  if (budget instanceof Response) return budget;
 
   try {
     return json({ results: await tavily(query, key) }, 200, origin);

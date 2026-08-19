@@ -124,7 +124,11 @@ export async function* chat(req: ChatRequest): AsyncGenerator<ProviderDelta> {
   });
 
   if (!res.ok || !res.body) {
-    throw new Error(await describeFailure(res));
+    const message = await describeFailure(res);
+    if (res.status === 429) {
+      throw new RateLimited(message, Number(res.headers.get("retry-after")) || null);
+    }
+    throw new Error(message);
   }
 
   const reader = res.body.getReader();
@@ -218,12 +222,29 @@ async function describeFailure(res: Response): Promise<string> {
   }
 
   if (res.status === 429) {
-    return `rate limited — this site caps how much it will spend per visitor (${detail || "try again shortly"})`;
+    // The proxy writes a sentence meant for a visitor. Pass it through rather than wrapping it.
+    return detail || "This site limits how much it will spend per visitor. Try again shortly.";
   }
   if (res.status === 401 || res.status === 403) {
     return `the model endpoint rejected the request (${res.status}${detail ? `: ${detail}` : ""})`;
   }
   return `model request failed (${res.status}${detail ? `: ${detail}` : ""})`;
+}
+
+/* A refusal, not a fault.
+ *
+ * The UI wraps a failure as "The agent stopped early: … Try again, or ask something narrower",
+ * which is the wrong advice here: a narrower question costs the same one unit, and the proxy has
+ * already written a sentence that says what happened and when it lifts. This type carries that
+ * sentence through unwrapped. */
+export class RateLimited extends Error {
+  readonly retryAfterSeconds: number | null;
+
+  constructor(message: string, retryAfterSeconds: number | null) {
+    super(message);
+    this.name = "RateLimited";
+    this.retryAfterSeconds = retryAfterSeconds;
+  }
 }
 
 /** Non-streaming convenience call, for short side questions like follow-up generation. */

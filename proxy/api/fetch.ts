@@ -148,12 +148,24 @@ export default async function handler(req: Request): Promise<Response> {
   const checked = checkUrl(typeof body.url === "string" ? body.url : "");
   if ("error" in checked) return fail(checked.error, 400, origin);
 
-  const limited = await overBudget("fetch", req, origin, {
-    perMinute: 12,
-    perDay: 80,
-    globalPerDay: Number(process.env.FETCH_GLOBAL_DAILY ?? 600),
-  });
-  if (limited) return limited;
+  /* Never a question: this endpoint is only ever reached by a tool call inside a question the
+   * chat endpoint already allowed. Refusing one here breaks an answer that is already on
+   * screen, so only the per-IP backstop and the global ceiling apply. */
+  const budget = await overBudget(
+    "fetch",
+    req,
+    origin,
+    {
+      questionsPerMinute: 0,
+      questionsPerHour: 0,
+      questionsPerDay: 0,
+      requestsPerMinute: 40,
+      requestsPerDay: 400,
+      globalPerDay: Number(process.env.FETCH_GLOBAL_DAILY ?? 600),
+    },
+    false,
+  );
+  if (budget instanceof Response) return budget;
 
   let res: Response;
   try {

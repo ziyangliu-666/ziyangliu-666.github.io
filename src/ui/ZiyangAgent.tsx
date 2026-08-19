@@ -14,6 +14,7 @@ import {
   useState,
 } from "react";
 import type { AgentEvent, Transport } from "../agent/events";
+import { RateLimited } from "../agent/provider";
 import { initialState, reducer, type AgentMessage, type Segment } from "./state";
 import { Markdown } from "./markdown";
 import { startFavicon } from "./favicon";
@@ -442,11 +443,18 @@ export default function ZiyangAgent({
           isCancelled: () => !current() || cancelled.current,
         });
       } catch (err) {
-        const detail = err instanceof Error ? err.message : "unknown error";
-        emit({
-          type: "error",
-          message: `The agent stopped early: ${detail}. Try again, or ask something narrower.`,
-        });
+        /* A rate limit is a refusal, not a fault. The proxy already wrote a sentence saying what
+         * happened and when it lifts, so it goes through as written: "ask something narrower" is
+         * wrong advice when a narrower question costs exactly the same. */
+        if (err instanceof RateLimited) {
+          emit({ type: "error", message: err.message });
+        } else {
+          const detail = err instanceof Error ? err.message : "unknown error";
+          emit({
+            type: "error",
+            message: `The agent stopped early: ${detail}. Try again, or ask something narrower.`,
+          });
+        }
       }
 
       if (!current()) return; // stopped, reset, or superseded — that turn already settled
