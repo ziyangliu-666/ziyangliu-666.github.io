@@ -38,13 +38,8 @@ rather than executed — an untrusted server can ask for money and never move it
 
 ## Chain internals
 
-26 pull requests landed upstream, in Rust, across consensus, storage and P2P. He opened 30:
-26 merged, 2 are still drafts, and 2 were closed without merging.
-
-The résumé and earlier versions of this page say 28. That is wrong. It appears to count the 26
-merged plus the 2 open drafts, but "landed" means merged. Quote 26. These pull requests are
-public and countable, so a reader who checks will find 26, and a number that fails a check
-costs more than it ever added.
+26 pull requests landed upstream, in Rust, across consensus, storage and P2P. He opened 30 in
+total: 26 merged, 2 still drafts, 2 closed without merging.
 
 - Persisted the UTXO set to redb and added a reverse-spend index.
 - Fixed a double-open in the atomic reorg commit.
