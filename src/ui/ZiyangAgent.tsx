@@ -15,7 +15,13 @@ import {
 } from "react";
 import type { AgentEvent, Transport } from "../agent/events";
 import { RateLimited } from "../agent/provider";
-import { initialState, reducer, type AgentMessage, type Segment } from "./state";
+import {
+  initialState,
+  reducer,
+  type AgentMessage,
+  type Message,
+  type Segment,
+} from "./state";
 import { Markdown } from "./markdown";
 import { startFavicon } from "./favicon";
 import { Stickers } from "./Stickers";
@@ -131,6 +137,51 @@ function useRays(el: React.RefObject<HTMLDivElement | null>) {
       if (raf) cancelAnimationFrame(raf);
     };
   }, [el]);
+}
+
+/* ------------------------------------------------------------------- easter egg
+ *
+ * The game is not advertised. The link to it appears once the agent has named ZIYANG PROTOCOL
+ * in an answer, so the only route there is to have asked about his work and been told, which
+ * is the thing this page is for. Someone who never asks never learns it exists, and that is
+ * the point of an easter egg rather than a nav item.
+ *
+ * The unlock is remembered. Earning it once is the game; earning it again on every visit would
+ * just be a chore. localStorage can throw in private mode, so every touch of it is guarded and
+ * a failure only costs the memory, not the reveal.
+ */
+const EGG_KEY = "ziyang-agent.protocol";
+
+/* Matched against the answer text. The name as the agent writes it, and the URL, in case an
+ * answer links the game without spelling the name out. */
+const EGG_PATTERN = /ziyang\s*protocol|game\.ziy\.bio/i;
+
+function eggRemembered(): boolean {
+  try {
+    return localStorage.getItem(EGG_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function useEasterEgg(messages: readonly Message[]): boolean {
+  const [unlocked, setUnlocked] = useState(eggRemembered);
+
+  useEffect(() => {
+    if (unlocked) return;
+    const named = messages.some(
+      (m) => m.role === "agent" && m.segments.some((seg) => EGG_PATTERN.test(seg.text)),
+    );
+    if (!named) return;
+    setUnlocked(true);
+    try {
+      localStorage.setItem(EGG_KEY, "1");
+    } catch {
+      /* private mode: the link still appears for this session */
+    }
+  }, [messages, unlocked]);
+
+  return unlocked;
 }
 
 /* --------------------------------------------------------------------- composer */
@@ -404,6 +455,7 @@ export default function ZiyangAgent({
   const appRef = useRef<HTMLDivElement | null>(null);
   const busyRef = useRef(false);
   const [override, setOverride] = useState<Transport | null>(null);
+  const unlocked = useEasterEgg(state.messages);
 
   /* Every turn takes a number, and stop/reset/a new question all bump it. A transport
    * cannot be forced to return the instant it is cancelled — it stops at its next poll —
@@ -554,6 +606,24 @@ export default function ZiyangAgent({
           >
             LinkedIn
           </a>
+          {/* The easter egg. Absent until the agent has named the game in an answer, which
+              means the only way to this link is to have asked and been told. Once found it
+              stays found, so a return visit does not have to earn it twice.
+
+              Labelled PROTOCOL rather than anything with "play" in it. The word is the game's
+              own register, it says nothing about what happens when you click, and a visitor
+              who has just read the name recognises it. */}
+          {unlocked && (
+            <a
+              className="nav-egg"
+              href="https://game.ziy.bio/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <span className="nav-egg-dot" aria-hidden="true" />
+              PROTOCOL
+            </a>
+          )}
         </nav>
       </header>
 

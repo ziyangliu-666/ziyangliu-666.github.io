@@ -44,6 +44,11 @@ export function safeSrc(raw: string): string | null {
 const INLINE =
   /(!\[[^\]\n]*\]\([^)\s]+\))|(`[^`\n]+`)|(\*\*\*[^*\n]+\*\*\*)|(\*\*[^*\n]+\*\*)|(__[^_\n]+__)|(~~[^~\n]+~~)|(\*[^\s*][^*\n]*?\*)|(\[[^\]\n]*\]\((?:[^()\s]|\([^()\s]*\))+\))|(<?https?:\/\/[^\s<>()[\]]+>?)/g;
 
+/* The game gets its own link treatment, because it is the only link on the page that leads to
+ * something to do rather than something to read. When the agent hands a visitor that URL, the
+ * link should look like a reward. Everything else stays the quiet white underline. */
+const GAME_HREF = /^https?:\/\/game\.ziy\.bio(\/|$)/i;
+
 function link(href: string, label: ReactNode, key: number): ReactNode {
   const safe = safeHref(href);
   if (!safe) return <span key={key}>{label}</span>;
@@ -51,7 +56,7 @@ function link(href: string, label: ReactNode, key: number): ReactNode {
   return (
     <a
       key={key}
-      className="md-a"
+      className={GAME_HREF.test(safe) ? "md-a md-a--game" : "md-a"}
       href={safe}
       target={external ? "_blank" : undefined}
       rel={external ? "noreferrer noopener" : undefined}

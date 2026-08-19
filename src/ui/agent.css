@@ -236,6 +236,64 @@ textarea {
   color: var(--ink);
 }
 
+/* The easter egg, present in the nav only once the agent has named the game. It is the sole
+   link here that leads somewhere playable rather than readable, so it is the sole one that
+   does not look like the others: an outlined pill with a slow pulse, against three words set
+   in the same grey. No icon, in keeping with the rest of the page.
+
+   It fades in rather than appearing. It arrives mid-answer while the visitor is reading, and a
+   pill that pops into a header pulls the eye off the sentence it landed beside. */
+.nav-egg {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ink) !important;
+  font-size: 11.5px;
+  letter-spacing: 0.1em;
+  padding: 4px 10px 4px 8px;
+  border: 1px solid #2b2b34;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  animation: rl-egg 900ms ease-out both;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.nav-egg:hover {
+  border-color: #4a4a58;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.nav-egg-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #6fd08c;
+  /* Slower than the 1s activity pulse. That one means "working, wait" and would nag here; this
+     one only says that something at the other end is live. */
+  animation: rl-pulse 2.4s ease-in-out infinite;
+  flex: 0 0 auto;
+}
+
+@keyframes rl-egg {
+  from {
+    opacity: 0;
+    scale: 0.92;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+/* PROTOCOL is short enough to sit beside the other three once the gap tightens. */
+@media (max-width: 620px) {
+  .nav {
+    gap: 15px;
+  }
+}
+
 /* ---------------------------------------------------------------- landing */
 
 .landing {
@@ -710,6 +768,70 @@ textarea {
 .md-a:hover {
   text-decoration-color: #ffffff;
   background: rgba(255, 255, 255, 0.09);
+}
+
+/* The game link, when the agent hands it over. The only link on the page that leads to
+   something to do, so it is the only one that is not quiet.
+
+   The colour is a moving gradient under background-clip: text. The guard learned from the
+   wordmark gleam applies here too: a background-color sits under the gradient, so a browser
+   that paints the image late or not at all still renders letters in a real colour instead of
+   rendering them transparent. The gradient repeats and travels one full band per cycle, which
+   is what makes the loop seamless rather than snapping back.
+
+   9s, not 2s. This lands mid-sentence in something a visitor is reading, and text that
+   strobes under the eye is unreadable. Reduced motion stops it entirely and keeps the
+   gradient still. */
+.md-a--game {
+  background-color: #d8d8de;
+  background-image: linear-gradient(
+    100deg,
+    #ff6b6b 0%,
+    #ffa94d 14%,
+    #ffe066 28%,
+    #8ce99a 42%,
+    #66d9e8 56%,
+    #74c0fc 70%,
+    #b197fc 84%,
+    #ff6b6b 100%
+  );
+  background-size: 200% 100%;
+  background-repeat: repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  font-weight: 600;
+  text-decoration-color: #8ce99a;
+  text-decoration-thickness: 1.5px;
+  animation: rl-game 9s linear infinite;
+}
+
+.md-a--game:hover {
+  background-color: #ffffff;
+  text-decoration-color: #ffffff;
+  animation-duration: 3s;
+}
+
+@keyframes rl-game {
+  from {
+    background-position: 0% 50%;
+  }
+  to {
+    background-position: 200% 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .md-a--game {
+    animation: none;
+  }
+}
+
+/* Inside a drawn block the rule above still wins on colour, which is what we want, but the
+   block's own reset would strip the weight back. */
+.dg .md-a--game {
+  font-weight: 600;
 }
 
 .md-a:focus-visible {
