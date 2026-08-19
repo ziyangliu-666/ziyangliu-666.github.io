@@ -75,7 +75,12 @@ interface Props {
  * soft shoulder and neighbours merged into haze. */
 const GAP_NEAR = 54;
 const GAP_FAR = 22;
-const TILT = 11;
+/* The field rests slanted, not level. Level lines read as ruled paper, and the slant is what
+ * says the light comes from somewhere. The pointer swings the angle either side of this rest
+ * position, so the same sweep still reads as depth. Rest plus swing stays inside the 130px of
+ * vertical slack that .app::before is overhung by. */
+const TILT_REST = -13;
+const TILT_SWING = 9;
 
 function useRays(el: React.RefObject<HTMLDivElement | null>) {
   useEffect(() => {
@@ -85,10 +90,10 @@ function useRays(el: React.RefObject<HTMLDivElement | null>) {
 
     let gap = 32;
     let slide = 0;
-    let angle = 0;
+    let angle = TILT_REST;
     let toGap = 32;
     let toSlide = 0;
-    let toAngle = 0;
+    let toAngle = TILT_REST;
     let raf = 0;
 
     const loop = () => {
@@ -115,7 +120,7 @@ function useRays(el: React.RefObject<HTMLDivElement | null>) {
       // Top of the screen is the far field, bottom is the near field.
       toGap = GAP_FAR + down * (GAP_NEAR - GAP_FAR);
       toSlide = down * 260 - 130;
-      toAngle = (across * 2 - 1) * TILT;
+      toAngle = TILT_REST + (across * 2 - 1) * TILT_SWING;
       if (!raf) raf = requestAnimationFrame(loop);
     };
 

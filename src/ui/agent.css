@@ -103,7 +103,9 @@ textarea {
 .app {
   --gap: 32px;
   --slide: 0px;
-  --angle: 0deg;
+  /* Must match TILT_REST in ZiyangAgent.tsx. The field is slanted before any pointer moves,
+     so the first frame the visitor sees is already the resting angle rather than level. */
+  --angle: -13deg;
   position: relative;
   isolation: isolate;
 }
@@ -111,10 +113,15 @@ textarea {
 .app::before {
   content: "";
   position: fixed;
-  /* Overhung enough that neither the tilt nor the slide can drag an edge into view. Covering a
-     1440x900 viewport with an 11deg rotation needs about 130px of vertical slack, and the slide
-     adds up to 130px more. Horizontal slack is small because the tilt is shallow. */
-  inset: -32vh -10vw;
+  /* Overhung enough that neither the tilt nor the slide can drag an edge into view.
+     A rotation by theta pushes the top and bottom edges out by (width/2)*sin(theta), and the
+     left and right edges out by (height/2)*sin(theta). So vertical slack scales with viewport
+     width and horizontal slack scales with viewport height, which is why the two axes use
+     different units. Max angle is TILT_REST + TILT_SWING = 22deg, and sin(22deg) is 0.375, so
+     each axis needs 18.7% of the other dimension. 20% each, plus 140px vertically for the
+     slide, which reaches 130px. Fixed vw on both axes failed a narrow tall window: at 600x900
+     the rotation needed 168px of horizontal slack and 10vw gave 60px. */
+  inset: calc(-20vw - 140px) -20vh;
   z-index: -1;
   pointer-events: none;
   /* The tilt and the slide are transforms, not gradient parameters. Rotating the gradient
@@ -158,7 +165,7 @@ textarea {
   .app {
     --gap: 32px !important;
     --slide: 0px !important;
-    --angle: 0deg !important;
+    --angle: -13deg !important;
   }
 }
 
