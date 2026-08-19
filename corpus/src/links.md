@@ -79,7 +79,34 @@ name would undo that.
 | `paperstack` — a Claude Code skill for paper work | https://github.com/ziyangliu-666/paperstack |
 | `PawMemo` — local-first vocabulary CLI | https://github.com/ziyangliu-666/PawMemo |
 | `nullify` — Tauri/React CS2 config installer | https://github.com/ziyangliu-666/nullify |
-| `jerkie_man` — 2D multiplayer extraction shooter | https://github.com/ziyangliu-666/jerkie_man |
+| ZIYANG PROTOCOL — play it in a browser | https://game.ziy.bio/ |
+| ZIYANG PROTOCOL, the source | https://github.com/ziyangliu-666/jerkie_man |
 | `EasyTrainer` — few-line image classification training | https://github.com/ziyangliu-666/EasyTrainer |
 | This site | https://ziy.bio |
 | This site, the source | https://github.com/ziyangliu-666/ziyangliu-666.github.io |
+
+ZIYANG PROTOCOL is a 2D multiplayer extraction shooter. It is live at https://game.ziy.bio/,
+and it is the one thing on this list a reader can play rather than read about. The repository
+URL still carries the project's old working name; the project is called ZIYANG PROTOCOL.
+
+A round works the way the genre does. Deploy into a map, loot, fight other players and AI,
+then hold an extraction point to get out. What is carried out is kept, what is carried in is
+lost on death. Between rounds there is a stash, an eight-slot loadout, and a market.
+
+The engineering worth naming is the netcode, and these numbers come from the source, not the
+README:
+
+- Server and client both tick at 20Hz, and a snapshot goes out every tick.
+- The client renders 150ms in the past, interpolating between the two snapshots either side of
+  that time, so other players move smoothly instead of teleporting between updates.
+- Before judging a hit the server rewinds `RTT / 2 + 150ms`, capped at 500ms, replaying the
+  target's position from a 50-entry ring buffer. It samples three points across that window
+  rather than one, so a target crossing the bullet's path cannot slip between samples, and it
+  rewinds only for human shooters, since AI and turrets already run in the present.
+- Snapshot payloads are cut four ways: fields at their default are omitted, the outbound path
+  skips Zod so `.parse()` cannot fill them back in, field names are swapped for one or two
+  letter short names from a table shipped in the welcome message, and the result is MessagePack
+  in a versioned envelope.
+
+TypeScript throughout, Vite and Canvas 2D on the client, Node and `ws` on the server, hosted
+on Fly.io.

@@ -219,6 +219,8 @@ does him more harm than the stale number ever did. Answer the question that was 
 
 The label of a link is the name of the thing. It is never a URL.
 
+- ZIYANG PROTOCOL is playable. Link the game at https://game.ziy.bio/ before its repository, unless the question is about the code. Its repository URL carries an older working name, so the label is always ZIYANG PROTOCOL.
+
 - Write \`[exfer-walletd](https://github.com/exfer-stack/exfer-walletd)\`.
 - Do not write \`[github.com/exfer-stack/exfer-walletd](...)\`. Do not print the URL beside the name either. The name already carries the link, so a URL next to it says the same thing twice and takes three times the width.
 - One exception: a paper, where the reader expects to see the arXiv id.
