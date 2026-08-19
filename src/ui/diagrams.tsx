@@ -52,6 +52,21 @@ function rows(lines: string[]): string[] {
   return lines.map((l) => l.trim()).filter(Boolean);
 }
 
+/* A markdown link reduced to its label.
+ *
+ * Two fields render as plain text rather than through inline(), and a plain-text field that
+ * receives a link would print the raw `[label](url)` at the reader. Seen live once. Keeping the
+ * label and dropping the target is the right trade for both of them: a date and a headline
+ * number are not places anyone needs to click, and neither is a place to show syntax.
+ *
+ * The link shape matches inline()'s, including the one level of nested parentheses that real
+ * URLs need. */
+const LINK = /\[([^\]\n]*)\]\((?:[^()\s]|\([^()\s]*\))+\)/g;
+
+function plain(text: string): string {
+  return text.replace(LINK, "$1");
+}
+
 /* ------------------------------------------------------------------- timeline */
 
 export interface Span {
@@ -178,7 +193,7 @@ function gantt(spans: Span[], bars: Bar[], key: number): ReactNode {
               <span className="dg-track">
                 <span className="dg-bar" style={{ left: `${left}%`, width: `${span}%` }} />
               </span>
-              <span className="dg-bar-when">{s.when}</span>
+              <span className="dg-bar-when">{plain(s.when)}</span>
               {s.detail && (
                 <span className="dg-bar-detail">{inline(s.detail, i * 300 + 100)}</span>
               )}
@@ -195,7 +210,7 @@ function timeline(spans: Span[], key: number): ReactNode {
     <ol className="dg dg-timeline" key={key}>
       {spans.map((s, i) => (
         <li className="dg-span" key={i}>
-          <span className="dg-when">{s.when}</span>
+          <span className="dg-when">{plain(s.when)}</span>
           <span className="dg-what">{inline(s.what, i * 300)}</span>
           {s.detail && <span className="dg-detail">{inline(s.detail, i * 300 + 100)}</span>}
         </li>
@@ -320,7 +335,7 @@ function metrics(items: Metric[], key: number): ReactNode {
     <dl className="dg dg-metrics" key={key}>
       {items.map((m, i) => (
         <div className="dg-metric" key={i}>
-          <dt className="dg-value">{m.value}</dt>
+          <dt className="dg-value">{plain(m.value)}</dt>
           <dd className="dg-label">{inline(m.label, i * 300)}</dd>
         </div>
       ))}
@@ -358,7 +373,7 @@ export function diagram(lang: string | undefined, lines: string[], key: number):
       const spans = parseTimeline(lines);
       if (!spans.length) return null;
       const now = nowMonths();
-      const bars = spans.map((s) => parseWhen(s.when, now));
+      const bars = spans.map((s) => parseWhen(plain(s.when), now));
       if (spans.length > 1 && bars.every((b): b is Bar => b !== null)) {
         return gantt(spans, bars as Bar[], key);
       }

@@ -289,10 +289,21 @@ const checks = [
       r.text.includes("28"),
   },
   {
-    name: "a link in a timeline date is refused, so the block keeps a rail instead of a broken axis",
+    name: "a link in a timeline date keeps its label, and the axis survives",
     md: "```timeline\n[2022-10](https://x.test/) → 2024-07 | R&D Intern, SmartX\n2024-07 → 2025-09 | R&D Engineer, SmartX\n```",
     want: (r) =>
-      r.classes.includes("dg dg-timeline") && !r.classes.includes("dg dg-gantt"),
+      r.classes.includes("dg dg-gantt") &&
+      r.text.includes("2022-10") &&
+      !r.text.includes("](http") &&
+      !r.hrefs.includes("https://x.test/"),
+  },
+  {
+    name: "a link in a metric value keeps its label and never prints raw syntax",
+    md: "```metrics\n[290 MB/s](https://x.test/) | sustained transfer\n```",
+    want: (r) =>
+      r.text.includes("290 MB/s") &&
+      !r.text.includes("](http") &&
+      !r.hrefs.includes("https://x.test/"),
   },
   {
     name: "a stack with a plain colon still parses, and commas still split items",
