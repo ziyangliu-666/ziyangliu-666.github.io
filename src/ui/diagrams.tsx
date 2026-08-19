@@ -19,9 +19,20 @@
  * These are plain functions returning host elements, not React components. The renderer's
  * test walker (scripts/markdown.test.mjs) collects host elements and cannot see inside a
  * function component, so a component here would be invisible to every test.
+ *
+ * Fields carry inline markdown, through the same inline() the prose uses. A row that names V2V
+ * OS or HKUST links it, because the reader who wants to open the thing is looking at the
+ * drawing, not at the paragraph above it. Two fields stay plain text on purpose:
+ *
+ *   - a timeline's `when`, because parseWhen reads it before anything renders it. A link there
+ *     fails to parse as a date and costs the whole block its shared time axis.
+ *   - a metric's `value`, because it renders at 26px. An underline on a number that size reads
+ *     as a button, and the label beside it is the better place for the link anyway.
  */
 
 import type { ReactNode } from "react";
+
+import { inline } from "./inline";
 
 /* The field separator is `|` everywhere. An arrow is a separator in `flow` only, and nowhere
  * else, because a timeline writes its range as "2022-10 → 2024-07": splitting that on the
@@ -163,12 +174,14 @@ function gantt(spans: Span[], bars: Bar[], key: number): ReactNode {
           const left = Math.min(at(b.from), 100 - span);
           return (
             <li className="dg-bar-row" key={i}>
-              <span className="dg-bar-label">{s.what}</span>
+              <span className="dg-bar-label">{inline(s.what, i * 300)}</span>
               <span className="dg-track">
                 <span className="dg-bar" style={{ left: `${left}%`, width: `${span}%` }} />
               </span>
               <span className="dg-bar-when">{s.when}</span>
-              {s.detail && <span className="dg-bar-detail">{s.detail}</span>}
+              {s.detail && (
+                <span className="dg-bar-detail">{inline(s.detail, i * 300 + 100)}</span>
+              )}
             </li>
           );
         })}
@@ -183,8 +196,8 @@ function timeline(spans: Span[], key: number): ReactNode {
       {spans.map((s, i) => (
         <li className="dg-span" key={i}>
           <span className="dg-when">{s.when}</span>
-          <span className="dg-what">{s.what}</span>
-          {s.detail && <span className="dg-detail">{s.detail}</span>}
+          <span className="dg-what">{inline(s.what, i * 300)}</span>
+          {s.detail && <span className="dg-detail">{inline(s.detail, i * 300 + 100)}</span>}
         </li>
       ))}
     </ol>
@@ -210,7 +223,7 @@ function flow(steps: string[], key: number): ReactNode {
                 →
               </span>
             )}
-            <span className="dg-box">{step}</span>
+            <span className="dg-box">{inline(step, i * 300)}</span>
           </li>
         ))}
       </ol>
@@ -225,16 +238,36 @@ export interface Layer {
   items: string[];
 }
 
+/* Positions of a separator character that is not inside a markdown link.
+ *
+ * A stack line separates the layer from its items with a colon, and separates items with
+ * commas. Both characters also occur inside a link: `[Daemon](https://exfer.info/): x` has a
+ * colon in `https:` five characters before the one that matters, and a URL may carry a comma
+ * in its path. Splitting on the first raw colon put the layer name at `[Daemon](https` and
+ * threw the rest away. Counting bracket depth is what tells the two apart. */
+function topLevel(line: string, sep: string): number[] {
+  const out: number[] = [];
+  let depth = 0;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i]!;
+    if (c === "[" || c === "(") depth++;
+    else if (c === "]" || c === ")") depth = Math.max(0, depth - 1);
+    else if (c === sep && depth === 0) out.push(i);
+  }
+  return out;
+}
+
 /** `Daemon: exfer-walletd` — the colon separates the layer from what sits in it. */
 export function parseStack(lines: string[]): Layer[] {
   const out: Layer[] = [];
   for (const line of rows(lines)) {
-    const at = line.indexOf(":");
-    if (at <= 0) continue;
+    const at = topLevel(line, ":")[0];
+    if (at == null || at <= 0) continue;
     const name = line.slice(0, at).trim();
-    const items = line
-      .slice(at + 1)
-      .split(/\s*,\s*/)
+    const body = line.slice(at + 1);
+    const cuts = topLevel(body, ",");
+    const items = [0, ...cuts.map((n) => n + 1)]
+      .map((from, n) => body.slice(from, cuts[n] ?? body.length))
       .map((s) => s.trim())
       .filter(Boolean);
     if (!name || !items.length) continue;
@@ -248,11 +281,11 @@ function stack(layers: Layer[], key: number): ReactNode {
     <dl className="dg dg-stack" key={key}>
       {layers.map((l, i) => (
         <div className="dg-layer" key={i}>
-          <dt className="dg-layer-name">{l.name}</dt>
+          <dt className="dg-layer-name">{inline(l.name, i * 900)}</dt>
           <dd className="dg-layer-items">
             {l.items.map((item, n) => (
               <span className="dg-pill" key={n}>
-                {item}
+                {inline(item, i * 900 + n * 30 + 1)}
               </span>
             ))}
           </dd>
@@ -288,7 +321,7 @@ function metrics(items: Metric[], key: number): ReactNode {
       {items.map((m, i) => (
         <div className="dg-metric" key={i}>
           <dt className="dg-value">{m.value}</dt>
-          <dd className="dg-label">{m.label}</dd>
+          <dd className="dg-label">{inline(m.label, i * 300)}</dd>
         </div>
       ))}
     </dl>

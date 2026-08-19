@@ -28,7 +28,8 @@ All were checked and resolve.
 | National University of Singapore — M.Tech. in Software Engineering, from Aug 2026 | https://nus.edu.sg/ |
 | University of Electronic Science and Technology of China — B.Eng., 2020–2024 | https://www.uestc.edu.cn/ |
 | HKUST (Guangzhou) — LLM systems research, Sep 2025 – Aug 2026 | https://hkust-gz.edu.cn/ |
-| ByteDance / Feishu — 2022 internship | https://www.feishu.cn/ |
+| ByteDance — the company he interned at in 2022 | https://www.bytedance.com/ |
+| Feishu — the product his 2022 internship team built | https://www.feishu.cn/ |
 
 ## Exfer
 

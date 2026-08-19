@@ -251,6 +251,69 @@ const checks = [
     md: "```python\nprint('hi')\n```",
     want: (r) => r.tags.includes("pre") && r.text.includes("print('hi')"),
   },
+
+  /* Links inside a drawn block. Every field except a timeline date and a metric value runs
+   * through the same inline() the prose uses, so a name in a box is clickable. */
+  {
+    name: "a gantt row links the product it names",
+    md: "```timeline\n2022-10 → 2024-07 | R&D Intern, [SmartX](https://www.smartx.com/) | shipped [V2V OS](https://www.smartx.com/hk-mo/migration-tool/)\n2024-07 → 2025-09 | R&D Engineer, [SmartX](https://www.smartx.com/)\n```",
+    want: (r) =>
+      r.classes.includes("dg dg-gantt") &&
+      r.hrefs.includes("https://www.smartx.com/") &&
+      r.hrefs.includes("https://www.smartx.com/hk-mo/migration-tool/"),
+  },
+  {
+    name: "the plain rail links too, not only the dated view",
+    md: "```timeline\nEarly on | Wrote it at [SmartX](https://www.smartx.com/)\nLater | Led the design\n```",
+    want: (r) =>
+      r.classes.includes("dg dg-timeline") && r.hrefs.includes("https://www.smartx.com/"),
+  },
+  {
+    name: "a flow step links",
+    md: "```flow\nVMware snapshot | CBT scan | [SMTX OS](https://www.smartx.com/) volume\n```",
+    want: (r) =>
+      r.classes.includes("dg-flow") && r.hrefs.includes("https://www.smartx.com/"),
+  },
+  {
+    name: "a stack links both the layer name and its items",
+    md: "```stack\n[Daemon](https://exfer.info/): [exfer-walletd](https://github.com/exfer-stack/exfer-walletd)\n```",
+    want: (r) =>
+      r.hrefs.includes("https://exfer.info/") &&
+      r.hrefs.includes("https://github.com/exfer-stack/exfer-walletd"),
+  },
+  {
+    name: "a metric label links, and the big number stays bare",
+    md: "```metrics\n28 | pull requests into [exfer](https://github.com/ahuman-exfer/exfer)\n```",
+    want: (r) =>
+      r.hrefs.includes("https://github.com/ahuman-exfer/exfer") &&
+      r.text.includes("28"),
+  },
+  {
+    name: "a link in a timeline date is refused, so the block keeps a rail instead of a broken axis",
+    md: "```timeline\n[2022-10](https://x.test/) → 2024-07 | R&D Intern, SmartX\n2024-07 → 2025-09 | R&D Engineer, SmartX\n```",
+    want: (r) =>
+      r.classes.includes("dg dg-timeline") && !r.classes.includes("dg dg-gantt"),
+  },
+  {
+    name: "a stack with a plain colon still parses, and commas still split items",
+    md: "```stack\nWallets: desktop, mobile\nDaemon: exfer-walletd\n```",
+    want: (r) =>
+      r.classes.includes("dg dg-stack") &&
+      r.classes.filter((c) => c === "dg-pill").length === 3 &&
+      r.text.includes("Wallets"),
+  },
+  {
+    name: "a comma inside a link URL does not split one item into two",
+    md: "```stack\nDocs: [guide](https://exfer.info/a,b), [api](https://exfer.info/c)\n```",
+    want: (r) =>
+      r.classes.filter((c) => c === "dg-pill").length === 2 &&
+      r.hrefs.includes("https://exfer.info/a,b"),
+  },
+  {
+    name: "javascript: in a block field never becomes an href either",
+    md: "```metrics\n290 MB/s | [transfer](javascript:alert(1)) rate\n```",
+    want: (r) => r.hrefs.length === 0 && r.text.includes("transfer"),
+  },
 ];
 
 let failed = 0;

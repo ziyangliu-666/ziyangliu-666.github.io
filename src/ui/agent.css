@@ -1138,7 +1138,11 @@ textarea {
      on the axis alone drifted: the rows sized their date column with `auto`, so the track was
      narrower than the axis and every tick sat about 30px right of its bar. */
   --dg-label: 164px;
-  --dg-when: 104px;
+  /* Wide enough for the longest real date range. "2022-10 → 2024-07" measures 107px in the mono
+     face at 10.5px, so 104px clipped the last digit off every dated row and pushed the block
+     3px past its column. The axis margin is derived from this same value, so the ticks follow
+     the column rather than needing their own number. */
+  --dg-when: 116px;
   --dg-gap: 8px;
 }
 
@@ -1338,6 +1342,33 @@ textarea {
   border: 1px solid #212128;
   border-radius: 7px;
   padding: 7px 10px;
+}
+
+/* --- links inside a drawn block -------------------------------------------- */
+
+/* Every field except a timeline date and a metric value carries inline markdown, so a row that
+   names V2V OS or HKUST links it. A box already has an outline, a background and padding, so
+   .md-a's hover wash would draw a second box inside the first, inset by 2px. Keep the
+   underline, which is the part that says "clickable", and let the box supply the rest. */
+.dg .md-a {
+  color: #eeeef2;
+  font-weight: inherit;
+  padding: 0;
+  margin: 0;
+  border-radius: 0;
+  text-decoration-color: #55555f;
+  text-underline-offset: 2px;
+}
+
+.dg .md-a:hover {
+  background: none;
+  color: #ffffff;
+  text-decoration-color: #b9b9c4;
+}
+
+.dg .md-a:focus-visible {
+  background: none;
+  outline-offset: 3px;
 }
 
 /* --- metrics: the numbers, at a size that admits they are the point ------- */
