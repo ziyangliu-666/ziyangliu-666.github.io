@@ -11,5 +11,9 @@ kind: profile
   ask and he will send it.
 - **Phone** — on the résumé.
 - **Location** — Singapore, since August 2026. Before that, Chengdu, China.
+- **Availability** — his M.Tech. runs one year from August 2026 and includes a 20-week
+  internship placement from March to July or August 2027, which is the degree's capstone.
+  He finishes around late August or September 2027. Proposals for the placement are agreed
+  by January 2027.
 
 He reads English and Chinese; write in whichever you prefer.
