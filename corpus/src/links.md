@@ -74,6 +74,7 @@ name would undo that.
 
 | What | URL |
 |---|---|
+| `ssFlow` — AI personas read news, post, and trade on a simulated exchange | https://github.com/ziyangliu-666/ssFlow |
 | `paperstack` — a Claude Code skill for paper work | https://github.com/ziyangliu-666/paperstack |
 | `PawMemo` — local-first vocabulary CLI | https://github.com/ziyangliu-666/PawMemo |
 | `nullify` — Tauri/React CS2 config installer | https://github.com/ziyangliu-666/nullify |
