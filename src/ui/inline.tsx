@@ -41,8 +41,16 @@ export function safeSrc(raw: string): string | null {
   return /^https:\/\//i.test(src) ? src : null;
 }
 
+/* `{{word}}` is a marked word: one per answer, rendered in moving colour, clickable, and worth
+ * one step toward the game. It sits after the code branch in this alternation on purpose, so
+ * braces inside `inline code` stay code and are never turned into a button. */
 const INLINE =
-  /(!\[[^\]\n]*\]\([^)\s]+\))|(`[^`\n]+`)|(\*\*\*[^*\n]+\*\*\*)|(\*\*[^*\n]+\*\*)|(__[^_\n]+__)|(~~[^~\n]+~~)|(\*[^\s*][^*\n]*?\*)|(\[[^\]\n]*\]\((?:[^()\s]|\([^()\s]*\))+\))|(<?https?:\/\/[^\s<>()[\]]+>?)/g;
+  /(!\[[^\]\n]*\]\([^)\s]+\))|(`[^`\n]+`)|(\{\{[^{}\n]{1,40}\}\})|(\*\*\*[^*\n]+\*\*\*)|(\*\*[^*\n]+\*\*)|(__[^_\n]+__)|(~~[^~\n]+~~)|(\*[^\s*][^*\n]*?\*)|(\[[^\]\n]*\]\((?:[^()\s]|\([^()\s]*\))+\))|(<?https?:\/\/[^\s<>()[\]]+>?)/g;
+
+/** Strips the braces without rendering a mark. For anywhere a mark must not be interactive. */
+export function unmark(text: string): string {
+  return text.replace(/\{\{([^{}\n]{1,40})\}\}/g, "$1");
+}
 
 /* The game gets its own link treatment, because it is the only link on the page that leads to
  * something to do rather than something to read. When the agent hands a visitor that URL, the
@@ -95,6 +103,17 @@ export function inline(text: string, keyBase = 0): ReactNode[] {
           // Off-site image: keep the caption the model wrote, drop the request.
           <span key={key++}>{alt}</span>
         ),
+      );
+    } else if (token.startsWith("{{")) {
+      /* A button, not a span. It is clickable, so it has to be reachable by keyboard and
+       * announced as something you can activate. The count is kept by a delegated listener on
+       * the app root, which is why this carries a data attribute and no handler of its own:
+       * inline() is a plain function shared by the prose and the diagram blocks, with no access
+       * to component state. */
+      out.push(
+        <button className="md-spark" type="button" data-spark="1" key={key++}>
+          {token.slice(2, -2)}
+        </button>,
       );
     } else if (token.startsWith("`")) {
       out.push(

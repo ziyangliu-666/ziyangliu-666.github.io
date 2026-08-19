@@ -19,10 +19,10 @@ import {
   initialState,
   reducer,
   type AgentMessage,
-  type Message,
   type Segment,
 } from "./state";
 import { Markdown } from "./markdown";
+import { unmark } from "./inline";
 import { startFavicon } from "./favicon";
 import { Stickers } from "./Stickers";
 import "./agent.css";
@@ -141,47 +141,73 @@ function useRays(el: React.RefObject<HTMLDivElement | null>) {
 
 /* ------------------------------------------------------------------- easter egg
  *
- * The game is not advertised. The link to it appears once the agent has named ZIYANG PROTOCOL
- * in an answer, so the only route there is to have asked about his work and been told, which
- * is the thing this page is for. Someone who never asks never learns it exists, and that is
- * the point of an easter egg rather than a nav item.
+ * The game is not advertised anywhere. An answer carries one word in moving colour, and clicking
+ * five of those, across five answers, reveals the link to it.
  *
- * The unlock is remembered. Earning it once is the game; earning it again on every visit would
- * just be a chore. localStorage can throw in private mode, so every touch of it is guarded and
- * a failure only costs the memory, not the reveal.
+ * Nothing on the page explains this, and the prompt forbids the agent from explaining it. The
+ * colour is the whole invitation: a visitor either wonders what it is and clicks, or reads past
+ * it and loses nothing. Five is enough that it cannot be stumbled into and few enough that a
+ * curious person gets there in one sitting.
+ *
+ * The count survives a reload, because collecting four and losing them to a refresh would be a
+ * punishment for reading. localStorage throws in private mode, so every touch is guarded and a
+ * failure costs the memory, not the mechanic.
  */
-const EGG_KEY = "ziyang-agent.protocol";
+const SPARK_KEY = "ziyang-agent.sparks";
+const SPARKS_TO_UNLOCK = 5;
 
-/* Matched against the answer text. The name as the agent writes it, and the URL, in case an
- * answer links the game without spelling the name out. */
-const EGG_PATTERN = /ziyang\s*protocol|game\.ziy\.bio/i;
-
-function eggRemembered(): boolean {
+function readSparks(): number {
   try {
-    return localStorage.getItem(EGG_KEY) === "1";
+    const n = Number(localStorage.getItem(SPARK_KEY));
+    return Number.isFinite(n) && n > 0 ? Math.min(n, SPARKS_TO_UNLOCK) : 0;
   } catch {
-    return false;
+    return 0;
   }
 }
 
-function useEasterEgg(messages: readonly Message[]): boolean {
-  const [unlocked, setUnlocked] = useState(eggRemembered);
+function useSparks(root: React.RefObject<HTMLElement | null>): number {
+  const [sparks, setSparks] = useState(readSparks);
 
   useEffect(() => {
-    if (unlocked) return;
-    const named = messages.some(
-      (m) => m.role === "agent" && m.segments.some((seg) => EGG_PATTERN.test(seg.text)),
-    );
-    if (!named) return;
-    setUnlocked(true);
-    try {
-      localStorage.setItem(EGG_KEY, "1");
-    } catch {
-      /* private mode: the link still appears for this session */
-    }
-  }, [messages, unlocked]);
+    const host = root.current;
+    if (!host) return;
 
-  return unlocked;
+    /* Delegated, because marked words arrive token by token while an answer streams and are
+     * replaced on every re-render. Binding a handler per word would mean rebinding constantly. */
+    const onClick = (e: MouseEvent) => {
+      const el = (e.target as HTMLElement | null)?.closest<HTMLElement>("[data-spark]");
+      if (!el || el.dataset.spark !== "1") return;
+
+      /* Spent, marked on the node rather than held in React state, because a mark has no
+       * identity to key state by: it is a token in a string that is re-parsed on every frame.
+       *
+       * This survives the re-render, and the reason is worth writing down. React only writes an
+       * attribute when the value it renders changes. It renders `md-spark` and `data-spark="1"`
+       * every frame, unchanged, so it never touches either attribute again and the class added
+       * here stays. Measured against a mark clicked mid-stream with six more tokens arriving
+       * after it: the word stayed spent and could not be clicked twice.
+       *
+       * If that ever stops holding, the failure is one visitor farming one answer for a link to
+       * a game, so it does not justify machinery to prevent it. */
+      el.dataset.spark = "0";
+      el.classList.add("md-spark--spent");
+
+      setSparks((n) => {
+        const next = Math.min(n + 1, SPARKS_TO_UNLOCK);
+        try {
+          localStorage.setItem(SPARK_KEY, String(next));
+        } catch {
+          /* private mode: this session still counts */
+        }
+        return next;
+      });
+    };
+
+    host.addEventListener("click", onClick);
+    return () => host.removeEventListener("click", onClick);
+  }, [root]);
+
+  return sparks;
 }
 
 /* --------------------------------------------------------------------- composer */
@@ -299,8 +325,11 @@ function Activity({
             <div className="act-item" key={it.id ?? i}>
               <span className={it.done ? "dot" : "dot dot--live"} />
               <div className="act-body">
+                {/* unmark, not markdown: a mark in the reasoning is a prompt slip, and the
+                    visitor should see the word rather than the braces around it. Never
+                    clickable here either, so the mechanic cannot be farmed off the trace. */}
                 {it.kind === "reasoning" && (
-                  <div className="reasoning">{it.text}</div>
+                  <div className="reasoning">{unmark(it.text ?? "")}</div>
                 )}
 
                 {it.kind === "tool" && (
@@ -348,7 +377,8 @@ function AgentTurn({
   onFollowUp: (text: string) => void;
 }) {
   const [allSources, setAllSources] = useState(false);
-  const running = message.phase !== "done";
+  // "answered" counts as not running: the prose is complete and only the follow-ups are pending.
+  const running = message.phase === "running";
   const u = message.usage;
   const usageLine = u
     ? [
@@ -455,7 +485,8 @@ export default function ZiyangAgent({
   const appRef = useRef<HTMLDivElement | null>(null);
   const busyRef = useRef(false);
   const [override, setOverride] = useState<Transport | null>(null);
-  const unlocked = useEasterEgg(state.messages);
+  const sparks = useSparks(appRef);
+  const unlocked = sparks >= SPARKS_TO_UNLOCK;
 
   /* Every turn takes a number, and stop/reset/a new question all bump it. A transport
    * cannot be forced to return the instant it is cancelled — it stops at its next poll —
@@ -587,6 +618,23 @@ export default function ZiyangAgent({
           )}
         </div>
         <nav className="nav">
+          {/* Sits before the links, so it reads as something accumulating at the left rather
+              than a fourth nav item. Absent until the first mark is clicked, and gone once the
+              pill takes its place: five of five would be a bar that says nothing. */}
+          {sparks > 0 && !unlocked && (
+            <span
+              className="nav-meter"
+              aria-label={`${sparks} of ${SPARKS_TO_UNLOCK}`}
+              title={`${sparks} / ${SPARKS_TO_UNLOCK}`}
+            >
+              {Array.from({ length: SPARKS_TO_UNLOCK }, (_, i) => (
+                <span
+                  className={i < sparks ? "nav-pip nav-pip--on" : "nav-pip"}
+                  key={i}
+                />
+              ))}
+            </span>
+          )}
           {/* Plain "Resume", as the design has it. The accents read as noise beside
               "GitHub" and "LinkedIn" at 13.5px. */}
           <a href="/resume.pdf" target="_blank" rel="noreferrer">

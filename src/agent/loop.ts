@@ -340,6 +340,10 @@ export async function runAgent(o: RunOptions): Promise<void> {
       });
     }
 
+    /* Before the sources and the usage line, and well before the follow-up call below: from
+     * here on nothing is being written, so nothing should look like it is. */
+    emit({ type: "answer_end" });
+
     if (sources.length) emit({ type: "sources", items: sources });
 
     emit({

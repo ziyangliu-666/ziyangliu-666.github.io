@@ -191,6 +191,7 @@ export const mockTransport: Transport = async ({ message, onEvent, isCancelled }
   if (run.sources.length) emit({ type: "sources", items: run.sources });
   emit({ type: "suggestions", items: run.suggestions });
   emit({ type: "usage", ...run.usage, ms: Date.now() - t0 });
+  emit({ type: "answer_end" });
   emit({ type: "done" });
 };
 

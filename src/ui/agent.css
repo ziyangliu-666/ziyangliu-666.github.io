@@ -770,6 +770,125 @@ textarea {
   background: rgba(255, 255, 255, 0.09);
 }
 
+/* A marked word. One per answer, in moving colour, clickable once.
+ *
+ * Same gradient technique as the game link, and the same guard: a background-color underneath,
+ * so a browser that paints the image late renders a real colour instead of transparent letters.
+ * The dotted underline is what says "this is not ordinary emphasis" to someone who cannot see
+ * the colour move. */
+.md-spark {
+  font: inherit;
+  padding: 0;
+  border: 0;
+  background-color: #cfcfd6;
+  background-image: linear-gradient(
+    100deg,
+    #ff6b6b 0%,
+    #ffa94d 14%,
+    #ffe066 28%,
+    #8ce99a 42%,
+    #66d9e8 56%,
+    #74c0fc 70%,
+    #b197fc 84%,
+    #ff6b6b 100%
+  );
+  background-size: 200% 100%;
+  background-repeat: repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-decoration-color: rgba(255, 255, 255, 0.28);
+  text-underline-offset: 3px;
+  animation: rl-game 9s linear infinite;
+}
+
+.md-spark:hover {
+  text-decoration-color: rgba(255, 255, 255, 0.75);
+  animation-duration: 3s;
+}
+
+.md-spark:focus-visible {
+  outline: 1px solid #7d7d88;
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* Spent. The click is refused with a shake and a red flash, and the word settles into ordinary
+ * prose: the point is made once and the sentence stays readable afterwards. `both` holds the end
+ * frame, so nothing snaps back when the animation finishes. */
+.md-spark--spent {
+  cursor: default;
+  pointer-events: none;
+  animation: rl-spark-spend 620ms ease-out both;
+  text-decoration: none;
+}
+
+@keyframes rl-spark-spend {
+  0% {
+    background-image: none;
+    background-color: #ff6b6b;
+    translate: 0 0;
+  }
+  15% {
+    translate: -2px 0;
+  }
+  32% {
+    translate: 2px 0;
+  }
+  48% {
+    translate: -1px 0;
+  }
+  62% {
+    background-color: #ff6b6b;
+    translate: 0 0;
+  }
+  100% {
+    background-image: none;
+    background-color: var(--ink);
+    font-weight: 400;
+    translate: 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .md-spark {
+    animation: none;
+  }
+
+  .md-spark--spent {
+    animation-duration: 1ms;
+  }
+}
+
+/* The meter. Five pips at the left of the nav, appearing with the first click and gone once the
+ * pill replaces them. Deliberately unlabelled: a caption would explain the mechanic, and the
+ * mechanic explaining itself is the one thing that would spoil it. */
+.nav-meter {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 4px;
+}
+
+.nav-pip {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #2f2f38;
+  transition:
+    background 260ms ease,
+    box-shadow 260ms ease;
+}
+
+.nav-pip--on {
+  background: #8ce99a;
+  box-shadow: 0 0 6px rgba(140, 233, 154, 0.45);
+}
+
 /* The game link, when the agent hands it over. The only link on the page that leads to
    something to do, so it is the only one that is not quiet.
 

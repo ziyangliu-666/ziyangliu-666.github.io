@@ -51,6 +51,12 @@ export type AgentEvent =
       ms?: number;
     }
   | { type: "error"; message: string }
+  /* The prose is finished, but the turn is not: the follow-up questions are still being
+   * generated, and that is a whole extra model call. Without this the caret blinked at the end
+   * of a completed answer for as long as that call took, which reads as the agent still writing.
+   * Anything that means "still writing" ends here; anything that means "the turn is over" waits
+   * for done. */
+  | { type: "answer_end" }
   | { type: "done" };
 
 export interface TransportRequest {

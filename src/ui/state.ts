@@ -50,7 +50,10 @@ export interface AgentMessage {
   role: "agent";
   segments: Segment[];
   status: string;
-  phase: "running" | "done";
+  /* running: still producing the answer. answered: the prose is complete and only the follow-up
+   * suggestions are outstanding. done: the turn is over. The caret and the activity pulse stop
+   * at "answered", because by then nothing is being written. */
+  phase: "running" | "answered" | "done";
   sources: Source[];
   followUps: string[];
   usage: Usage | null;
@@ -270,6 +273,9 @@ function applyEvent(m: AgentMessage, ev: AgentEvent): AgentMessage {
           ms: ev.ms,
         },
       };
+
+    case "answer_end":
+      return m.phase === "running" ? { ...m, phase: "answered", status: "" } : m;
 
     case "error":
       return { ...m, error: ev.message, phase: "done" };

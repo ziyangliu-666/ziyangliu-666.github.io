@@ -321,6 +321,38 @@ const checks = [
       r.hrefs.includes("https://exfer.info/a,b"),
   },
   {
+    name: "a marked word becomes a clickable button",
+    md: "The transfer path was {{stubborn}} about ordering.",
+    want: (r) =>
+      r.tags.includes("button") &&
+      r.classes.includes("md-spark") &&
+      r.text.includes("stubborn") &&
+      !r.text.includes("{{"),
+  },
+  {
+    name: "braces inside inline code stay code, not a button",
+    md: "the template is `{{name}}` in the config",
+    want: (r) =>
+      r.tags.includes("code") &&
+      !r.classes.includes("md-spark") &&
+      r.text.includes("{{name}}"),
+  },
+  {
+    name: "an unclosed brace pair is left as text",
+    md: "he wrote {{ and then stopped",
+    want: (r) => r.text.includes("{{") && !r.classes.includes("md-spark"),
+  },
+  {
+    name: "a mark spanning a newline is not a mark",
+    md: "opening {{one\ntwo}} closing",
+    want: (r) => !r.classes.includes("md-spark"),
+  },
+  {
+    name: "an over-long mark is refused, so a whole paragraph cannot be painted",
+    md: `before {{${"x".repeat(41)}}} after`,
+    want: (r) => !r.classes.includes("md-spark"),
+  },
+  {
     name: "javascript: in a block field never becomes an href either",
     md: "```metrics\n290 MB/s | [transfer](javascript:alert(1)) rate\n```",
     want: (r) => r.hrefs.length === 0 && r.text.includes("transfer"),
