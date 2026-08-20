@@ -10,6 +10,7 @@
  */
 
 import { Markdown } from "../src/ui/markdown.tsx";
+import { sparkle } from "../src/ui/sparkle.ts";
 
 /** Walk the element tree the way a renderer would, collecting what we assert on. */
 function walk(node, acc) {
@@ -40,6 +41,81 @@ function render(md) {
     hrefs: [],
     classes: [],
   });
+}
+
+/* The word picker. It edits the model's text before the renderer sees it, so a mark landing in
+ * the wrong place does not degrade, it corrupts: a mark inside a drawn block turns the block into
+ * a code block, and one inside a link breaks the link. Every case here is one the fuzz caught. */
+const SPARKLE_SAMPLE = [
+  "Ziyang worked on three areas at [HKUST](https://hkust-gz.edu.cn/) between them.",
+  "",
+  "- **[Copy-as-Decode](https://arxiv.org/pdf/2604.18170v1)** names the input lines to copy.",
+  "- It keeps a long chat usable with a `recall()` tool that measures recall properly.",
+  "",
+  "```metrics",
+  "290 MB/s | sustained transfer, up from 70",
+  "```",
+  "",
+  "| When | What |",
+  "|---|---|",
+  "| Aug 2026 | started at NUS |",
+  "",
+  "He is reachable at ziyang.liu.r@outlook.com, and his work landed in ahuman-exfer/exfer.",
+].join("\n");
+
+function sparkleChecks() {
+  const results = [];
+  const marks = (out) => [...out.matchAll(/\{\{([^}]*)\}\}/g)].map((m) => m[1]);
+  const words = new Set();
+  let leak = null;
+  let count = null;
+
+  for (let seed = 1; seed <= 300; seed++) {
+    const out = sparkle(SPARKLE_SAMPLE, seed);
+    for (const w of marks(out)) words.add(w);
+
+    const n = marks(out).length;
+    if (n < 1 || n > 2) count ??= `seed ${seed} produced ${n} marks`;
+
+    const forbidden = [
+      [/```[\s\S]*?\{\{[\s\S]*?```/, "inside a fence"],
+      [/^\s*\|.*\{\{/m, "in a table row"],
+      [/\]\([^)]*\{\{|\{\{[^}]*\}\}\]\(/, "in a link"],
+      [/`[^`\n]*\{\{[^`\n]*`/, "in inline code"],
+      [/[^\s]*@[^\s]*\{\{|\{\{[^}]*\}\}[^\s]*@/, "in an email address"],
+      [/\{\{[^}]*\}\}[^\s]*\/|\/[^\s]*\{\{/, "in a slug or path"],
+    ];
+    for (const [re, where] of forbidden) {
+      if (re.test(out)) leak ??= `seed ${seed}: mark ${where}`;
+    }
+  }
+
+  results.push({
+    name: "the word picker never marks anything but prose",
+    pass: leak === null,
+    detail: leak,
+  });
+  results.push({
+    name: "the word picker always places one or two marks",
+    pass: count === null,
+    detail: count,
+  });
+  results.push({
+    name: "the word picker is actually random across seeds",
+    pass: words.size >= 8,
+    detail: `${words.size} distinct words over 300 seeds`,
+  });
+  results.push({
+    name: "the same seed picks the same words",
+    pass: sparkle(SPARKLE_SAMPLE, 42) === sparkle(SPARKLE_SAMPLE, 42),
+    detail: null,
+  });
+  results.push({
+    name: "text with nowhere safe to mark is returned untouched",
+    pass: sparkle("```js\nconst x = 1;\n```", 3) === "```js\nconst x = 1;\n```",
+    detail: null,
+  });
+  return results;
 }
 
 const checks = [
@@ -320,6 +396,32 @@ const checks = [
       r.classes.filter((c) => c === "dg-pill").length === 2 &&
       r.hrefs.includes("https://exfer.info/a,b"),
   },
+  /* Emphasis wrapping a link. `**[name](url)**` is what the model writes for a prominent link,
+   * and it used to render as literal markdown because only the link branch recursed. */
+  {
+    name: "a link inside bold still becomes an anchor",
+    md: "- **[Copy-as-Decode](https://arxiv.org/pdf/2604.18170v1)** (decoding): text",
+    want: (r) =>
+      r.hrefs.includes("https://arxiv.org/pdf/2604.18170v1") &&
+      r.tags.includes("strong") &&
+      !r.text.includes("]("),
+  },
+  {
+    name: "a link inside italics still becomes an anchor",
+    md: "*[label](https://x.test/)* after",
+    want: (r) =>
+      r.hrefs.includes("https://x.test/") && r.tags.includes("em") && !r.text.includes("]("),
+  },
+  {
+    name: "inline code inside bold stays code",
+    md: "**the `recall()` tool** matters",
+    want: (r) => r.tags.includes("strong") && r.tags.includes("code") && !r.text.includes("`"),
+  },
+  {
+    name: "a rejected link inside bold leaves no debris",
+    md: "**[click](javascript:alert(1))** trailing",
+    want: (r) => r.hrefs.length === 0 && r.text.includes("click") && !r.text.includes(")"),
+  },
   {
     name: "a marked word becomes a clickable button",
     md: "The transfer path was {{stubborn}} about ordering.",
@@ -371,5 +473,14 @@ for (const c of checks) {
   if (!ok) failed++;
   console.log(`${ok ? "ok  " : "FAIL"}  ${c.name}`);
 }
-console.log(failed ? `\n${failed} of ${checks.length} failing` : `\nall ${checks.length} pass`);
+/* The picker's checks run their own loops rather than rendering one string, so they report a
+ * verdict instead of going through render(). */
+let total = checks.length;
+for (const c of sparkleChecks()) {
+  total++;
+  if (!c.pass) failed++;
+  console.log(`${c.pass ? "ok  " : "FAIL"}  ${c.name}${c.detail ? `  (${c.detail})` : ""}`);
+}
+
+console.log(failed ? `\n${failed} of ${total} failing` : `\nall ${total} pass`);
 process.exit(failed ? 1 : 0);

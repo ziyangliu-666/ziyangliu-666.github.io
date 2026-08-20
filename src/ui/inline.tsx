@@ -41,6 +41,15 @@ export function safeSrc(raw: string): string | null {
   return /^https:\/\//i.test(src) ? src : null;
 }
 
+/* Emphasis recurses. `**[label](url)**` is the shape the model reaches for when it wants a
+ * prominent link, and the bold branch used to render its contents as plain text, so a bulleted
+ * list of papers came out as literal `[Copy-as-Decode](https://arxiv.org/pdf/...)`. Seen on the
+ * live site. Only the link branch recursed; now every emphasis branch does.
+ *
+ * Nesting emphasis inside emphasis still does not work, and cannot with these patterns: `[^*\n]+`
+ * stops at the first inner asterisk. That is a limit, not a bug to chase, because the model does
+ * not write bold inside bold. A link inside bold it writes constantly. */
+
 /* `{{word}}` is a marked word: one per answer, rendered in moving colour, clickable, and worth
  * one step toward the game. It sits after the code branch in this alternation on purpose, so
  * braces inside `inline code` stay code and are never turned into a button. */
@@ -123,26 +132,20 @@ export function inline(text: string, keyBase = 0): ReactNode[] {
       );
     } else if (token.startsWith("***")) {
       out.push(
-        <strong className="md-strong" key={key++}>
-          <em>{token.slice(3, -3)}</em>
+        <strong className="md-strong" key={key}>
+          <em>{inline(token.slice(3, -3), key++ * 100)}</em>
         </strong>,
       );
-    } else if (token.startsWith("**")) {
+    } else if (token.startsWith("**") || token.startsWith("__")) {
       out.push(
-        <strong className="md-strong" key={key++}>
-          {token.slice(2, -2)}
-        </strong>,
-      );
-    } else if (token.startsWith("__")) {
-      out.push(
-        <strong className="md-strong" key={key++}>
-          {token.slice(2, -2)}
+        <strong className="md-strong" key={key}>
+          {inline(token.slice(2, -2), key++ * 100)}
         </strong>,
       );
     } else if (token.startsWith("~~")) {
-      out.push(<s key={key++}>{token.slice(2, -2)}</s>);
+      out.push(<s key={key}>{inline(token.slice(2, -2), key++ * 100)}</s>);
     } else if (token.startsWith("*")) {
-      out.push(<em key={key++}>{token.slice(1, -1)}</em>);
+      out.push(<em key={key}>{inline(token.slice(1, -1), key++ * 100)}</em>);
     } else if (token.startsWith("[")) {
       const split = token.indexOf("](");
       const label = token.slice(1, split);

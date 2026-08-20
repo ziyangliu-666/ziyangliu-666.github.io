@@ -23,6 +23,7 @@ import {
 } from "./state";
 import { Markdown } from "./markdown";
 import { unmark } from "./inline";
+import { sparkle } from "./sparkle";
 import { startFavicon } from "./favicon";
 import { Stickers } from "./Stickers";
 import "./agent.css";
@@ -153,6 +154,19 @@ function useRays(el: React.RefObject<HTMLDivElement | null>) {
  * punishment for reading. localStorage throws in private mode, so every touch is guarded and a
  * failure costs the memory, not the mechanic.
  */
+/* Marks go in only once the answer is finished.
+ *
+ * While a message streams its text is re-parsed every token, and a mark placed on a half-written
+ * paragraph would be recomputed as the paragraph grew: the colour would crawl from word to word
+ * in front of the reader. Waiting also means the choice sees the whole answer, so a two-mark
+ * answer can space them out.
+ *
+ * The seed is the message's start time, which is fixed for its life, so every later re-render
+ * paints the same words. */
+function sparkled(text: string, running: boolean, seed: number): string {
+  return running ? text : sparkle(text, seed);
+}
+
 const SPARK_KEY = "ziyang-agent.sparks";
 const SPARKS_TO_UNLOCK = 5;
 
@@ -409,7 +423,7 @@ function AgentTurn({
                   of every segment, so the moment the model wrote a paragraph and then reached
                   for a tool, that finished paragraph kept blinking for the rest of the turn. */}
               <Markdown
-                text={seg.text}
+                text={sparkled(seg.text, running, message.startedAt + si)}
                 caret={running && si === message.segments.length - 1}
               />
             </div>
