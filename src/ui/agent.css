@@ -100,9 +100,19 @@ textarea {
  *
  * One fixed pseudo-element, one repeating gradient, three custom properties written by useRays.
  */
+/* Registered so it can be animated. A custom property is a string to the animation engine
+   unless its type is declared, and an un-registered one jumps from start to end instead of
+   interpolating. This is what lets a click send a wave through the background lines. */
+@property --gap-pulse {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
 .app {
   --gap: 32px;
   --slide: 0px;
+  --gap-pulse: 0px;
   /* Must match TILT_REST in ZiyangAgent.tsx. The field is slanted before any pointer moves,
      so the first frame the visitor sees is already the resting angle rather than level. */
   --angle: -13deg;
@@ -136,7 +146,7 @@ textarea {
     rgba(255, 255, 255, 0.085) 0px,
     rgba(255, 255, 255, 0.085) 2px,
     rgba(255, 255, 255, 0) 2px,
-    rgba(255, 255, 255, 0) var(--gap)
+    rgba(255, 255, 255, 0) calc(var(--gap) + var(--gap-pulse))
   );
   /* Fades toward the edges so it reads as light in a room rather than as ruled paper, but only
      dips a little in the middle. The first version pushed the centre down to 0.28 to protect
@@ -823,34 +833,28 @@ textarea {
 .md-spark--spent {
   cursor: default;
   pointer-events: none;
-  animation: rl-spark-spend 620ms ease-out both;
+  /* Slower than the rings, so the word is still cooling as they pass over it. */
+  animation: rl-spark-spend 1000ms ease-out both;
   text-decoration: none;
+  /* The scale in the keyframes would otherwise nudge the words either side of it. */
+  display: inline-block;
 }
 
 @keyframes rl-spark-spend {
   0% {
     background-image: none;
-    background-color: #ff6b6b;
-    translate: 0 0;
+    background-color: #ffffff;
+    scale: 1.14;
   }
-  15% {
-    translate: -2px 0;
-  }
-  32% {
-    translate: 2px 0;
-  }
-  48% {
-    translate: -1px 0;
-  }
-  62% {
-    background-color: #ff6b6b;
-    translate: 0 0;
+  40% {
+    background-color: #ffffff;
+    scale: 1.06;
   }
   100% {
     background-image: none;
     background-color: var(--ink);
     font-weight: 400;
-    translate: 0 0;
+    scale: 1;
   }
 }
 
@@ -861,6 +865,127 @@ textarea {
 
   .md-spark--spent {
     animation-duration: 1ms;
+  }
+}
+
+/* The ripple, on clicking a marked word.
+ *
+ * Three parts, and the point of all three is that the page is nearly black and nearly still, so
+ * a small change reads as nothing happening. The first version shook the word two pixels and
+ * flashed it red, which was invisible on a 1440px page.
+ *
+ * One: rings expanding from the word. Colour comes from a conic gradient, so it runs around the
+ * ring rather than sitting on it, and the ring spins while it grows: the colour appears to move
+ * through the ring instead of with it.
+ *
+ * Two: the background lines answer. --gap-pulse widens the line spacing in a wave and lets it
+ * settle, so the field the pointer already controls visibly breathes out from the click. That is
+ * the echo: the same lines, disturbed, rather than a second unrelated animation.
+ *
+ * Three: the word itself goes white-hot before it cools to ordinary prose.
+ */
+.rip {
+  position: fixed;
+  z-index: 40;
+  width: 220px;
+  height: 220px;
+  margin: -110px 0 0 -110px;
+  pointer-events: none;
+  border-radius: 50%;
+  /* Additive, so the ring cannot cover the answer. Painted normally it dimmed every word it
+     passed over, which is the one thing a decoration must not do to text someone is reading.
+     On a near-black page screen blending means the ring only ever adds light: the sentence
+     stays exactly as legible, and the colour lands in the gaps between the letters. */
+  mix-blend-mode: screen;
+  background: conic-gradient(
+    from 0deg,
+    #ff6b6b,
+    #ffa94d,
+    #ffe066,
+    #8ce99a,
+    #66d9e8,
+    #74c0fc,
+    #b197fc,
+    #ff6b6b
+  );
+  /* Hollow. A filled disc would black out the text underneath at the moment the reader is
+     looking at it; a ring passes over and leaves the sentence readable. */
+  -webkit-mask-image: radial-gradient(
+    closest-side,
+    transparent 52%,
+    #000 60%,
+    #000 70%,
+    transparent 80%
+  );
+  mask-image: radial-gradient(
+    closest-side,
+    transparent 52%,
+    #000 60%,
+    #000 70%,
+    transparent 80%
+  );
+  animation: rl-rip 900ms cubic-bezier(0.16, 0.72, 0.24, 1) both;
+}
+
+/* Two more, later and wider, so the disturbance has a front and a wake rather than one edge. */
+.rip--2 {
+  animation-delay: 110ms;
+  animation-duration: 1000ms;
+  opacity: 0.7;
+}
+
+.rip--3 {
+  animation-delay: 230ms;
+  animation-duration: 1100ms;
+  opacity: 0.45;
+}
+
+@keyframes rl-rip {
+  from {
+    scale: 0.18;
+    rotate: 0deg;
+    opacity: 0.8;
+  }
+  60% {
+    opacity: 0.36;
+  }
+  to {
+    scale: 3.4;
+    rotate: 200deg;
+    opacity: 0;
+  }
+}
+
+/* The wave through the background field. Out fast, back slowly, the way a disturbance settles. */
+.app--rippling::before {
+  animation: rl-linewave 1100ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes rl-linewave {
+  0% {
+    --gap-pulse: 0px;
+  }
+  22% {
+    --gap-pulse: 26px;
+  }
+  55% {
+    --gap-pulse: -6px;
+  }
+  78% {
+    --gap-pulse: 4px;
+  }
+  100% {
+    --gap-pulse: 0px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rip {
+    display: none;
+  }
+
+  .app--rippling::before {
+    animation: none;
   }
 }
 

@@ -167,6 +167,34 @@ function sparkled(text: string, running: boolean, seed: number): string {
   return running ? text : sparkle(text, seed);
 }
 
+/* Fires the ripple: three rings from the middle of the word, and one wave through the background
+ * lines.
+ *
+ * Built by hand rather than rendered, because these are three throwaway nodes with no state that
+ * exist for a second. Putting them in React would mean a piece of component state, a key, and a
+ * timer to clear it, to describe something that is finished before the next answer arrives. Each
+ * ring removes itself when its own animation ends, so nothing has to be tracked or cleaned up.
+ *
+ * The class on the root is removed on a timer rather than on animationend: the wave runs on
+ * .app::before, and a pseudo-element's animationend does not carry a target we can match. */
+function ripple(host: HTMLElement, word: HTMLElement): void {
+  const r = word.getBoundingClientRect();
+  const x = r.left + r.width / 2;
+  const y = r.top + r.height / 2;
+
+  for (const cls of ["rip", "rip rip--2", "rip rip--3"]) {
+    const ring = document.createElement("span");
+    ring.className = cls;
+    ring.style.left = `${x}px`;
+    ring.style.top = `${y}px`;
+    ring.addEventListener("animationend", () => ring.remove(), { once: true });
+    host.appendChild(ring);
+  }
+
+  host.classList.add("app--rippling");
+  window.setTimeout(() => host.classList.remove("app--rippling"), 1200);
+}
+
 const SPARK_KEY = "ziyang-agent.sparks";
 const SPARKS_TO_UNLOCK = 5;
 
@@ -205,6 +233,7 @@ function useSparks(root: React.RefObject<HTMLElement | null>): number {
        * a game, so it does not justify machinery to prevent it. */
       el.dataset.spark = "0";
       el.classList.add("md-spark--spent");
+      ripple(host, el);
 
       setSparks((n) => {
         const next = Math.min(n + 1, SPARKS_TO_UNLOCK);
