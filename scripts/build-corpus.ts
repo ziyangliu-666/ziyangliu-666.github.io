@@ -939,32 +939,59 @@ async function exferDocs(): Promise<Doc[]> {
  * here. Written into the bundle as a generated module instead of a JSON file the page
  * fetches: they are on screen before the first paint, with no flash and no request. */
 
-const SKILL_CATEGORIES = [
-  "Languages",
-  "LLM",
-  "Systems",
-  "Distributed",
-  "Tooling",
-  "Data",
-];
+/* The categories are read from the page, not listed here.
+ *
+ * This used to split the section on a hard-coded list of his category names. He rewrote the
+ * SKILLS section, and the list went stale in the one way that is visible to a visitor: the
+ * labels he had added were not recognised, so each one glued itself to the value beside it and
+ * the landing page grew tags reading "Shell Networking TCP/UDP", "& agents agent routing" and
+ * "systems CAP/PACELC".
+ *
+ * The section is two columns in the PDF, a label and a comma-separated list. `pdftotext
+ * -layout` keeps that alignment, so the gap between the columns is the separator, and any
+ * category he invents next is handled without touching this file. The Doc cannot be used for
+ * this: its text has been through normalizeLines, which collapses the gap that carries the
+ * structure. */
+function skillRows(resumeFile: string): string[] {
+  const lines = dehyphenate(pdfToText(resumeFile, { layout: true })).split("\n");
+  const rows: string[] = [];
+  let inSkills = false;
 
-function writeKeywords(resume: Doc): void {
+  for (const line of lines) {
+    const flat = line.trim();
+    if (/^SKILLS$/i.test(flat)) {
+      inSkills = true;
+      continue;
+    }
+    if (!inSkills) continue;
+    // The next all-capitals heading ends the section.
+    if (/^[A-Z][A-Z ]{2,}$/.test(flat)) break;
+    if (!flat) continue;
+
+    // Two spaces or more is the column gap. Everything after it is the values.
+    const split = line.match(/^\s*\S.*?\s{2,}(\S.*)$/);
+    if (split?.[1]) rows.push(split[1].trim());
+  }
+
+  return rows;
+}
+
+function writeKeywords(resume: Doc, resumeFile: string): void {
   const skills = resume.sections.find((s) => /SKILLS/i.test(s.heading));
   if (!skills) {
     console.warn("! no SKILLS section — landing keywords not regenerated");
     return;
   }
 
-  // The section arrives as one run: "Languages Python, Rust … LLM Model Context Protocol …".
-  // Splitting on the category labels recovers each group.
-  // `(?!-)` matters: without it the "LLM" category label also splits inside
-  // "LLM-as-judge", leaving "-as-judge" as a keyword.
-  const pattern = new RegExp(`\\b(${SKILL_CATEGORIES.join("|")})\\b(?![-\\w])`, "g");
-  const parts = skills.text.split(pattern).map((p) => p.trim());
+  const rows = skillRows(resumeFile);
+  if (!rows.length) {
+    console.warn("! SKILLS section has no two-column rows — landing keywords not regenerated");
+    return;
+  }
 
   const keywords: string[] = [];
-  for (let i = 1; i < parts.length; i += 2) {
-    for (const raw of (parts[i + 1] ?? "").split(",")) {
+  for (const row of rows) {
+    for (const raw of row.split(",")) {
       const term = raw.trim().replace(/\s+/g, " ");
       // Long phrases read as sentences on a small tilted tag, not as keywords.
       // A single letter reads as a rendering fault on a tilted tag, not as a keyword,
@@ -1035,7 +1062,7 @@ async function main() {
   console.log("· résumé");
   const resumeEn = resumeDoc(path.join(RESUME_DIR, "resume.pdf"), "en");
   docs.push(resumeEn);
-  writeKeywords(resumeEn);
+  writeKeywords(resumeEn, path.join(RESUME_DIR, "resume.pdf"));
   docs.push(resumeDoc(path.join(RESUME_DIR, "resume-zh.pdf"), "zh"));
 
   console.log("· preprints");

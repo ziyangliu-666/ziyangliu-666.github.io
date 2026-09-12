@@ -76,10 +76,9 @@ proposal for it has to be agreed by January 2027. Before March he is in coursewo
 University expects at least 40 hours of study a week during those blocks and discourages
 outside employment, so March 2027 is the first date he can start.
 
-The finishing date is approximate. NUS publishes no fixed graduation date for the cohort,
-and the capstone can be extended by three to six months. Late August or September 2027
-follows from the programme being one year from August 2026 with the placement running into
-July or August.
+His résumé gives the end date as August 2027, marked expected. It is expected rather than
+fixed because NUS publishes no graduation date for the cohort and the capstone can be extended
+by three to six months.
 
 Degree structure, 50 to 51 units: two compulsory Graduate Certificates, two chosen from
 five, and the capstone.
@@ -99,4 +98,20 @@ Architecting Systems for Real-Time Data Processing.
 
 ## Languages he writes
 
-Python, Rust, Go, C, TypeScript, Shell. Chinese and English.
+His résumé lists C, Python, Rust, Go and Shell. It leaves out TypeScript, which he also
+writes: this site, ZIYANG PROTOCOL, the two Exfer wallets, PawMemo and nullify are all
+TypeScript. Chinese and English.
+
+## What else the résumé lists under skills
+
+Beyond the languages, in his own grouping:
+
+| Area | What |
+|---|---|
+| Networking | TCP/UDP, epoll, DNS, iSCSI/NFS, tcpdump |
+| Linux and UNIX | process model, memory management, boot and initramfs, syscall debugging, strace, perf, gdb |
+| LLM and agents | agent routing, memory tiering, retrieval and reranking, ReAct, MCP, KV cache |
+| Distributed systems | CAP and PACELC, Raft, quorum, replication and erasure coding, consistency models, idempotency |
+| Virtualisation | QEMU/KVM, libvirt, Virtio, QGA, VDDK, live migration |
+| CI and CD | GitHub Actions, Jenkins, Docker, RPM and DEB packaging, Packer |
+| Databases | MySQL, Redis, MongoDB, SQLite, redb |

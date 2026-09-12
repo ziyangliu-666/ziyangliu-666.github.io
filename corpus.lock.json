@@ -1,12 +1,12 @@
 {
-  "builtAt": "2026-08-19",
+  "builtAt": "2026-09-12",
   "sources": {
-    "Projects/resume/resume.pdf": "b0a1274eeb92fa6d",
-    "Projects/resume/resume-zh.pdf": "b3ed5b27a32c293c",
+    "Projects/resume/resume.pdf": "e200b0449b82f407",
+    "Projects/resume/resume-zh.pdf": "72c5971717258ff5",
     "Downloads/2604.18170v1.pdf": "842efdf9bd9e5b71",
     "Downloads/2604.12376v1.pdf": "65ead9842248384b",
     "Downloads/2604.18179v1.pdf": "a32b7f225401a5b9",
-    "Projects/self-intro-agent/corpus/src/about.md": "498e84b74defc646",
+    "Projects/self-intro-agent/corpus/src/about.md": "61abc31446da5ddf",
     "Projects/self-intro-agent/corpus/src/contact.md": "c350dcce44901559",
     "Projects/self-intro-agent/corpus/src/exfer.md": "13ea3d1987d364ec",
     "Projects/self-intro-agent/corpus/src/links.md": "476077b71125ab99",
