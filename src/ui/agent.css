@@ -979,13 +979,41 @@ textarea {
   }
 }
 
+/* Reduced motion asks for no movement. It does not ask for no feedback, and the first version
+ * read it as the second: the rings were display:none, the line wave was off, and the word
+ * snapped to plain in a millisecond, so clicking a coloured word did nothing a person could
+ * see. Reported as "no effect", and correctly.
+ *
+ * What is left is the same event with the movement taken out. The ring appears at its final
+ * size and fades, so there is no expansion and no spin. The word cools over a third of a second
+ * instead of instantly, which is a colour change rather than a motion. The line wave stays off:
+ * it is the one part that is only movement. */
 @media (prefers-reduced-motion: reduce) {
   .rip {
+    scale: 1.9;
+    animation: rl-rip-still 520ms ease-out both;
+  }
+
+  .rip--2,
+  .rip--3 {
     display: none;
   }
 
   .app--rippling::before {
     animation: none;
+  }
+
+  .md-spark--spent {
+    animation-duration: 340ms;
+  }
+}
+
+@keyframes rl-rip-still {
+  from {
+    opacity: 0.85;
+  }
+  to {
+    opacity: 0;
   }
 }
 
