@@ -60,6 +60,17 @@ export const MODELS = {
  * would undo the anonymity the submissions are relying on. */
 export const DENY_REPOS = new Set(["sae-feature-traces", "vidtide-anon"]);
 
+/* Repositories kept out of the agent's world for an ordinary reason: they are working drafts,
+ * not work he wants shown. Public on GitHub, so nothing here is a secret, and separate from
+ * DENY_REPOS because the two lists fail differently. Breaking the anonymity list harms a real
+ * submission and the corpus build refuses to finish. Breaking this one shows a visitor a scratch
+ * repository, which is untidy.
+ *
+ * The live GitHub tools need this as much as the corpus builder does: github_activity sorts by
+ * last push, so the newest draft is the first thing a visitor sees when they ask what he works
+ * on now. */
+export const UNLISTED_REPOS = new Set(["lumen-specs"]);
+
 export const GITHUB_USER = "ziyangliu-666";
 
 /* The accounts the repo-reading tools may open. Two are his — `ziyangliu-666` and

@@ -9,6 +9,7 @@ import type { Corpus, Kind } from "../rag/corpus";
 import type { Source } from "./events";
 import {
   DENY_REPOS,
+  UNLISTED_REPOS,
   GITHUB_ACCOUNTS,
   GITHUB_USER,
   LIMITS,
@@ -372,9 +373,11 @@ const githubActivity: ToolDef = {
       };
     }
     const repos = (await res.json()) as GhRepo[];
-    // Same denylist as the corpus builder: anonymised artifacts of papers in review.
+    /* Same two lists as the corpus builder: anonymised artifacts of papers in review, and
+     * working drafts. This call is sorted by last push, so without the second list the newest
+     * draft leads the answer to "what is he working on now". */
     const own = repos
-      .filter((r) => !r.fork && !DENY_REPOS.has(r.name))
+      .filter((r) => !r.fork && !DENY_REPOS.has(r.name) && !UNLISTED_REPOS.has(r.name))
       .slice(0, 12);
 
     if (!own.length) {
@@ -444,12 +447,14 @@ async function resolveRepo(
       };
     }
     if (DENY_REPOS.has(name)) return { error: repoDenied(name) };
+    if (UNLISTED_REPOS.has(name)) return { error: repoUnlisted(name) };
     return { owner, name };
   }
 
   const name = parts[0] ?? "";
   if (!name) return { error: "Which repository? Pass a name like exfer-mcp." };
   if (DENY_REPOS.has(name)) return { error: repoDenied(name) };
+  if (UNLISTED_REPOS.has(name)) return { error: repoUnlisted(name) };
 
   // Bare name: try each account rather than making the model guess the owner.
   for (const owner of GITHUB_ACCOUNTS) {
@@ -466,6 +471,14 @@ async function resolveRepo(
 
 function repoDenied(name: string): string {
   return `"${name}" is the anonymised artifact of a paper under review and is deliberately out of reach. Say the paper is under review and stop there.`;
+}
+
+/* Deliberately says nothing about why. The anonymity refusal above gives a reason because the
+ * model needs it to answer well: it has to say the paper is under review. Here there is nothing
+ * to pass on, and a reason would only invite the model to tell a visitor about a repository that
+ * is being kept out of the answer. */
+function repoUnlisted(name: string): string {
+  return `"${name}" is not part of the indexed work. Answer from what you have.`;
 }
 
 const repoTree: ToolDef = {

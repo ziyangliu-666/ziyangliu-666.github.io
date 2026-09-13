@@ -38,6 +38,13 @@ const DOWNLOADS = path.join(HOME, "Downloads");
 /** Anonymised artifacts of papers still in anonymous review. Never index or link. */
 const DENY_REPOS = new Set(["sae-feature-traces", "vidtide-anon"]);
 
+/* Working drafts, kept out for an ordinary reason: they are not work he wants shown. Public on
+ * GitHub, so nothing here is secret. Separate from DENY_REPOS because the two fail differently:
+ * breaking the anonymity list harms a real submission and stops this build, while breaking this
+ * one shows a visitor a scratch repository. Must match UNLISTED_REPOS in src/agent/config.ts,
+ * which the live GitHub tools read. */
+const UNLISTED_REPOS = new Set(["lumen-specs"]);
+
 /** Titles that must never appear in indexed body text (only in the hand-written note). */
 const UNDER_REVIEW_MARKERS = [
   "Anonymous ACL submission",
@@ -580,10 +587,14 @@ function repoDocs(account: string): Doc[] {
     return [];
   }
 
-  const own = repos.filter((r) => !r.fork && !DENY_REPOS.has(r.name));
-  const skipped = repos.filter((r) => !r.fork && DENY_REPOS.has(r.name));
-  for (const r of skipped) {
+  const own = repos.filter(
+    (r) => !r.fork && !DENY_REPOS.has(r.name) && !UNLISTED_REPOS.has(r.name),
+  );
+  for (const r of repos.filter((r) => !r.fork && DENY_REPOS.has(r.name))) {
     console.log(`  · skipped ${r.name} (anonymity denylist)`);
+  }
+  for (const r of repos.filter((r) => !r.fork && UNLISTED_REPOS.has(r.name))) {
+    console.log(`  · skipped ${r.name} (unlisted: a working draft)`);
   }
 
   return own.map((r) => {
@@ -701,9 +712,19 @@ function pullRequestDocs(): Doc[] {
     .filter((pr) => pr.body && pr.body.trim().length > 120)
     .filter((pr) => {
       const [owner, repo] = pr.repository_url.split("/").slice(-2);
-      if (!owner || !repo || !forksOf(owner).has(repo)) return true;
-      console.log(`  · skipped ${owner}/${repo}#${pr.number} (a fork, not his project)`);
-      return false;
+      if (!owner || !repo) return true;
+      if (forksOf(owner).has(repo)) {
+        console.log(`  · skipped ${owner}/${repo}#${pr.number} (a fork, not his project)`);
+        return false;
+      }
+      /* The search is org-wide, so a repository excluded above still reaches here through its
+       * pull requests. Dropping the repository and keeping its pull requests would put the
+       * thing back in the index by another door. */
+      if (DENY_REPOS.has(repo) || UNLISTED_REPOS.has(repo)) {
+        console.log(`  · skipped ${owner}/${repo}#${pr.number} (repository is not indexed)`);
+        return false;
+      }
+      return true;
     })
     .map((pr) => {
       const repo = pr.repository_url.split("/").pop() ?? "repo";
