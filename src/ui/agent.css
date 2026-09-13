@@ -100,19 +100,9 @@ textarea {
  *
  * One fixed pseudo-element, one repeating gradient, three custom properties written by useRays.
  */
-/* Registered so it can be animated. A custom property is a string to the animation engine
-   unless its type is declared, and an un-registered one jumps from start to end instead of
-   interpolating. This is what lets a click send a wave through the background lines. */
-@property --gap-pulse {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 0px;
-}
-
 .app {
   --gap: 32px;
   --slide: 0px;
-  --gap-pulse: 0px;
   /* Must match TILT_REST in ZiyangAgent.tsx. The field is slanted before any pointer moves,
      so the first frame the visitor sees is already the resting angle rather than level. */
   --angle: -13deg;
@@ -146,7 +136,7 @@ textarea {
     rgba(255, 255, 255, 0.085) 0px,
     rgba(255, 255, 255, 0.085) 2px,
     rgba(255, 255, 255, 0) 2px,
-    rgba(255, 255, 255, 0) calc(var(--gap) + var(--gap-pulse))
+    rgba(255, 255, 255, 0) var(--gap)
   );
   /* Fades toward the edges so it reads as light in a room rather than as ruled paper, but only
      dips a little in the middle. The first version pushed the centre down to 0.28 to protect
@@ -827,193 +817,125 @@ textarea {
   border-radius: 3px;
 }
 
-/* Spent. The click is refused with a shake and a red flash, and the word settles into ordinary
- * prose: the point is made once and the sentence stays readable afterwards. `both` holds the end
- * frame, so nothing snaps back when the animation finishes. */
+/* Spent.
+ *
+ * Each letter jumps a beat after the one before it, so the word runs left to right like
+ * something waking up rather than flashing. The jump overshoots and settles through three
+ * smaller bounces, which is what makes it read as alive instead of as a single hop, and a small
+ * counter-rotation on each letter keeps the line from looking mechanical.
+ *
+ * The colour stays through the bounce and drops at the end. A word that greys out first is a
+ * word being switched off; a word that is brightest while it moves is a word spending itself.
+ *
+ * This replaced three expanding rings and a wave through the background. Those were large and
+ * said nothing about what was clicked: the reaction belongs on the word.
+ */
 .md-spark--spent {
   cursor: default;
   pointer-events: none;
-  /* Slower than the rings, so the word is still cooling as they pass over it. */
-  animation: rl-spark-spend 1000ms ease-out both;
   text-decoration: none;
-  /* The scale in the keyframes would otherwise nudge the words either side of it. */
+
+  /* Bold through the jump, ordinary once it lands. Without this the spent word keeps the weight
+     it was marked with and reads as emphasis for the rest of the answer, which is the opposite
+     of spent. */
+  animation: rl-spark-settle 1200ms linear both;
+
+  /* The gradient goes at the moment of the click, and the letters carry their own colour from
+     here on.
+     
+     This is not a style choice. The resting word is coloured by clipping a gradient to the
+     text, and a transformed child is painted into its own layer that the parent's clip does not
+     reach: the first version of this animation made every letter transparent, so the word
+     disappeared for the length of the bounce. The background-color guard on .md-spark does not
+     help, because what failed was the clipping, not the image. */
+  background-image: none;
+  background-color: transparent;
+  color: inherit;
+  -webkit-text-fill-color: currentColor;
+}
+
+.md-spark-ch {
+  /* A transform needs a box. Inline text has none, so each letter is its own inline block. */
   display: inline-block;
+  /* Keeps the letter from carrying the underline with it when it leaves the baseline. */
+  text-decoration: inherit;
 }
 
-@keyframes rl-spark-spend {
-  0% {
-    background-image: none;
-    background-color: #ffffff;
-    scale: 1.14;
-  }
-  40% {
-    background-color: #ffffff;
-    scale: 1.06;
+/* Each letter takes its own hue, stepping through the spectrum along the word, so the colour
+   still reads as one run rather than as a row of unrelated letters. It cools to the prose colour
+   a beat after its own jump, which is why the two animations share a stagger but not a delay. */
+.md-spark--spent .md-spark-ch {
+  color: hsl(calc(var(--i, 0) * 34deg + 348deg) 88% 70%);
+  animation:
+    rl-letter 620ms cubic-bezier(0.22, 1.2, 0.32, 1) both,
+    rl-letter-cool 760ms ease-out both;
+  animation-delay: calc(var(--i, 0) * 45ms), calc(var(--i, 0) * 45ms + 300ms);
+}
+
+@keyframes rl-spark-settle {
+  0%,
+  72% {
+    font-weight: 600;
   }
   100% {
-    background-image: none;
-    background-color: var(--ink);
     font-weight: 400;
-    scale: 1;
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .md-spark {
-    animation: none;
-  }
-
-  .md-spark--spent {
-    animation-duration: 1ms;
-  }
-}
-
-/* The ripple, on clicking a marked word.
- *
- * Three parts, and the point of all three is that the page is nearly black and nearly still, so
- * a small change reads as nothing happening. The first version shook the word two pixels and
- * flashed it red, which was invisible on a 1440px page.
- *
- * One: rings expanding from the word. Colour comes from a conic gradient, so it runs around the
- * ring rather than sitting on it, and the ring spins while it grows: the colour appears to move
- * through the ring instead of with it.
- *
- * Two: the background lines answer. --gap-pulse widens the line spacing in a wave and lets it
- * settle, so the field the pointer already controls visibly breathes out from the click. That is
- * the echo: the same lines, disturbed, rather than a second unrelated animation.
- *
- * Three: the word itself goes white-hot before it cools to ordinary prose.
- */
-.rip {
-  position: fixed;
-  z-index: 40;
-  width: 220px;
-  height: 220px;
-  margin: -110px 0 0 -110px;
-  pointer-events: none;
-  border-radius: 50%;
-  /* Additive, so the ring cannot cover the answer. Painted normally it dimmed every word it
-     passed over, which is the one thing a decoration must not do to text someone is reading.
-     On a near-black page screen blending means the ring only ever adds light: the sentence
-     stays exactly as legible, and the colour lands in the gaps between the letters. */
-  mix-blend-mode: screen;
-  background: conic-gradient(
-    from 0deg,
-    #ff6b6b,
-    #ffa94d,
-    #ffe066,
-    #8ce99a,
-    #66d9e8,
-    #74c0fc,
-    #b197fc,
-    #ff6b6b
-  );
-  /* Hollow. A filled disc would black out the text underneath at the moment the reader is
-     looking at it; a ring passes over and leaves the sentence readable. */
-  -webkit-mask-image: radial-gradient(
-    closest-side,
-    transparent 52%,
-    #000 60%,
-    #000 70%,
-    transparent 80%
-  );
-  mask-image: radial-gradient(
-    closest-side,
-    transparent 52%,
-    #000 60%,
-    #000 70%,
-    transparent 80%
-  );
-  animation: rl-rip 900ms cubic-bezier(0.16, 0.72, 0.24, 1) both;
-}
-
-/* Two more, later and wider, so the disturbance has a front and a wake rather than one edge. */
-.rip--2 {
-  animation-delay: 110ms;
-  animation-duration: 1000ms;
-  opacity: 0.7;
-}
-
-.rip--3 {
-  animation-delay: 230ms;
-  animation-duration: 1100ms;
-  opacity: 0.45;
-}
-
-@keyframes rl-rip {
-  from {
-    scale: 0.18;
-    rotate: 0deg;
-    opacity: 0.8;
-  }
-  60% {
-    opacity: 0.36;
-  }
+/* No `from`: the start is whatever hue the letter already has, so one keyframe serves all of
+   them. */
+@keyframes rl-letter-cool {
   to {
-    scale: 3.4;
-    rotate: 200deg;
-    opacity: 0;
+    color: var(--ink);
   }
 }
 
-/* The wave through the background field. Out fast, back slowly, the way a disturbance settles. */
-.app--rippling::before {
-  animation: rl-linewave 1100ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
-
-@keyframes rl-linewave {
+/* Up hard, then three decaying settles. The rotation flips sign on each settle, which is the
+   tremble: without it the letter drops back like a lift rather than a spring. */
+@keyframes rl-letter {
   0% {
-    --gap-pulse: 0px;
+    translate: 0 0;
+    scale: 1;
+    rotate: 0deg;
   }
-  22% {
-    --gap-pulse: 26px;
+  16% {
+    translate: 0 -10px;
+    scale: 1.28;
+    rotate: -8deg;
   }
-  55% {
-    --gap-pulse: -6px;
+  36% {
+    translate: 0 2px;
+    scale: 0.93;
+    rotate: 6deg;
   }
-  78% {
-    --gap-pulse: 4px;
+  54% {
+    translate: 0 -4px;
+    scale: 1.09;
+    rotate: -4deg;
+  }
+  72% {
+    translate: 0 1px;
+    scale: 0.98;
+    rotate: 2deg;
+  }
+  87% {
+    translate: 0 -1px;
+    rotate: -1deg;
   }
   100% {
-    --gap-pulse: 0px;
+    translate: 0 0;
+    scale: 1;
+    rotate: 0deg;
   }
 }
 
-/* Reduced motion asks for no movement. It does not ask for no feedback, and the first version
- * read it as the second: the rings were display:none, the line wave was off, and the word
- * snapped to plain in a millisecond, so clicking a coloured word did nothing a person could
- * see. Reported as "no effect", and correctly.
- *
- * What is left is the same event with the movement taken out. The ring appears at its final
- * size and fades, so there is no expansion and no spin. The word cools over a third of a second
- * instead of instantly, which is a colour change rather than a motion. The line wave stays off:
- * it is the one part that is only movement. */
+/* Reduced motion asks for no movement, not for no feedback. The letters do not jump; the word
+   brightens and cools instead, in place. */
 @media (prefers-reduced-motion: reduce) {
-  .rip {
-    scale: 1.9;
-    animation: rl-rip-still 520ms ease-out both;
-  }
-
-  .rip--2,
-  .rip--3 {
-    display: none;
-  }
-
-  .app--rippling::before {
-    animation: none;
-  }
-
-  .md-spark--spent {
-    animation-duration: 340ms;
-  }
-}
-
-@keyframes rl-rip-still {
-  from {
-    opacity: 0.85;
-  }
-  to {
-    opacity: 0;
+  .md-spark--spent .md-spark-ch {
+    /* The hue still lands and still cools. Only the jump is dropped. */
+    animation: rl-letter-cool 520ms ease-out both;
+    animation-delay: calc(var(--i, 0) * 30ms);
   }
 }
 

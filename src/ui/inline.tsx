@@ -10,7 +10,10 @@
  * safeHref gates that to http, https and mailto.
  */
 
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
+
+/** A custom property in a style object needs the index signature spelled out for TypeScript. */
+type SparkStyle = CSSProperties & Record<`--${string}`, string | number>;
 
 /* ---------------------------------------------------------------------- inline */
 
@@ -118,10 +121,36 @@ export function inline(text: string, keyBase = 0): ReactNode[] {
        * announced as something you can activate. The count is kept by a delegated listener on
        * the app root, which is why this carries a data attribute and no handler of its own:
        * inline() is a plain function shared by the prose and the diagram blocks, with no access
-       * to component state. */
+       * to component state.
+       *
+       * One span per letter, written at render time rather than on click. Clicking runs each
+       * letter a beat after the one before it, which needs a node per letter to carry its own
+       * delay. Building those in the click handler does not survive: an answer is re-parsed from
+       * its text on every render, and React reconciles children, so it would put the plain text
+       * node back. It leaves a class alone, which is why the spent flag can live there, but not
+       * a replaced subtree.
+       *
+       * The word is read as one word, not as letters, because the letters are decoration: the
+       * button carries an aria-label and the spans are hidden from assistive tech. */
+      const word = token.slice(2, -2);
       out.push(
-        <button className="md-spark" type="button" data-spark="1" key={key++}>
-          {token.slice(2, -2)}
+        <button
+          className="md-spark"
+          type="button"
+          data-spark="1"
+          aria-label={word}
+          key={key++}
+        >
+          {[...word].map((ch, n) => (
+            <span
+              className="md-spark-ch"
+              aria-hidden="true"
+              key={n}
+              style={{ "--i": n } as SparkStyle}
+            >
+              {ch}
+            </span>
+          ))}
         </button>,
       );
     } else if (token.startsWith("`")) {
