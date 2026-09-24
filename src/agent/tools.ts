@@ -91,7 +91,7 @@ const retrieve: ToolDef = {
             type: "string",
             enum: Object.keys(KIND_GROUPS),
             description:
-              "Narrow to one part of the corpus. 'resume' for roles and dates, 'papers' for the arXiv preprints, 'repos' for GitHub repositories and pull requests, 'profile' for the biography and the Exfer project. Omit to search everything.",
+              "Narrow to one part of the corpus. 'resume' for roles and dates, 'papers' for the arXiv preprints, 'repos' for GitHub repositories and pull requests, 'profile' for the biography and the hand-written project notes. Omit to search everything.",
           },
           limit: {
             type: "integer",
@@ -163,7 +163,7 @@ const readDocument: ToolDef = {
         properties: {
           doc_id: {
             type: "string",
-            description: "Document id, e.g. resume-en, paper-memory-paging, about-exfer.",
+            description: "Document id, e.g. resume-en, paper-memory-paging, about-fastmm.",
           },
           section: {
             type: "string",
@@ -431,7 +431,7 @@ const TEXTUAL =
 const TREE_NOISE =
   /(^|\/)(node_modules|target|dist|build|\.git|\.github\/workflows\/cache|__pycache__|\.venv|vendor|coverage)(\/|$)|(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|Cargo\.lock|poetry\.lock)$|\.(png|jpg|jpeg|gif|webp|ico|woff2?|ttf|otf|mp4|zip|gz|wasm|pdf)$/i;
 
-/** Resolve "exfer-mcp" or "exfer-stack/exfer-mcp" to an owner/name pair we are allowed to read. */
+/** Resolve "FastMM" or "ziyangliu-666/FastMM" to an owner/name pair we are allowed to read. */
 async function resolveRepo(
   input: string,
   signal: AbortSignal,
@@ -452,7 +452,7 @@ async function resolveRepo(
   }
 
   const name = parts[0] ?? "";
-  if (!name) return { error: "Which repository? Pass a name like exfer-mcp." };
+  if (!name) return { error: "Which repository? Pass a name like FastMM." };
   if (DENY_REPOS.has(name)) return { error: repoDenied(name) };
   if (UNLISTED_REPOS.has(name)) return { error: repoUnlisted(name) };
 
@@ -494,7 +494,7 @@ const repoTree: ToolDef = {
           repo: {
             type: "string",
             description:
-              "Repository name, e.g. exfer-mcp, or owner/name for exactness.",
+              "Repository name, e.g. FastMM, or owner/name for exactness.",
           },
           path: {
             type: "string",

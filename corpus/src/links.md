@@ -12,7 +12,6 @@ All were checked and resolve.
 | What | URL |
 |---|---|
 | GitHub, personal | https://github.com/ziyangliu-666 |
-| GitHub, the Exfer work — also his | https://github.com/exfer-stack |
 | LinkedIn | https://www.linkedin.com/in/ziyangliu666 |
 | Email | ziyang.liu.r@outlook.com |
 | Résumé, English | /resume.pdf |
@@ -31,27 +30,18 @@ All were checked and resolve.
 | ByteDance — the company he interned at in 2022 | https://www.bytedance.com/ |
 | Feishu — the product his 2022 internship team built | https://www.feishu.cn/ |
 
-## Exfer
+## FastMM
 
-The chain is upstream at `ahuman-exfer/exfer`; everything built on top of it is under his own
-`exfer-stack` account.
+His market-making engine, public on his personal account.
 
 | What | URL |
 |---|---|
-| Documentation and project site | https://exfer.info/ |
-| The chain — upstream, where his pull requests landed | https://github.com/ahuman-exfer/exfer |
-| `exfer-walletd` — the Rust signing daemon | https://github.com/exfer-stack/exfer-walletd |
-| `exfer-walletd-desktop` — the desktop wallet | https://github.com/exfer-stack/exfer-walletd-desktop |
-| `exfer-walletd-mobile` — the mobile wallet | https://github.com/exfer-stack/exfer-walletd-mobile |
-| `exfer-mcp` — the MCP server an agent spends through | https://github.com/exfer-stack/exfer-mcp |
-| `exfer-py` — the typed Python client | https://github.com/exfer-stack/exfer-py |
-| `exfer-py` documentation | https://exfer-stack.github.io/exfer-py/ |
-| `exfer` on PyPI — the published package | https://pypi.org/project/exfer/ |
-| `exfer-indexer` — query an address without running a node | https://github.com/exfer-stack/exfer-indexer |
-| `exfer-honor` — release goods against a signed quote | https://github.com/exfer-stack/exfer-honor |
-| `exfer-agent-miner` | https://github.com/exfer-stack/exfer-agent-miner |
-| `get` — the installer | https://github.com/exfer-stack/get |
-
+| FastMM — the repository | https://github.com/ziyangliu-666/FastMM |
+| FastMM documentation | https://ziy.bio/FastMM/ |
+| `fastmm-engine` on PyPI — the Python package | https://pypi.org/project/fastmm-engine/ |
+| FastMM benchmarks, and what each number contains | https://github.com/ziyangliu-666/FastMM/blob/main/bench/README.md |
+| FastMM architecture | https://github.com/ziyangliu-666/FastMM/blob/main/docs/explanation/architecture.md |
+| FastMM design records (ADRs) | https://github.com/ziyangliu-666/FastMM/tree/main/docs/adr |
 ## Papers
 
 Link the PDF, not the abstract page. A reader who clicks a paper wants to read it, and the

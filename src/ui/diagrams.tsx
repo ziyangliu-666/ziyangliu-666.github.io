@@ -1,6 +1,6 @@
 /* Structured answer blocks: timeline, flow, stack, metrics.
  *
- * An answer about his career is a chronology. The V2V transfer path is a pipeline. Exfer is a
+ * An answer about his career is a chronology. The V2V transfer path is a pipeline. FastMM is a
  * layered system. The throughput work is a set of numbers. Prose flattens all four into the
  * same grey paragraph, so the model can draw them instead.
  *
@@ -89,8 +89,8 @@ export function parseTimeline(lines: string[]): Span[] {
 
 /* Dates, so overlapping spans can be drawn as overlapping.
  *
- * His internship at SmartX ran inside his degree at UESTC, and Exfer ran inside the research
- * year at HKUST. A rail that stacks rows in order draws all of those as a sequence, which is a
+ * His internship at SmartX ran inside his degree at UESTC, and FastMM runs alongside his
+ * M.Tech. at NUS. A rail that stacks rows in order draws all of those as a sequence, which is a
  * plain misstatement of what happened. With dates parsed, each span becomes a bar on a shared
  * axis, and two things that happened at once sit above each other.
  *
@@ -256,7 +256,7 @@ export interface Layer {
 /* Positions of a separator character that is not inside a markdown link.
  *
  * A stack line separates the layer from its items with a colon, and separates items with
- * commas. Both characters also occur inside a link: `[Daemon](https://exfer.info/): x` has a
+ * commas. Both characters also occur inside a link: `[Docs](https://ziy.bio/FastMM/): x` has a
  * colon in `https:` five characters before the one that matters, and a URL may carry a comma
  * in its path. Splitting on the first raw colon put the layer name at `[Daemon](https` and
  * threw the rest away. Counting bracket depth is what tells the two apart. */
@@ -272,7 +272,7 @@ function topLevel(line: string, sep: string): number[] {
   return out;
 }
 
-/** `Daemon: exfer-walletd` — the colon separates the layer from what sits in it. */
+/** `Engine: FastMM` — the colon separates the layer from what sits in it. */
 export function parseStack(lines: string[]): Layer[] {
   const out: Layer[] = [];
   for (const line of rows(lines)) {

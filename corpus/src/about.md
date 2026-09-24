@@ -8,18 +8,17 @@ kind: profile
 Ziyang Liu (刘子阳) is a software engineer who spent three years on production
 virtualization at SmartX, then moved into LLM systems research. He is based in
 Singapore, where he started a one-year M.Tech. in Software Engineering at the National
-University of Singapore in August 2026 and expects to finish around late August or
-September 2027. Before that he took a B.Eng. in Software Engineering at the University of
+University of Singapore in August 2026. Since September 2026 he has also been building
+[FastMM](https://github.com/ziyangliu-666/FastMM), a market-making engine in C++20. He
+expects to finish the degree around late August or September 2027. Before that he took a B.Eng. in Software Engineering at the University of
 Electronic Science and Technology of China, in Chengdu, graduating June 2024.
 
 He is reachable at ziyang.liu.r@outlook.com, on GitHub as
 [ziyangliu-666](https://github.com/ziyangliu-666), and on
 [LinkedIn](https://www.linkedin.com/in/ziyangliu666).
 
-He publishes from two GitHub accounts, both his own:
-[ziyangliu-666](https://github.com/ziyangliu-666) for personal work, and
-[exfer-stack](https://github.com/exfer-stack) for the Exfer project — the chain, the
-wallets, the daemon, the MCP server, the indexer.
+His own work, FastMM included, is on GitHub under
+[ziyangliu-666](https://github.com/ziyangliu-666).
 
 ## The through-line
 
@@ -40,13 +39,19 @@ model provider prove it served the model it advertised. Copy-as-decode makes an 
 model reference input lines instead of re-emitting them, with a grammar that guarantees
 the reference is valid. In each case the interesting part is the guarantee, not the demo.
 
+FastMM, the trading engine he builds now, has the same shape. A replay of a recorded session
+must send byte-identical orders, and a SHA-256 of both outbound streams checks it. Each
+benchmark says what is inside its timed region and what machine ran it. When he found that his
+headline latency figure was mostly the benchmark measuring itself, he fixed the benchmark and
+published the smaller, honest number.
+
 ## Timeline
 
 | When | What |
 |---|---|
 | Aug 2026 – Aug 2027 | M.Tech. in Software Engineering, National University of Singapore |
 | Mar 2027 – Jul 2027 | NUS internship placement, 20 weeks — the degree's capstone |
-| May 2026 – Aug 2026 | Exfer — full-stack engineer, proof-of-work chain and in-wallet agent |
+| Sep 2026 – now | FastMM — author, market-making engine in C++20 |
 | Sep 2025 – Aug 2026 | HKUST (Guangzhou) — researcher, LLM systems: agent memory, decoding, interpretability |
 | Jul 2024 – Sep 2025 | SmartX — Virtualization R&D Engineer, Chengdu |
 | Oct 2022 – Jul 2024 | SmartX — Virtualization R&D Intern, Chengdu |
@@ -98,9 +103,9 @@ Architecting Systems for Real-Time Data Processing.
 
 ## Languages he writes
 
-His résumé lists C, Python, Rust, Go and Shell. It leaves out TypeScript, which he also
-writes: this site, ZIYANG PROTOCOL, the two Exfer wallets, PawMemo and nullify are all
-TypeScript. Chinese and English.
+His résumé lists C, Python, Rust, Go and Shell. FastMM adds C++20: the engine is written in
+it, with Python for strategies and tooling. The résumé also leaves out TypeScript, which he
+writes too: this site, ZIYANG PROTOCOL, PawMemo and nullify are all TypeScript. Chinese and English.
 
 ## What else the résumé lists under skills
 

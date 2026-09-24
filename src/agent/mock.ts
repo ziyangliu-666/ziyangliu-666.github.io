@@ -39,20 +39,20 @@ const RUNS: Run[] = [
       {
         subagents: [
           { name: "resume-reader", task: "SmartX V2V OS scope", result: "3 years, 2 role levels" },
-          { name: "project-reader", task: "Exfer chain and agent", result: "chain, wallets, MCP server" },
+          { name: "project-reader", task: "FastMM engine", result: "C++20 engine, replay, risk" },
         ],
       },
     ],
     text:
-      "Three things carry the most weight:\n\n— V2V OS at SmartX. He led the design of the product that moves guests off VMware onto SMTX OS, and between SMTX OS clusters. It is now on 10,000+ production VMs, including core financial workloads.\n— Exfer. A proof-of-work chain for machine-to-machine payments, built with one other developer: 90+ days live, 550+ nodes in 28 countries. He also built the in-wallet agent and published the wallet's tools as an MCP server, about 40 tools across 14 modules.\n— Three single-author preprints on LLM systems, on decoding, agent memory, and proving a hosted model is the one you paid for.\n\nAsk about any one and I will pull the detail.",
+      "Three things carry the most weight:\n\n— V2V OS at SmartX. He led the design of the product that moves guests off VMware onto SMTX OS, and between SMTX OS clusters. It is now on 10,000+ production VMs, including core financial workloads.\n— FastMM. A market-making engine in C++20: backtests, replay and live trading run the same strategy code, and a replay sends byte-identical orders. In simulation a market-data update becomes an order in 111 to 123 ns (p50, one core).\n— Three single-author preprints on LLM systems, on decoding, agent memory, and proving a hosted model is the one you paid for.\n\nAsk about any one and I will pull the detail.",
     sources: [
       { label: "resume.pdf", url: "/resume.pdf" },
-      { label: "exfer.info", url: "https://exfer.info" },
+      { label: "FastMM", url: "https://github.com/ziyangliu-666/FastMM" },
       { label: "github.com/ziyangliu-666", url: "https://github.com/ziyangliu-666" },
     ],
     suggestions: [
       "How did the V2V OS transfer actually work?",
-      "What does the in-wallet agent do?",
+      "How was the FastMM latency measured?",
     ],
     usage: { model: "offline demo", inputTokens: 8420, outputTokens: 214 },
   },
@@ -65,7 +65,7 @@ const RUNS: Run[] = [
       { name: "retrieve", args: "index:profile", result: "timeline, 7 entries" },
     ],
     text:
-      "As of August 2026 he has just started an M.Tech. in Software Engineering at the National University of Singapore.\n\nImmediately before that, two things ran in parallel: a year at HKUST (Guangzhou) on LLM systems — agent memory, decoding, interpretability — which produced three arXiv preprints, and Exfer, where he spent the summer on the chain internals and the in-wallet agent.",
+      "He started an M.Tech. in Software Engineering at the National University of Singapore in August 2026.\n\nNext to it he builds FastMM, a market-making engine in C++20. Before the M.Tech. he spent a year at HKUST (Guangzhou) on LLM systems: agent memory, decoding and interpretability. That year produced three arXiv preprints.",
     sources: [
       { label: "Who Ziyang Liu is", url: "/resume.pdf" },
       { label: "arXiv:2604.12376", url: "https://arxiv.org/pdf/2604.12376v1" },
@@ -113,7 +113,7 @@ const RUNS: Run[] = [
     reasoning: "Straight lookup — short answer, dates preserved.",
     steps: [{ name: "retrieve", args: "index:resume", result: "full document · 4 roles parsed" }],
     text:
-      "Three years at SmartX on virtualization, first as an intern from October 2022 and then as an R&D engineer to September 2025, owning V2V OS. A summer at ByteDance (Feishu) in 2022 on workflow integration in Go. A year of LLM systems research at HKUST (Guangzhou) to August 2026, and a summer on Exfer.\n\nB.Eng. from UESTC, M.Tech. in progress at NUS. The full résumé is linked top right.",
+      "Three years at SmartX on virtualization, first as an intern from October 2022 and then as an R&D engineer to September 2025, owning V2V OS. A summer at ByteDance (Feishu) in 2022 on workflow integration in Go. A year of LLM systems research at HKUST (Guangzhou) to August 2026, and, since September 2026, FastMM, a market-making engine in C++20.\n\nB.Eng. from UESTC, M.Tech. in progress at NUS. The full résumé is linked top right.",
     sources: [{ label: "resume.pdf", url: "/resume.pdf" }],
     suggestions: ["What did he do at ByteDance?", "What is he looking for next?"],
     usage: { model: "offline demo", inputTokens: 3120, outputTokens: 96 },

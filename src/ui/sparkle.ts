@@ -63,7 +63,7 @@ const FENCE = /^\s*```/;
  *   owner/repo, a/b.ts   a slug or a path is one token for the same reason
  *
  * The last two are not markdown, so nothing catches them structurally. Both appear as bare text
- * in real answers: his address, and slugs like ahuman-exfer/exfer. The fuzz marked "outlook" and
+ * in real answers: his address, and slugs like ziyangliu-666/FastMM. The fuzz marked "outlook" and
  * "ziyang" inside the address until they were added here.
  */
 const PROTECTED = new RegExp(

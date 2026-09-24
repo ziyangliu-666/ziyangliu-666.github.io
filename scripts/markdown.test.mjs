@@ -60,7 +60,7 @@ const SPARKLE_SAMPLE = [
   "|---|---|",
   "| Aug 2026 | started at NUS |",
   "",
-  "He is reachable at ziyang.liu.r@outlook.com, and his work landed in ahuman-exfer/exfer.",
+  "He is reachable at ziyang.liu.r@outlook.com, and his work is in ziyangliu-666/FastMM.",
 ].join("\n");
 
 function sparkleChecks() {
@@ -132,10 +132,10 @@ const checks = [
   },
   {
     name: "bare URL becomes an anchor, shown as host and path",
-    md: "the repo is at https://github.com/exfer-stack/exfer-mcp today",
+    md: "the repo is at https://github.com/ziyangliu-666/FastMM today",
     want: (r) =>
-      r.hrefs.includes("https://github.com/exfer-stack/exfer-mcp") &&
-      r.text.includes("github.com/exfer-stack/exfer-mcp"),
+      r.hrefs.includes("https://github.com/ziyangliu-666/FastMM") &&
+      r.text.includes("github.com/ziyangliu-666/FastMM"),
   },
   {
     name: "javascript: URI never becomes an href",
@@ -286,12 +286,12 @@ const checks = [
   },
   {
     name: "stack splits layers on the colon and items on commas",
-    md: "```stack\nWallets: desktop, mobile\nDaemon: exfer-walletd\n```",
+    md: "```stack\nStrategies: C++, Python\nEngine: fastmm-live\n```",
     want: (r) =>
       r.classes.includes("dg dg-stack") &&
       r.classes.filter((c) => c === "dg-layer").length === 2 &&
       r.classes.filter((c) => c === "dg-pill").length === 3 &&
-      r.text.includes("Wallets"),
+      r.text.includes("Strategies"),
   },
   {
     name: "metrics keeps value and label apart",
@@ -352,17 +352,17 @@ const checks = [
   },
   {
     name: "a stack links both the layer name and its items",
-    md: "```stack\n[Daemon](https://exfer.info/): [exfer-walletd](https://github.com/exfer-stack/exfer-walletd)\n```",
+    md: "```stack\n[Docs](https://ziy.bio/FastMM/): [FastMM](https://github.com/ziyangliu-666/FastMM)\n```",
     want: (r) =>
-      r.hrefs.includes("https://exfer.info/") &&
-      r.hrefs.includes("https://github.com/exfer-stack/exfer-walletd"),
+      r.hrefs.includes("https://ziy.bio/FastMM/") &&
+      r.hrefs.includes("https://github.com/ziyangliu-666/FastMM"),
   },
   {
     name: "a metric label links, and the big number stays bare",
-    md: "```metrics\n28 | pull requests into [exfer](https://github.com/ahuman-exfer/exfer)\n```",
+    md: "```metrics\n17 | pre-trade risk checks in [FastMM](https://github.com/ziyangliu-666/FastMM)\n```",
     want: (r) =>
-      r.hrefs.includes("https://github.com/ahuman-exfer/exfer") &&
-      r.text.includes("28"),
+      r.hrefs.includes("https://github.com/ziyangliu-666/FastMM") &&
+      r.text.includes("17"),
   },
   {
     name: "a link in a timeline date keeps its label, and the axis survives",
@@ -383,18 +383,18 @@ const checks = [
   },
   {
     name: "a stack with a plain colon still parses, and commas still split items",
-    md: "```stack\nWallets: desktop, mobile\nDaemon: exfer-walletd\n```",
+    md: "```stack\nStrategies: C++, Python\nEngine: fastmm-live\n```",
     want: (r) =>
       r.classes.includes("dg dg-stack") &&
       r.classes.filter((c) => c === "dg-pill").length === 3 &&
-      r.text.includes("Wallets"),
+      r.text.includes("Strategies"),
   },
   {
     name: "a comma inside a link URL does not split one item into two",
-    md: "```stack\nDocs: [guide](https://exfer.info/a,b), [api](https://exfer.info/c)\n```",
+    md: "```stack\nDocs: [guide](https://ziy.bio/FastMM/a,b), [api](https://ziy.bio/FastMM/c)\n```",
     want: (r) =>
       r.classes.filter((c) => c === "dg-pill").length === 2 &&
-      r.hrefs.includes("https://exfer.info/a,b"),
+      r.hrefs.includes("https://ziy.bio/FastMM/a,b"),
   },
   /* Emphasis wrapping a link. `**[name](url)**` is what the model writes for a prominent link,
    * and it used to render as literal markdown because only the link branch recursed. */

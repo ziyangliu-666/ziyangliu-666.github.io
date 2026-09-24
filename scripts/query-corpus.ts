@@ -69,9 +69,14 @@ const SELF_TEST: { query: string; mustHit: RegExp; note: string }[] = [
     note: "arXiv preprint body text",
   },
   {
-    query: "atomic swap HTLC preimage",
-    mustHit: /^about-exfer#/,
-    note: "hand-written project note",
+    query: "tick to order latency nanoseconds",
+    mustHit: /^(about-fastmm|fastmm-)/,
+    note: "FastMM, a number with its conditions",
+  },
+  {
+    query: "AF_XDP BPF program kernel bypass",
+    mustHit: /^(about-fastmm|fastmm-)/,
+    note: "FastMM networking, hand-written note or docs",
   },
   {
     query: "VidTide living benchmark",
@@ -109,8 +114,10 @@ if (selfTest) {
     console.log("ok    under-review papers appear only as titles");
   }
 
+  const checks = SELF_TEST.length + 1;
+
   console.log(
-    `\n${SELF_TEST.length + 1 - failed}/${SELF_TEST.length + 1} passed, corpus built ${corpus.builtAt}`,
+    `\n${checks - failed}/${checks} passed, corpus built ${corpus.builtAt}`,
   );
   process.exit(failed ? 1 : 0);
 }

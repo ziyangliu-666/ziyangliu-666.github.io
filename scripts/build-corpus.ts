@@ -51,37 +51,32 @@ const UNDER_REVIEW_MARKERS = [
   "Anonymous Author(s)",
 ];
 
-/* Ziyang works under two GitHub accounts. `exfer-stack` is his own second account, the one
- * the Exfer work was published from — the corpus has to say so, or the agent reports his
- * own repositories as somebody else's. */
-const GITHUB_ACCOUNTS = ["ziyangliu-666", "exfer-stack"] as const;
+const GITHUB_ACCOUNTS = ["ziyangliu-666"] as const;
 const GITHUB_USER = "ziyangliu-666";
 
-/* Pull requests carry the engineering detail that a repo description cannot: what was
- * broken, what the fix was, what was verified. These are the accounts whose PRs are his. */
-const PR_SEARCHES = [
-  { query: "org:exfer-stack type:pr", label: "his own repositories" },
-  /* The chain itself lives at ahuman-exfer/exfer — an upstream project, not his account.
-   * The résumé's "28 upstream pull requests" are here, and they are the best evidence in
-   * the whole corpus: rayon-parallel signature verification, persisting the UTXO set to
-   * redb, a double-open in the atomic reorg commit, eight bugs behind an inflated orphan
-   * rate. Every one carries the reasoning, which a repository description never does. */
+/* FastMM's own documentation. The README reaches the index through repoDocs, cut at 4,000
+ * characters, which leaves out how the engine is built and how its numbers were measured.
+ * These pages carry that. Pages that disagree with the code are left out on purpose: the
+ * economics page and the production guide still describe the engine before the recovery work
+ * of 2026-09-23, and corpus/src/fastmm.md is the checked account of it. */
+const FASTMM_REPO = "ziyangliu-666/FastMM";
+const FASTMM_DOC_PAGES = [
   {
-    query: "repo:ahuman-exfer/exfer author:exfer-stack type:pr",
-    label: "upstream on the chain",
+    path: "docs/explanation/architecture.md",
+    title: "FastMM: architecture (threads, rings, the network reactor, clocks)",
   },
-] as const;
-
-/* exfer.info is the project's own documentation, 223k characters of it. Only the chapters
- * that explain what the system is and why it is shaped that way are indexed — a visitor
- * asks this agent what Ziyang built, not how to back up a node. */
-const EXFER_DOC_PAGES = [
-  { path: "", title: "Exfer documentation — introduction" },
-  { path: "concepts/why-machines.html", title: "Exfer — why a chain for machines" },
-  { path: "mining/how-it-works.html", title: "Exfer — how mining works" },
-  { path: "nodes.html", title: "Exfer — nodes" },
-  { path: "rpc/index.html", title: "Exfer — RPC surface" },
-  { path: "use/vault.html", title: "Exfer — vault" },
+  {
+    path: "docs/explanation/event-flow.md",
+    title: "FastMM: event flow, from a venue message to an order on the wire",
+  },
+  {
+    path: "docs/explanation/determinism.md",
+    title: "FastMM: determinism, why replays match",
+  },
+  {
+    path: "bench/README.md",
+    title: "FastMM: benchmarks, and what each number contains",
+  },
 ] as const;
 
 type Kind = "resume" | "paper" | "repo" | "profile" | "project";
@@ -176,10 +171,10 @@ function pdfToText(file: string, opts: { layout?: boolean } = {}): string {
   }
 }
 
-/* Hyperlinks in a PDF are annotations, and `pdftotext` throws them away — so the résumé's
- * links to the upstream chain, the desktop and mobile wallets and exfer.info were all
- * silently lost. `pdftohtml` keeps them. Anchor text arrives messy ("t，upstream",
- * "和移动端，", "upstream):"), so it is cleaned down to the word the reader would recognise. */
+/* Hyperlinks in a PDF are annotations, and `pdftotext` throws them away, so the résumé's
+ * links to the product pages and the papers were all silently lost. `pdftohtml` keeps them.
+ * Anchor text arrives messy: it can start mid-token from the line before, or carry trailing
+ * punctuation. It is cleaned down to the word the reader would recognise. */
 interface PdfLink {
   anchor: string;
   url: string;
@@ -302,6 +297,8 @@ const ZH_SECTIONS = [
   "荣誉奖项",
 ];
 
+const PROJECT_SECTIONS = ["PROJECT", "项目"];
+
 /** `Jul 2024 – Sep 2025` or `2024.07 – 2025.09` or `May 2026 – Aug 2026` */
 const DATE_RANGE =
   /((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}|\d{4}\.\d{2})\s*[–—-]\s*(Present|至今|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}|\d{4}\.\d{2})/;
@@ -358,12 +355,24 @@ function resumeDoc(file: string, lang: "en" | "zh"): Doc {
   if (current) sections.push(...flattenResumeSection(current));
   if (header.length) sections.unshift({ heading: "Header", text: header.join("\n") });
 
-  const links = pdfLinks(file);
+  /* The résumé's Project section stays out of the index, on his request (2026-09-24). His
+   * current project, FastMM, has its own note in corpus/src/fastmm.md. */
+  const withoutProject = sections.filter(
+    (s) => !PROJECT_SECTIONS.some((h) => s.heading.toUpperCase().startsWith(h)),
+  );
+  sections.length = 0;
+  sections.push(...withoutProject);
+
+  // Only links whose anchor is still in the text: the Project section's links go with it.
+  const kept = sections.map((s) => s.text).join("\n");
+  const links = pdfLinks(file).filter(
+    (l) => l.url.startsWith("mailto:") || kept.includes(l.anchor),
+  );
   const linked = sections
     .filter((s) => s.text.trim())
     .map((s) => ({ heading: s.heading, text: linkify(s.text, links) }));
 
-  // Also listed plainly, so a question like "where is the upstream repo" can be answered
+  // Also listed plainly, so a question like "where is the V2V OS page" can be answered
   // from a retrieved passage without the anchor happening to fall in the same chunk.
   if (links.length) {
     linked.push({
@@ -638,139 +647,6 @@ function repoDocs(account: string): Doc[] {
   });
 }
 
-/* ------------------------------------------------------------- pull requests
- *
- * A PR body is the most detailed thing he writes about his own engineering: the failure,
- * the contract that replaced it, and what was verified. One document per PR keeps
- * retrieval precise — a question about the MCP handshake should land on that PR, not on a
- * repository page that happens to mention MCP. */
-
-interface GhSearchItem {
-  number: number;
-  title: string;
-  body: string | null;
-  html_url: string;
-  state: string;
-  closed_at: string | null;
-  created_at: string;
-  repository_url: string;
-  user: { login: string };
-  draft?: boolean;
-  pull_request?: { merged_at: string | null };
-}
-
-/* The state a reader cares about, which the search API does not give directly.
- *
- * `state` is "closed" for a merged pull request and for a rejected one alike, so all 26 of his
- * merged upstream contributions were indexed as "(closed)" next to the 2 that were closed
- * unmerged. A model reading either cannot tell a landed change from a refused one, which on a
- * page about someone's work is the wrong way round to be wrong. */
-function prState(pr: GhSearchItem): string {
-  if (pr.pull_request?.merged_at) return "merged";
-  if (pr.state === "open") return pr.draft ? "draft" : "open";
-  return "closed without merging";
-}
-
-/* Repositories under his own accounts that are forks of somebody else's project.
- *
- * Pull requests on those are dropped, the same way the repo pass drops forks. The org-wide PR
- * search sweeps exfer-stack/exfer, which is a fork of ahuman-exfer/exfer, the chain the credit
- * rules in src/agent/prompt.ts explicitly call not his. Its one pull request was indexed as "In
- * exfer-stack/exfer, his own repository", which claims the chain as his. Relabelling it upstream
- * was worse: it then read as a contribution to "exfer-stack/exfer, the Exfer chain itself", and
- * its id collided with the real upstream numbering. The change is also a duplicate of upstream
- * #27, which is indexed, so nothing is lost by dropping it.
- *
- * Read once, cached, because the repo pass already paid for these calls. */
-const forkNames = new Map<string, Set<string>>();
-
-function forksOf(account: string): Set<string> {
-  const cached = forkNames.get(account);
-  if (cached) return cached;
-  const repos = (gh(`users/${account}/repos?per_page=100`) as GhRepo[] | null) ?? [];
-  const set = new Set(repos.filter((r) => r.fork).map((r) => r.name));
-  forkNames.set(account, set);
-  return set;
-}
-
-function pullRequestDocs(): Doc[] {
-  const items: GhSearchItem[] = [];
-  for (const { query, label } of PR_SEARCHES) {
-    const found = gh(
-      `search/issues?q=${encodeURIComponent(query)}&per_page=100`,
-    ) as { items?: GhSearchItem[] } | null;
-    const batch = found?.items ?? [];
-    console.log(`  · ${batch.length} pull requests — ${label}`);
-    items.push(...batch);
-  }
-  if (!items.length) {
-    console.warn("! no pull requests found — skipping");
-    return [];
-  }
-
-  return items
-    .filter((pr) => pr.body && pr.body.trim().length > 120)
-    .filter((pr) => {
-      const [owner, repo] = pr.repository_url.split("/").slice(-2);
-      if (!owner || !repo) return true;
-      if (forksOf(owner).has(repo)) {
-        console.log(`  · skipped ${owner}/${repo}#${pr.number} (a fork, not his project)`);
-        return false;
-      }
-      /* The search is org-wide, so a repository excluded above still reaches here through its
-       * pull requests. Dropping the repository and keeping its pull requests would put the
-       * thing back in the index by another door. */
-      if (DENY_REPOS.has(repo) || UNLISTED_REPOS.has(repo)) {
-        console.log(`  · skipped ${owner}/${repo}#${pr.number} (repository is not indexed)`);
-        return false;
-      }
-      return true;
-    })
-    .map((pr) => {
-      const repo = pr.repository_url.split("/").pop() ?? "repo";
-      const owner = pr.repository_url.split("/").slice(-2)[0] ?? "";
-      /* Forks are already filtered out, so a repo under his own account is genuinely his.
-       * Note for later: the id below is `pr-upstream-<repo>-<number>`, which would collide if a
-       * second upstream project ever shared a repository name and a PR number. One upstream
-       * today, so it holds. Add the owner to the id before adding a second. */
-      const upstream = owner !== "exfer-stack";
-      const body = (pr.body ?? "")
-        // The Claude Code trailer is on most of them and says nothing about the change.
-        .replace(/🤖 Generated with \[Claude Code\][\s\S]*$/, "")
-        .replace(/<!--[\s\S]*?-->/g, "")
-        .trim();
-
-      const trimmed =
-        body.length > 3000
-          ? `${body.slice(0, 3000)}\n… [body truncated; the full PR is at the link above]`
-          : body;
-
-      return {
-        id: `pr-${upstream ? "upstream-" : ""}${repo}-${pr.number}`.toLowerCase(),
-        title: `${upstream ? "upstream " : ""}${repo} #${pr.number}: ${pr.title}`,
-        kind: "repo" as const,
-        lang: "en" as const,
-        url: pr.html_url,
-        date: (pr.closed_at ?? pr.created_at).slice(0, 10),
-        sections: [
-          {
-            heading: `Pull request — ${owner}/${repo} #${pr.number} (${prState(pr)})`,
-            text: [
-              `${pr.title}`,
-              upstream
-                ? `Contributed by Ziyang (as exfer-stack) upstream to ${owner}/${repo}, the Exfer chain itself.`
-                : `In ${owner}/${repo}, his own repository.`,
-              `This pull request is ${prState(pr)}.`,
-              pr.html_url,
-              "",
-              trimmed,
-            ].join("\n"),
-          },
-        ],
-      };
-    });
-}
-
 /* ------------------------------------------------------------------- paper figures
  *
  * The papers' diagrams carry things prose cannot — the three-way decoding comparison in
@@ -890,66 +766,46 @@ function paperFigures(spec: (typeof PAPERS)[number]): Figure[] {
   return figures;
 }
 
-/* -------------------------------------------------------------- exfer.info docs */
+/* ------------------------------------------------------------- FastMM documentation
+ *
+ * Read through the GitHub API at one commit, and that commit is recorded in corpus.lock.json,
+ * so a rebuild can say which version of the docs the agent was answering from. */
 
-async function exferDocs(): Promise<Doc[]> {
+function fastmmDocs(): Doc[] {
+  const head = gh(`repos/${FASTMM_REPO}/commits/main`) as { sha?: string } | null;
+  if (!head?.sha) {
+    console.warn(`  ! could not resolve ${FASTMM_REPO}@main — skipped`);
+    return [];
+  }
+  sourceHashes[`github:${FASTMM_REPO}`] = head.sha.slice(0, 16);
+
   const out: Doc[] = [];
-
-  for (const page of EXFER_DOC_PAGES) {
-    const url = `https://exfer.info/${page.path}`;
-    let html: string;
-    try {
-      const res = await fetch(url, {
-        headers: { "user-agent": "ziyang-agent-corpus-builder" },
-      });
-      if (!res.ok) {
-        console.warn(`  ! ${url} returned ${res.status} — skipped`);
-        continue;
-      }
-      html = await res.text();
-    } catch (err) {
-      console.warn(`  ! ${url} unreachable (${String(err)}) — skipped`);
+  for (const page of FASTMM_DOC_PAGES) {
+    const file = gh(`repos/${FASTMM_REPO}/contents/${page.path}?ref=${head.sha}`) as {
+      content?: string;
+      encoding?: string;
+    } | null;
+    if (!file?.content || file.encoding !== "base64") {
+      console.warn(`  ! ${page.path} unreadable — skipped`);
       continue;
     }
-
-    // mdBook wraps the chapter in <main>; taking only that drops the nav, the theme
-    // picker and the keyboard-shortcut help, which would otherwise be indexed on
-    // every single page and outrank the actual prose on short queries.
-    const main = /<main[^>]*>([\s\S]*?)<\/main>/i.exec(html);
-    const body = main?.[1] ?? html;
-
-    const text = body
-      .replace(/<(script|style|nav|svg)[\s\S]*?<\/\1>/gi, " ")
-      .replace(/<!--[\s\S]*?-->/g, " ")
-      .replace(/<\/(p|div|li|h[1-6]|tr|pre|blockquote)>/gi, "\n")
-      .replace(/<br\s*\/?>/gi, "\n")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/&nbsp;/g, " ")
-      .replace(/&amp;/g, "&")
-      .replace(/&lt;/g, "<")
-      .replace(/&gt;/g, ">")
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
-      .split("\n")
-      .map((l) => l.replace(/[ \t]+/g, " ").trim())
-      .filter(Boolean)
-      .join("\n");
-
-    if (text.length < 300) {
-      console.warn(`  ! ${url} extracted only ${text.length} chars — skipped`);
-      continue;
-    }
-
+    const body = Buffer.from(file.content, "base64")
+      .toString("utf8")
+      .replace(/<!--[\s\S]*?-->/g, "");
+    const sections = splitMarkdownSections(body).map((sec) => ({
+      heading: sec.heading ? `${page.title}: ${sec.heading}` : page.title,
+      text: sec.text,
+    }));
     out.push({
-      id: `exfer-${page.path.replace(/[/.]/g, "-") || "index"}`,
+      id: `fastmm-${page.path.replace(/\.md$/, "").replace(/[/.]/g, "-").toLowerCase()}`,
       title: page.title,
       kind: "project",
       lang: "en",
-      url,
-      sections: [{ heading: page.title, text }],
+      url: `https://github.com/${FASTMM_REPO}/blob/main/${page.path}`,
+      date: new Date().toISOString().slice(0, 10),
+      sections,
     });
   }
-
   return out;
 }
 
@@ -1095,11 +951,9 @@ async function main() {
   console.log("· github repos");
   for (const account of GITHUB_ACCOUNTS) docs.push(...repoDocs(account));
 
-  console.log("· pull requests");
-  docs.push(...pullRequestDocs());
 
-  console.log("· exfer documentation");
-  docs.push(...(await exferDocs()));
+  console.log("· fastmm documentation");
+  docs.push(...fastmmDocs());
 
   const chunks = docs.flatMap(chunkDoc);
 

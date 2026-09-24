@@ -1,16 +1,17 @@
 {
-  "builtAt": "2026-09-13",
+  "builtAt": "2026-09-24",
   "sources": {
-    "Projects/resume/resume.pdf": "e200b0449b82f407",
-    "Projects/resume/resume-zh.pdf": "72c5971717258ff5",
+    "Projects/resume/resume.pdf": "06d1e05a8bef5421",
+    "Projects/resume/resume-zh.pdf": "766537486e31970b",
     "Downloads/2604.18170v1.pdf": "842efdf9bd9e5b71",
     "Downloads/2604.12376v1.pdf": "65ead9842248384b",
     "Downloads/2604.18179v1.pdf": "a32b7f225401a5b9",
-    "Projects/self-intro-agent/corpus/src/about.md": "61abc31446da5ddf",
+    "Projects/self-intro-agent/corpus/src/about.md": "bfde01e910dea8bb",
     "Projects/self-intro-agent/corpus/src/contact.md": "c350dcce44901559",
-    "Projects/self-intro-agent/corpus/src/exfer.md": "13ea3d1987d364ec",
-    "Projects/self-intro-agent/corpus/src/links.md": "476077b71125ab99",
+    "Projects/self-intro-agent/corpus/src/fastmm.md": "c0c1eb2e1222fd65",
+    "Projects/self-intro-agent/corpus/src/links.md": "92b0e011d84d388c",
     "Projects/self-intro-agent/corpus/src/research.md": "14c1b4d0d18642d3",
-    "Projects/self-intro-agent/corpus/src/this-site.md": "21e6aa409122a6c3"
+    "Projects/self-intro-agent/corpus/src/this-site.md": "21e6aa409122a6c3",
+    "github:ziyangliu-666/FastMM": "8607c639ee2c055c"
   }
 }
