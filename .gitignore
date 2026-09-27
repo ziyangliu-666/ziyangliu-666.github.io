@@ -1,0 +1,26 @@
+node_modules
+dist
+dist-ssr
+*.local
+
+# Vite / editor
+.vite
+.DS_Store
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Vercel proxy project
+proxy/.vercel
+proxy/node_modules
+.env
+.env.*
+!.env.example
+.gstack/
+
+# tsc incremental build state
+*.tsbuildinfo
+.vercel

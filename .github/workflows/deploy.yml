@@ -1,0 +1,66 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # The corpus index is built locally and committed, because its sources (the résumé
+      # and paper PDFs) live outside the repository on purpose. CI only bundles.
+      - name: Check the corpus is present
+        run: test -f public/corpus/index.json || (echo "public/corpus/index.json missing — run 'npm run corpus' and commit it" && exit 1)
+
+      - name: Build
+        run: npm run build
+        env:
+          # Repository variable, not a secret: the proxy URL is public by design.
+          # Unset means the site ships with the offline transport, which still works.
+          VITE_AGENT_PROXY_URL: ${{ vars.AGENT_PROXY_URL }}
+
+      - name: Add .nojekyll
+        run: touch ./dist/.nojekyll
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

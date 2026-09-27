@@ -1,0 +1,17 @@
+{
+  "name": "ziyang-agent-proxy",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Key holder for the Ziyang Agent. Three edge functions: chat, search, fetch.",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "dev": "vercel dev",
+    "deploy": "vercel deploy --prod",
+    "logs": "vercel logs ziyang-agent-proxy.vercel.app --follow",
+    "asks": "vercel logs ziyang-agent-proxy.vercel.app --follow | grep --line-buffered '\"tag\":\"ask\"'"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}

@@ -1,0 +1,1889 @@
+/* Ported from `Ziyang Agent.dc.html`. Every value here came from an inline style in that
+ * file; classes replace the inline attributes so hover and active states can be real CSS
+ * rather than the design tool's `style-hover` attribute. Keep the values in step with the
+ * design project — if a colour changes there, change it here, not by eye. */
+
+:root {
+  --bg: #0b0b0d;
+  --ink: #f2f2f4;
+  --surface: #16161a;
+  --surface-2: #1b1b20;
+  --line: #23232a;
+  --muted: #9a9aa1;
+  --muted-2: #7b7b84;
+  --faint: #5c5c65;
+  --btn: #2b2b32;
+  --btn-hover: #3a3a43;
+  --btn-active: #232329;
+  --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+}
+
+a {
+  color: #c9c9ce;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #ffffff;
+}
+
+textarea {
+  font-family: inherit;
+}
+
+::selection {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.35);
+  outline-offset: 2px;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #26262b;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@keyframes rl-fade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes rl-pulse {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* ------------------------------------------------------------------- rays
+ *
+ * A field of fine parallel lines behind everything, driven by the pointer on three axes:
+ * vertical position sets the gap, so the field expands and compresses and the page reads as
+ * advancing and receding; vertical position also slides it along its own normal; horizontal
+ * position tilts the whole field.
+ *
+ * The lines stay parallel to each other. Letting them converge on a vanishing point would be a
+ * stronger effect and the wrong one: a floor grid in perspective is a statement, and this page
+ * argues for restraint. Spacing and tilt carry the motion on their own.
+ *
+ * The lines are hard-edged. A soft shoulder either side of each core was tried and dropped: it
+ * turned a field of lines into a field of smudges, and at the wider gaps it read as haze rather
+ * than as light. Two crisp pixels say the same thing with less.
+ *
+ * One fixed pseudo-element, one repeating gradient, three custom properties written by useRays.
+ */
+.app {
+  --gap: 32px;
+  --slide: 0px;
+  /* Must match TILT_REST in ZiyangAgent.tsx. The field is slanted before any pointer moves,
+     so the first frame the visitor sees is already the resting angle rather than level. */
+  --angle: -13deg;
+  position: relative;
+  isolation: isolate;
+}
+
+.app::before {
+  content: "";
+  position: fixed;
+  /* Overhung enough that neither the tilt nor the slide can drag an edge into view.
+     A rotation by theta pushes the top and bottom edges out by (width/2)*sin(theta), and the
+     left and right edges out by (height/2)*sin(theta). So vertical slack scales with viewport
+     width and horizontal slack scales with viewport height, which is why the two axes use
+     different units. Max angle is TILT_REST + TILT_SWING = 22deg, and sin(22deg) is 0.375, so
+     each axis needs 18.7% of the other dimension. 20% each, plus 140px vertically for the
+     slide, which reaches 130px. Fixed vw on both axes failed a narrow tall window: at 600x900
+     the rotation needed 168px of horizontal slack and 10vw gave 60px. */
+  inset: calc(-20vw - 140px) -20vh;
+  z-index: -1;
+  pointer-events: none;
+  /* The tilt and the slide are transforms, not gradient parameters. Rotating the gradient
+     itself was measurably worse: it re-rasterises the whole layer every frame, which took the
+     90th-percentile frame from 17ms to 33ms and dropped one frame in nine during a fast sweep.
+     As transforms they stay on the compositor, and --gap is left as the only property that
+     forces a repaint. */
+  rotate: var(--angle);
+  translate: 0 var(--slide);
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(255, 255, 255, 0.085) 0px,
+    rgba(255, 255, 255, 0.085) 2px,
+    rgba(255, 255, 255, 0) 2px,
+    rgba(255, 255, 255, 0) var(--gap)
+  );
+  /* Fades toward the edges so it reads as light in a room rather than as ruled paper, but only
+     dips a little in the middle. The first version pushed the centre down to 0.28 to protect
+     the heading, which put the quietest part of the field exactly where the eye is: the
+     spacing changed and almost nothing appeared to move. The glass panels already separate the
+     text from the lines, so the field can stay legible across the whole screen. */
+  -webkit-mask-image: radial-gradient(
+    120% 95% at 50% 42%,
+    rgba(0, 0, 0, 0.62) 0%,
+    rgba(0, 0, 0, 0.95) 40%,
+    rgba(0, 0, 0, 0.5) 74%,
+    rgba(0, 0, 0, 0) 96%
+  );
+  mask-image: radial-gradient(
+    120% 95% at 50% 42%,
+    rgba(0, 0, 0, 0.62) 0%,
+    rgba(0, 0, 0, 0.95) 40%,
+    rgba(0, 0, 0, 0.5) 74%,
+    rgba(0, 0, 0, 0) 96%
+  );
+}
+
+/* No pointer to drive any of it, so the field would sit wherever the last touch left it.
+ * Park it at a middle gap, level, and leave it still. */
+@media (hover: none) {
+  .app {
+    --gap: 32px !important;
+    --slide: 0px !important;
+    --angle: -13deg !important;
+  }
+}
+
+/* ------------------------------------------------------------------ shell */
+
+.app {
+  min-height: 100vh;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 32px;
+  flex: 0 0 auto;
+  gap: 16px;
+}
+
+.hdr-left {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.wordmark {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  color: #f7f7f9;
+}
+
+.linkbtn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 12.5px;
+  color: #63636b;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.linkbtn:hover {
+  color: #b9b9c0;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+.nav a {
+  color: var(--muted);
+}
+
+.nav a:hover {
+  color: var(--ink);
+}
+
+/* The easter egg, present in the nav only once the agent has named the game. It is the sole
+   link here that leads somewhere playable rather than readable, so it is the sole one that
+   does not look like the others: an outlined pill with a slow pulse, against three words set
+   in the same grey. No icon, in keeping with the rest of the page.
+
+   It fades in rather than appearing. It arrives mid-answer while the visitor is reading, and a
+   pill that pops into a header pulls the eye off the sentence it landed beside. */
+.nav-egg {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ink) !important;
+  font-size: 11.5px;
+  letter-spacing: 0.1em;
+  padding: 4px 10px 4px 8px;
+  border: 1px solid #2b2b34;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  animation: rl-egg 900ms ease-out both;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.nav-egg:hover {
+  border-color: #4a4a58;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.nav-egg-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #6fd08c;
+  /* Slower than the 1s activity pulse. That one means "working, wait" and would nag here; this
+     one only says that something at the other end is live. */
+  animation: rl-pulse 2.4s ease-in-out infinite;
+  flex: 0 0 auto;
+}
+
+@keyframes rl-egg {
+  from {
+    opacity: 0;
+    scale: 0.92;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+/* PROTOCOL is short enough to sit beside the other three once the gap tightens. */
+@media (max-width: 620px) {
+  .nav {
+    gap: 15px;
+  }
+}
+
+/* ---------------------------------------------------------------- landing */
+
+.landing {
+  /* Containing block for the scattered keyword tags. */
+  position: relative;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 24px 8vh;
+}
+
+.h1 {
+  margin: 0 0 36px;
+  text-align: center;
+  font-size: 44px;
+  line-height: 1.15;
+  font-weight: 450;
+  letter-spacing: -0.024em;
+  color: #f4f4f6;
+}
+
+/* The wordmark stays flat. What moves is the light on it: a soft highlight that follows the
+ * pointer across the letters, as if they were cut from something with a surface. Driven from
+ * useTilt() through --sheen, so the paint stays in the compositor and never touches React.
+ *
+ * An earlier version rotated the word in 3D with a chromatic fringe. It was a trick rather
+ * than an effect — loud, and at odds with a page whose whole argument is restraint. A moving
+ * highlight is the version that survives being looked at twice. */
+/* The wordmark keeps a gleam travelling across it, on its own, forever.
+ *
+ * It followed the pointer until now. Autoplay is better here: the highlight is the one moving
+ * thing on a landing page a visitor may look at before touching the mouse at all, and a
+ * decoration that needs input to be seen is not decoration.
+ *
+ * Seamless by construction, which is the part worth explaining. The band is a separate
+ * background image travelling over a solid background-color, and both are clipped to the text.
+ * The colour is what the letters are made of; the image only brightens what it passes. So the
+ * loop point costs nothing: at each end of the sweep the band sits entirely off the word, the
+ * letters are drawn purely from the base colour, and the jump from one end back to the other is
+ * a jump between two identical frames.
+ *
+ * The alternative was animating the --sheen percentage the pointer version used. That needs
+ * @property registration to interpolate at all, and without it the value steps at the midpoint
+ * instead of sliding. This needs nothing beyond background-position. */
+.tilt {
+  display: inline-block;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+
+  /* The ink. It sits well below the heading's own #f4f4f6 because the gleam has nowhere to go
+     above white: every bit of contrast in this effect is bought by darkening the base. At
+     #c2c2cb the travelling peak was 55 levels above the ink and easy to miss; at #a6a6b1 it is
+     about 85, and the gleam briefly takes the word past the words around it, which is what
+     makes a highlight read as light rather than as a colour change. */
+  background-color: #a6a6b1;
+
+  /* A narrow band rather than a broad wash. A gleam crossing the letters reads as light on a
+     surface; a wide gradient just looks like unevenly coloured text. */
+  background-image: linear-gradient(
+    99deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.22) 28%,
+    rgba(255, 255, 255, 1) 50%,
+    rgba(255, 255, 255, 0.22) 72%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 22% 100%;
+  background-repeat: no-repeat;
+
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+
+  animation: rl-sheen 3.2s linear infinite;
+}
+
+/* These two numbers are the seamlessness, so they are derived rather than eyeballed.
+ *
+ * A percentage background-position places the image at (P/100) x (elementWidth - imageWidth).
+ * With background-size 22%, the band clears the word only when P <= -28.2% at the start and
+ * P >= 128.2% at the end. Outside those bounds the letters are drawn purely from the base
+ * colour, so the frame before the wrap and the frame after it are identical and the loop has
+ * no seam. -40% and 140% leave a little margin on each side.
+ *
+ * The band was 42% wide over a 7.5s sweep at first, and the effect was invisible: a wide soft
+ * band crossing slowly changes any one letter's brightness so gradually that the eye reads it
+ * as a still image. Narrow and quick is what makes it legible as movement. */
+@keyframes rl-sheen {
+  from {
+    background-position: -34% 0;
+  }
+  to {
+    background-position: 134% 0;
+  }
+}
+
+/* No animation, so no band: the letters fall back to the base colour on their own, and the
+ * word simply reads flat. Nothing to park and nothing to hide. */
+@media (prefers-reduced-motion: reduce) {
+  .tilt {
+    animation: none;
+    background-image: none;
+    background-color: #f4f4f6;
+  }
+}
+
+.composer-wrap {
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  /* Close enough that the chips read as belonging to the field above them rather than as a
+     separate block that happens to sit underneath it. */
+  gap: 10px;
+}
+
+.composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  /* Translucent, so the light behind the page shows through the field. The blur is what makes
+     it read as glass rather than as a lower opacity. */
+  background: rgba(22, 22, 27, 0.66);
+  backdrop-filter: blur(16px) saturate(120%);
+  -webkit-backdrop-filter: blur(16px) saturate(120%);
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 16px;
+  padding: 14px 14px 14px 18px;
+  /* A hairline of light along the top edge, which is what sells a pane as having thickness. */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 18px 50px rgba(0, 0, 0, 0.4);
+}
+
+.composer textarea {
+  flex: 1 1 auto;
+  resize: none;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1.5;
+  padding: 6px 0;
+  max-height: 180px;
+}
+
+.iconbtn {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  border: none;
+  background: var(--btn);
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+
+.iconbtn:hover {
+  background: var(--btn-hover);
+}
+
+.iconbtn:active {
+  background: var(--btn-active);
+}
+
+.iconbtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(19, 19, 23, 0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: var(--muted);
+  font-size: 13.5px;
+  line-height: 1;
+  padding: 10px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    color 140ms ease,
+    border-color 140ms ease,
+    background 140ms ease;
+  font-family: inherit;
+}
+
+.chip:hover {
+  color: var(--ink);
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(30, 30, 37, 0.72);
+}
+
+/* ------------------------------------------------------------------- chat */
+
+.chat {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px 24px 24px;
+}
+
+.thread {
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 38px;
+}
+
+.msg {
+  animation: rl-fade 240ms ease both;
+}
+
+.user-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.user-bubble {
+  max-width: 80%;
+  background: var(--surface-2);
+  border-radius: 16px 16px 4px 16px;
+  padding: 12px 16px;
+  font-size: 15.5px;
+  line-height: 1.55;
+  color: var(--ink);
+  white-space: pre-wrap;
+}
+
+.agent {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.seg {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.activity {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.act-toggle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  align-self: flex-start;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--muted-2);
+  text-align: left;
+}
+
+.act-toggle:hover {
+  color: #b9b9c0;
+}
+
+.pulse {
+  flex: 0 0 auto;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #3f3f47;
+}
+
+.pulse--live {
+  background: #d9d9de;
+  animation: rl-pulse 1s ease-in-out infinite;
+}
+
+.chev {
+  display: inline-block;
+  font-size: 14px;
+  line-height: 1;
+  color: #4d4d55;
+  transition: transform 160ms ease;
+}
+
+.chev--open {
+  transform: rotate(90deg);
+}
+
+.act-items {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 2px 0 4px 6px;
+  border-left: 1px solid #1f1f26;
+  margin-left: 2px;
+}
+
+.act-item {
+  display: flex;
+  gap: 11px;
+  padding-left: 14px;
+}
+
+.dot {
+  flex: 0 0 auto;
+  width: 5px;
+  height: 5px;
+  margin-top: 7px;
+  border-radius: 50%;
+  background: #4e4e58;
+}
+
+.dot--live {
+  background: #d9d9de;
+  animation: rl-pulse 1s ease-in-out infinite;
+}
+
+.act-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.reasoning {
+  font-size: 13px;
+  line-height: 1.62;
+  color: #83838d;
+  font-style: italic;
+  text-wrap: pretty;
+}
+
+.tool {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.tool-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tool-name {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: #b6b6bf;
+}
+
+.tool-args {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--faint);
+  overflow-wrap: anywhere;
+}
+
+.tool-result {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #6c6c75;
+  overflow-wrap: anywhere;
+}
+
+.sub-label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.sub-task {
+  font-size: 12px;
+  color: var(--faint);
+}
+
+.answer {
+  font-size: 16px;
+  line-height: 1.68;
+  color: #dcdce1;
+  text-wrap: pretty;
+  /* A bare URL in an answer must not push the 720px column sideways. */
+  overflow-wrap: anywhere;
+}
+
+/* Rich text. The design specified none of this — it drew answers as one plain text node —
+ * so these are the smallest additions that carry markdown without introducing a second
+ * visual language: the same greys, the same mono face as the tool rows, no new accent. */
+
+.answer > *:first-child {
+  margin-top: 0;
+}
+
+.answer > *:last-child {
+  margin-bottom: 0;
+}
+
+.md-p {
+  margin: 0 0 0.95em;
+}
+
+.md-h {
+  margin: 1.4em 0 0.5em;
+  font-weight: 600;
+  color: #f0f0f3;
+  letter-spacing: -0.005em;
+}
+
+.md-h1 {
+  font-size: 17.5px;
+}
+.md-h2 {
+  font-size: 16.5px;
+}
+.md-h3 {
+  font-size: 15.5px;
+}
+
+.md-strong {
+  font-weight: 600;
+  color: #f2f2f4;
+}
+
+/* A link has to win against #dcdce1 body text on a near-black ground. It was losing: the old
+ * colour was #c9c9ce, darker than the prose around it, with an underline at #3a3a44 that read
+ * as no underline at all. Three signals now separate a link from its sentence: it is the only
+ * pure white in the answer, it carries a weight step, and its underline is actually visible. */
+.md-a {
+  color: #ffffff;
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: #6f6f7c;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  /* The hover wash needs room beyond the glyphs. Padding on an inline element would push the
+     line box, so the negative margin gives it back. This wraps correctly across lines, which
+     a box-shadow spread would not. */
+  padding: 1px 2px;
+  margin: 0 -2px;
+  border-radius: 3px;
+  transition:
+    text-decoration-color 130ms ease,
+    background 130ms ease;
+}
+
+.md-a:hover {
+  text-decoration-color: #ffffff;
+  background: rgba(255, 255, 255, 0.09);
+}
+
+/* A marked word. One per answer, in moving colour, clickable once.
+ *
+ * Same gradient technique as the game link, and the same guard: a background-color underneath,
+ * so a browser that paints the image late renders a real colour instead of transparent letters.
+ * The dotted underline is what says "this is not ordinary emphasis" to someone who cannot see
+ * the colour move. */
+.md-spark {
+  font: inherit;
+  padding: 0;
+  border: 0;
+  background-color: #cfcfd6;
+  background-image: linear-gradient(
+    100deg,
+    #ff6b6b 0%,
+    #ffa94d 14%,
+    #ffe066 28%,
+    #8ce99a 42%,
+    #66d9e8 56%,
+    #74c0fc 70%,
+    #b197fc 84%,
+    #ff6b6b 100%
+  );
+  background-size: 200% 100%;
+  background-repeat: repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-decoration-color: rgba(255, 255, 255, 0.28);
+  text-underline-offset: 3px;
+  animation: rl-game 9s linear infinite;
+}
+
+.md-spark:hover {
+  text-decoration-color: rgba(255, 255, 255, 0.75);
+  animation-duration: 3s;
+}
+
+.md-spark:focus-visible {
+  outline: 1px solid #7d7d88;
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* Spent.
+ *
+ * Each letter jumps a beat after the one before it, so the word runs left to right like
+ * something waking up rather than flashing. The jump overshoots and settles through three
+ * smaller bounces, which is what makes it read as alive instead of as a single hop, and a small
+ * counter-rotation on each letter keeps the line from looking mechanical.
+ *
+ * The colour stays through the bounce and drops at the end. A word that greys out first is a
+ * word being switched off; a word that is brightest while it moves is a word spending itself.
+ *
+ * This replaced three expanding rings and a wave through the background. Those were large and
+ * said nothing about what was clicked: the reaction belongs on the word.
+ */
+.md-spark--spent {
+  cursor: default;
+  pointer-events: none;
+  text-decoration: none;
+
+  /* Bold through the jump, ordinary once it lands. Without this the spent word keeps the weight
+     it was marked with and reads as emphasis for the rest of the answer, which is the opposite
+     of spent. */
+  animation: rl-spark-settle 1200ms linear both;
+
+  /* The gradient goes at the moment of the click, and the letters carry their own colour from
+     here on.
+     
+     This is not a style choice. The resting word is coloured by clipping a gradient to the
+     text, and a transformed child is painted into its own layer that the parent's clip does not
+     reach: the first version of this animation made every letter transparent, so the word
+     disappeared for the length of the bounce. The background-color guard on .md-spark does not
+     help, because what failed was the clipping, not the image. */
+  background-image: none;
+  background-color: transparent;
+  color: inherit;
+  -webkit-text-fill-color: currentColor;
+}
+
+.md-spark-ch {
+  /* A transform needs a box. Inline text has none, so each letter is its own inline block. */
+  display: inline-block;
+  /* Keeps the letter from carrying the underline with it when it leaves the baseline. */
+  text-decoration: inherit;
+}
+
+/* Each letter takes its own hue, stepping through the spectrum along the word, so the colour
+   still reads as one run rather than as a row of unrelated letters. It cools to the prose colour
+   a beat after its own jump, which is why the two animations share a stagger but not a delay. */
+.md-spark--spent .md-spark-ch {
+  color: hsl(calc(var(--i, 0) * 34deg + 348deg) 88% 70%);
+  animation:
+    rl-letter 620ms cubic-bezier(0.22, 1.2, 0.32, 1) both,
+    rl-letter-cool 760ms ease-out both;
+  animation-delay: calc(var(--i, 0) * 45ms), calc(var(--i, 0) * 45ms + 300ms);
+}
+
+@keyframes rl-spark-settle {
+  0%,
+  72% {
+    font-weight: 600;
+  }
+  100% {
+    font-weight: 400;
+  }
+}
+
+/* No `from`: the start is whatever hue the letter already has, so one keyframe serves all of
+   them. */
+@keyframes rl-letter-cool {
+  to {
+    color: var(--ink);
+  }
+}
+
+/* Up hard, then three decaying settles. The rotation flips sign on each settle, which is the
+   tremble: without it the letter drops back like a lift rather than a spring. */
+@keyframes rl-letter {
+  0% {
+    translate: 0 0;
+    scale: 1;
+    rotate: 0deg;
+  }
+  16% {
+    translate: 0 -10px;
+    scale: 1.28;
+    rotate: -8deg;
+  }
+  36% {
+    translate: 0 2px;
+    scale: 0.93;
+    rotate: 6deg;
+  }
+  54% {
+    translate: 0 -4px;
+    scale: 1.09;
+    rotate: -4deg;
+  }
+  72% {
+    translate: 0 1px;
+    scale: 0.98;
+    rotate: 2deg;
+  }
+  87% {
+    translate: 0 -1px;
+    rotate: -1deg;
+  }
+  100% {
+    translate: 0 0;
+    scale: 1;
+    rotate: 0deg;
+  }
+}
+
+/* Reduced motion asks for no movement, not for no feedback. The letters do not jump; the word
+   brightens and cools instead, in place. */
+@media (prefers-reduced-motion: reduce) {
+  .md-spark--spent .md-spark-ch {
+    /* The hue still lands and still cools. Only the jump is dropped. */
+    animation: rl-letter-cool 520ms ease-out both;
+    animation-delay: calc(var(--i, 0) * 30ms);
+  }
+}
+
+/* The meter. Five pips at the left of the nav, appearing with the first click and gone once the
+ * pill replaces them. Deliberately unlabelled: a caption would explain the mechanic, and the
+ * mechanic explaining itself is the one thing that would spoil it. */
+.nav-meter {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 4px;
+}
+
+.nav-pip {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #2f2f38;
+  transition:
+    background 260ms ease,
+    box-shadow 260ms ease;
+}
+
+.nav-pip--on {
+  background: #8ce99a;
+  box-shadow: 0 0 6px rgba(140, 233, 154, 0.45);
+}
+
+/* The game link, when the agent hands it over. The only link on the page that leads to
+   something to do, so it is the only one that is not quiet.
+
+   The colour is a moving gradient under background-clip: text. The guard learned from the
+   wordmark gleam applies here too: a background-color sits under the gradient, so a browser
+   that paints the image late or not at all still renders letters in a real colour instead of
+   rendering them transparent. The gradient repeats and travels one full band per cycle, which
+   is what makes the loop seamless rather than snapping back.
+
+   9s, not 2s. This lands mid-sentence in something a visitor is reading, and text that
+   strobes under the eye is unreadable. Reduced motion stops it entirely and keeps the
+   gradient still. */
+.md-a--game {
+  background-color: #d8d8de;
+  background-image: linear-gradient(
+    100deg,
+    #ff6b6b 0%,
+    #ffa94d 14%,
+    #ffe066 28%,
+    #8ce99a 42%,
+    #66d9e8 56%,
+    #74c0fc 70%,
+    #b197fc 84%,
+    #ff6b6b 100%
+  );
+  background-size: 200% 100%;
+  background-repeat: repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  font-weight: 600;
+  text-decoration-color: #8ce99a;
+  text-decoration-thickness: 1.5px;
+  animation: rl-game 9s linear infinite;
+}
+
+.md-a--game:hover {
+  background-color: #ffffff;
+  text-decoration-color: #ffffff;
+  animation-duration: 3s;
+}
+
+@keyframes rl-game {
+  from {
+    background-position: 0% 50%;
+  }
+  to {
+    background-position: 200% 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .md-a--game {
+    animation: none;
+  }
+}
+
+/* Inside a drawn block the rule above still wins on colour, which is what we want, but the
+   block's own reset would strip the weight back. */
+.dg .md-a--game {
+  font-weight: 600;
+}
+
+.md-a:focus-visible {
+  outline: 1px solid #7d7d88;
+  outline-offset: 2px;
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.md-list {
+  margin: 0 0 0.95em;
+  padding-left: 1.35em;
+}
+
+.md-list li {
+  margin: 0 0 0.3em;
+}
+
+.md-list li::marker {
+  color: #6a6a74;
+}
+
+.md-code {
+  font-family: var(--mono);
+  font-size: 13px;
+  background: #16161a;
+  border: 1px solid #212128;
+  border-radius: 5px;
+  padding: 1px 5px;
+  color: #c4c4cd;
+}
+
+.md-pre {
+  margin: 0 0 0.95em;
+  padding: 12px 14px;
+  background: #121216;
+  border: 1px solid #1f1f26;
+  border-radius: 10px;
+  overflow-x: auto;
+}
+
+.md-pre code {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #c4c4cd;
+  white-space: pre;
+}
+
+.md-quote {
+  margin: 0 0 0.95em;
+  padding-left: 14px;
+  border-left: 2px solid #26262b;
+  color: #a8a8b1;
+}
+
+.md-hr {
+  height: 1px;
+  margin: 1.5em 0;
+  background: linear-gradient(90deg, transparent, #26262b 20%, #26262b 80%, transparent);
+}
+
+/* Tables scroll inside their own box; the 720px column must never widen. */
+.md-table-wrap {
+  margin: 0 0 0.95em;
+  overflow-x: auto;
+}
+
+.md-table {
+  border-collapse: collapse;
+  font-size: 14px;
+  min-width: 100%;
+}
+
+.md-table th,
+.md-table td {
+  text-align: left;
+  padding: 7px 14px 7px 0;
+  border-bottom: 1px solid #1c1c22;
+  vertical-align: top;
+}
+
+.md-table th {
+  font-weight: 600;
+  color: #b6b6bf;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.caret {
+  display: inline-block;
+  width: 7px;
+  height: 17px;
+  margin-left: 3px;
+  vertical-align: -3px;
+  background: #6b6b73;
+}
+
+.err {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #a9a0a0;
+}
+
+.sources {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.sources-label {
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #55555d;
+  margin-right: 2px;
+}
+
+.source {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--muted);
+  background: #141418;
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+
+.source:hover {
+  color: #f0f0f3;
+  background: #1b1b21;
+}
+
+.source-n {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--faint);
+}
+
+.usage {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: #4c4c54;
+}
+
+.followups {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.followup {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: none;
+  background: transparent;
+  padding: 7px 0;
+  font-family: inherit;
+  font-size: 13.5px;
+  color: #8b8b93;
+  cursor: pointer;
+  text-align: left;
+}
+
+.followup:hover {
+  color: #f0f0f3;
+}
+
+.followup .arrow {
+  color: #4a4a52;
+}
+
+/* ------------------------------------------------------------------- dock */
+
+.dock {
+  flex: 0 0 auto;
+  padding: 0 24px 26px;
+}
+
+.composer--dock {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 12px 12px 12px 18px;
+}
+
+.composer--dock textarea {
+  font-size: 15.5px;
+  max-height: 160px;
+}
+
+.composer--dock .iconbtn {
+  width: 34px;
+  height: 34px;
+}
+
+.stop-square {
+  width: 9px;
+  height: 9px;
+  background: currentColor;
+  border-radius: 2px;
+}
+
+.footnote {
+  max-width: 720px;
+  margin: 10px auto 0;
+  font-size: 11.5px;
+  color: #5d5d65;
+}
+
+.footnote a {
+  color: #6f6f78;
+  text-decoration: underline;
+  text-decoration-color: #35353d;
+}
+
+.footnote a:hover {
+  color: #b9b9c0;
+}
+
+/* ----------------------------------------------------------------- mobile
+ * Not in the design, which was drawn at desktop width only. Without this the
+ * 44px heading and 32px header gutters overflow a phone. Values chosen to keep
+ * the same proportions rather than to introduce a second look. */
+
+@media (max-width: 620px) {
+  .hdr {
+    padding: 16px 18px;
+  }
+  .nav {
+    gap: 16px;
+    font-size: 13px;
+  }
+  .h1 {
+    font-size: 30px;
+    margin-bottom: 28px;
+  }
+  .landing {
+    padding: 0 18px 6vh;
+  }
+  .scroll {
+    padding: 8px 18px 20px;
+  }
+  .dock {
+    padding: 0 18px 18px;
+  }
+  .user-bubble {
+    max-width: 90%;
+  }
+}
+
+/* At phone width the header runs out of room: wordmark, New thread and three
+ * links. Tighten rather than drop anything — New thread is the only way back to
+ * the landing state. */
+@media (max-width: 480px) {
+  .hdr {
+    padding: 14px 14px;
+    gap: 10px;
+  }
+  .nav {
+    gap: 13px;
+    font-size: 12.5px;
+  }
+  .nav a {
+    white-space: nowrap;
+  }
+  .hdr-left {
+    gap: 9px;
+  }
+  .wordmark {
+    letter-spacing: 0.16em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .msg {
+    animation: none;
+  }
+  .pulse--live,
+  .dot--live {
+    animation: none;
+    opacity: 0.85;
+  }
+  .chev {
+    transition: none;
+  }
+}
+
+/* The "+N more" affordance on a folded source list. A button, not a link — it reveals
+ * what is already on the page rather than navigating anywhere. */
+.source--more {
+  border: 1px solid #212128;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: #7b7b84;
+}
+
+.source--more:hover {
+  color: #f0f0f3;
+  background: #1b1b21;
+}
+
+
+/* Paper figures. Bordered and inset like the code blocks, because they are the same kind of
+ * thing in an answer: a quoted artifact rather than part of the prose. */
+.md-figure {
+  margin: 0 0 1.1em;
+}
+
+.md-img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid #1f1f26;
+  border-radius: 10px;
+  background: #f6f6f8;
+}
+
+.md-caption {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #7b7b84;
+}
+
+/* The wordmark doubles as the way home once a thread has started. Styled as a button only
+ * so it is reachable by keyboard; it must look identical to the static version. */
+.wordmark--home {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color 140ms ease;
+}
+
+.wordmark--home:hover {
+  color: #ffffff;
+}
+
+
+
+/* ------------------------------------------------------- structured blocks */
+
+/* timeline, flow, stack, metrics. No new colours: every value below is a token already in
+ * this file, so a block reads as part of the answer rather than as an embedded widget. */
+
+.dg {
+  margin: 0 0 1.15em;
+}
+
+/* --- timeline: a rail with the dates in mono down the left ---------------- */
+
+.dg-timeline {
+  list-style: none;
+  padding: 0 0 0 22px;
+  position: relative;
+}
+
+/* One rail for the whole list, drawn on the container. Per-item borders would leave a seam
+   at every row boundary. */
+.dg-timeline::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 7px;
+  bottom: 7px;
+  width: 1px;
+  background: var(--line);
+}
+
+.dg-span {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  padding: 0 0 18px;
+}
+
+.dg-span:last-child {
+  padding-bottom: 0;
+}
+
+.dg-span::before {
+  content: "";
+  position: absolute;
+  left: -22px;
+  top: 6px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #3a3a44;
+  /* Sits on the rail, so it needs the page behind it to hide the line it covers. */
+  box-shadow: 0 0 0 3px var(--bg);
+}
+
+.dg-when {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+  color: var(--faint);
+}
+
+.dg-what {
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.dg-detail {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+/* --- timeline on a shared axis: overlaps look like overlaps ---------------- */
+
+.dg-gantt {
+  display: grid;
+  gap: 6px;
+
+  /* The three column widths live here, once, because the axis and the bar rows are separate
+     grids and a year tick has to sit exactly above the month it marks. Hard-coding the offset
+     on the axis alone drifted: the rows sized their date column with `auto`, so the track was
+     narrower than the axis and every tick sat about 30px right of its bar. */
+  --dg-label: 164px;
+  /* Wide enough for the longest real date range. "2022-10 → 2024-07" measures 107px in the mono
+     face at 10.5px, so 104px clipped the last digit off every dated row and pushed the block
+     3px past its column. The axis margin is derived from this same value, so the ticks follow
+     the column rather than needing their own number. */
+  --dg-when: 116px;
+  --dg-gap: 8px;
+}
+
+.dg-axis {
+  position: relative;
+  height: 15px;
+  margin-left: calc(var(--dg-label) + var(--dg-gap));
+  margin-right: calc(var(--dg-when) + var(--dg-gap));
+  border-bottom: 1px solid #1c1c22;
+}
+
+.dg-tick {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--faint);
+  white-space: nowrap;
+}
+
+.dg-bars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.dg-bar-row {
+  display: grid;
+  /* label | track | dates, with the detail wrapping under the track. */
+  grid-template-columns: var(--dg-label) 1fr var(--dg-when);
+  grid-template-areas:
+    "label track when"
+    ".     detail detail";
+  align-items: center;
+  gap: 4px var(--dg-gap);
+}
+
+.dg-bar-label {
+  grid-area: label;
+  font-size: 13.5px;
+  line-height: 1.35;
+  color: var(--ink);
+  text-align: right;
+}
+
+.dg-track {
+  grid-area: track;
+  position: relative;
+  height: 20px;
+  /* The lane the bar sits in. Visible, so a short bar reads as short against the whole span
+     rather than as floating in nothing. */
+  background: #101014;
+  border-radius: 5px;
+}
+
+.dg-bar {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  background: #3f3f4b;
+  border-radius: 4px;
+  /* A hairline along the top so a bar has an edge against the lane behind it. */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09);
+  min-width: 3px;
+}
+
+.dg-bar-when {
+  grid-area: when;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--faint);
+  white-space: nowrap;
+}
+
+.dg-bar-detail {
+  grid-area: detail;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+/* Narrow: the label column and the dates cost more than they give, so the bar goes full
+ * width under its own label. The axis loses its offset with it. */
+@media (max-width: 620px) {
+  /* Both margins, not just the left one. The rows go to a single column here, so the track is
+     full width; leaving margin-right at the date column's width made the axis 112px narrower
+     than the track it labels, and every year tick sat left of the month it marks. */
+  .dg-axis {
+    margin-left: 0;
+    margin-right: 0;
+  }
+  .dg-bar-row {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "label"
+      "track"
+      "when"
+      "detail";
+  }
+  .dg-bar-label {
+    text-align: left;
+  }
+}
+
+/* --- flow: a chain of boxes that wraps, so all of it is visible ----------- */
+
+/* This scrolled horizontally at first, to keep a long chain from widening the 720px answer
+ * column. That was the wrong trade: a diagram whose second half is off-screen is worse than
+ * no diagram. It wraps instead. The arrow sits inside its step and before the box, so a step
+ * pushed to the next line starts with "→ box" and still reads as a continuation. */
+
+.dg-flow-wrap {
+  /* Kept as a wrapper so the list has something to sit in, but it no longer scrolls. */
+  overflow: visible;
+}
+
+.dg-flow {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  /* Row gap separates wrapped lines. Column spacing is the arrow's own padding, so the
+     chain reads as continuous rather than as a row of unrelated chips. */
+  row-gap: 8px;
+}
+
+.dg-step {
+  display: flex;
+  align-items: center;
+}
+
+.dg-box {
+  border: 1px solid #212128;
+  background: #131317;
+  border-radius: 8px;
+  padding: 9px 13px;
+  font-size: 13.5px;
+  line-height: 1.35;
+  color: #c8c8d0;
+  /* A long step wraps inside its own box rather than forcing the row wider than the column. */
+  white-space: normal;
+  max-width: 100%;
+}
+
+.dg-arrow {
+  padding: 0 9px;
+  font-size: 14px;
+  color: var(--faint);
+  flex: 0 0 auto;
+}
+
+/* --- stack: layer name, then what sits in that layer ---------------------- */
+
+.dg-stack {
+  display: grid;
+  gap: 8px;
+}
+
+.dg-layer {
+  display: grid;
+  grid-template-columns: 132px 1fr;
+  gap: 14px;
+  align-items: baseline;
+  padding: 10px 0;
+  border-top: 1px solid #1b1b21;
+}
+
+.dg-layer:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.dg-layer-name {
+  font-size: 12.5px;
+  color: var(--faint);
+  text-align: right;
+}
+
+.dg-layer-items {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* The same pill vocabulary as the source chips, so a layer reads as the same kind of object. */
+.dg-pill {
+  font-size: 13px;
+  line-height: 1;
+  color: #c8c8d0;
+  background: #16161a;
+  border: 1px solid #212128;
+  border-radius: 7px;
+  padding: 7px 10px;
+}
+
+/* --- links inside a drawn block -------------------------------------------- */
+
+/* Every field except a timeline date and a metric value carries inline markdown, so a row that
+   names V2V OS or HKUST links it. A box already has an outline, a background and padding, so
+   .md-a's hover wash would draw a second box inside the first, inset by 2px. Keep the
+   underline, which is the part that says "clickable", and let the box supply the rest. */
+.dg .md-a {
+  color: #eeeef2;
+  font-weight: inherit;
+  padding: 0;
+  margin: 0;
+  border-radius: 0;
+  text-decoration-color: #55555f;
+  text-underline-offset: 2px;
+}
+
+.dg .md-a:hover {
+  background: none;
+  color: #ffffff;
+  text-decoration-color: #b9b9c4;
+}
+
+.dg .md-a:focus-visible {
+  background: none;
+  outline-offset: 3px;
+}
+
+/* --- metrics: the numbers, at a size that admits they are the point ------- */
+
+.dg-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.dg-metric {
+  border: 1px solid #1c1c22;
+  background: #101014;
+  border-radius: 10px;
+  padding: 14px 15px;
+}
+
+.dg-value {
+  font-size: 25px;
+  font-weight: 450;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: #f4f4f6;
+}
+
+.dg-label {
+  margin: 5px 0 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+/* One column below the answer column's own breakpoint: three 150px cards plus gaps do not
+ * fit a phone, and a squeezed grid turns every label into four lines. */
+@media (max-width: 560px) {
+  .dg-metrics {
+    grid-template-columns: 1fr;
+  }
+  .dg-layer {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .dg-layer-name {
+    text-align: left;
+  }
+}
+
+/* Keyword tags scattered around the landing page. Positioned absolutely inside .landing,
+ * which is why that element becomes the containing block below.
+ *
+ * They sit behind the centre column in the stacking order and are individually clickable —
+ * the wrapper takes no pointer events so it can span the whole area without swallowing a
+ * click meant for the composer. */
+.stickers {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* Written by useParallax once per frame; each plane multiplies them by its own --depth. */
+  --px: 0px;
+  --py: 0px;
+}
+
+/* The parallax plane. It owns `translate` and nothing else, which is what keeps the pointer
+ * offset from fighting the drift keyframe on the button inside it. */
+.sticker-plane {
+  position: absolute;
+  translate: calc(var(--px) * var(--depth, 0.7)) calc(var(--py) * var(--depth, 0.7));
+  /* No transition: the easing lives in the rAF loop, and a CSS transition on top of it would
+     add a second lag and read as sludge. */
+  will-change: translate;
+}
+
+.sticker {
+  pointer-events: auto;
+  transform-origin: center;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 9px;
+  /* Frosted, so a tag samples the light behind it instead of sitting on a flat plate. */
+  background: rgba(20, 20, 26, 0.55);
+  backdrop-filter: blur(9px) saturate(115%);
+  -webkit-backdrop-filter: blur(9px) saturate(115%);
+  color: #64646d;
+  font-family: inherit;
+  line-height: 1;
+  font-size: var(--fs, 14.5px);
+  padding: 9px 14px;
+  white-space: nowrap;
+  cursor: pointer;
+  /* `scale` and the colours transition; `translate` and `rotate` are left alone because the
+     drift keyframe owns them, and a transition on those would fight it every frame. */
+  transition:
+    color 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease,
+    scale 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.sticker:hover,
+.sticker:focus-visible {
+  color: #ecedf1;
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(32, 32, 40, 0.72);
+  scale: 1.08;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.5);
+  /* Hold still while it is being read and aimed at. A target that is still drifting under
+     the cursor is a target you have to chase. Two values for the two animations: pausing the
+     shorthand would also pause the arrival fade, and hovering during those 520 ms would
+     strand the tag half-transparent until the pointer left. */
+  animation-play-state: running, paused;
+  z-index: 2;
+}
+
+.sticker:focus-visible {
+  outline: 1px solid #5a5a6a;
+  outline-offset: 3px;
+}
+
+.sticker:active {
+  scale: 0.98;
+}
+
+/* Two animations on one element, comma-separated: the fade is one-shot on arrival, the drift
+ * runs forever. `--lag` is negative so each tag starts mid-circuit instead of every tag
+ * setting off from zero together. */
+@keyframes rl-sticker {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes rl-drift {
+  0% {
+    translate: 0 0;
+    rotate: var(--rot);
+  }
+  25% {
+    translate: var(--dx) calc(var(--dy) * -1);
+    rotate: calc(var(--rot) + 1.1deg);
+  }
+  50% {
+    translate: calc(var(--dx) * -0.55) calc(var(--dy) * -0.45);
+    rotate: calc(var(--rot) - 0.9deg);
+  }
+  75% {
+    translate: calc(var(--dx) * -0.3) var(--dy);
+    rotate: calc(var(--rot) + 0.5deg);
+  }
+  100% {
+    translate: 0 0;
+    rotate: var(--rot);
+  }
+}
+
+.sticker {
+  animation:
+    rl-sticker 520ms ease both,
+    rl-drift var(--dur, 20s) ease-in-out var(--lag, 0s) infinite;
+}
+
+.sticker-plane:nth-child(3n) .sticker {
+  animation-delay: 160ms, var(--lag, 0s);
+}
+.sticker-plane:nth-child(3n + 1) .sticker {
+  animation-delay: 300ms, var(--lag, 0s);
+}
+.sticker-plane:nth-child(3n + 2) .sticker {
+  animation-delay: 440ms, var(--lag, 0s);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sticker {
+    animation: none;
+  }
+  .sticker:hover,
+  .sticker:focus-visible {
+    scale: 1;
+  }
+}
+
+/* Between 1000 and 1320 px the bands are narrow enough that the longest keywords reach the
+ * heading. The whole set steps down rather than those two tags alone, so the arrangement keeps
+ * one type size. */
+@media (max-width: 1320px) {
+  .sticker {
+    font-size: calc(var(--fs, 14.5px) * 0.88);
+    padding: 7px 11px;
+  }
+}
+
+/* Below this width the side bands are narrower than the longest keyword, so a tag would have
+ * to overlap the heading or be truncated. The keywords are texture, not content — a narrow
+ * window loses them rather than getting a broken version of them. Measured, not guessed:
+ * 1180 px is where "P2P sync and reorg handling" stops clearing the heading. */
+@media (max-width: 1180px) {
+  .stickers {
+    display: none;
+  }
+}
