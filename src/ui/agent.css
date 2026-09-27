@@ -236,58 +236,7 @@ textarea {
   color: var(--ink);
 }
 
-/* The easter egg, present in the nav only once the agent has named the game. It is the sole
-   link here that leads somewhere playable rather than readable, so it is the sole one that
-   does not look like the others: an outlined pill with a slow pulse, against three words set
-   in the same grey. No icon, in keeping with the rest of the page.
-
-   It fades in rather than appearing. It arrives mid-answer while the visitor is reading, and a
-   pill that pops into a header pulls the eye off the sentence it landed beside. */
-.nav-egg {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--ink) !important;
-  font-size: 11.5px;
-  letter-spacing: 0.1em;
-  padding: 4px 10px 4px 8px;
-  border: 1px solid #2b2b34;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.03);
-  animation: rl-egg 900ms ease-out both;
-  transition:
-    border-color 160ms ease,
-    background 160ms ease;
-}
-
-.nav-egg:hover {
-  border-color: #4a4a58;
-  background: rgba(255, 255, 255, 0.07);
-}
-
-.nav-egg-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #6fd08c;
-  /* Slower than the 1s activity pulse. That one means "working, wait" and would nag here; this
-     one only says that something at the other end is live. */
-  animation: rl-pulse 2.4s ease-in-out infinite;
-  flex: 0 0 auto;
-}
-
-@keyframes rl-egg {
-  from {
-    opacity: 0;
-    scale: 0.92;
-  }
-  to {
-    opacity: 1;
-    scale: 1;
-  }
-}
-
-/* PROTOCOL is short enough to sit beside the other three once the gap tightens. */
+/* Protocol is short enough to sit beside the other three once the gap tightens. */
 @media (max-width: 620px) {
   .nav {
     gap: 15px;

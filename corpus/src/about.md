@@ -49,9 +49,9 @@ published the smaller, honest number.
 
 | When | What |
 |---|---|
-| Aug 2026 – Aug 2027 | M.Tech. in Software Engineering, National University of Singapore |
+| Aug 2026 – Nov 2027 | M.Tech. in Software Engineering, National University of Singapore |
 | Mar 2027 – Jul 2027 | NUS internship placement, 20 weeks — the degree's capstone |
-| Sep 2026 – now | FastMM — author, market-making engine in C++20 |
+| Sep 2026 – now | FastMM — maintainer, market-making engine in C++20 |
 | Sep 2025 – Aug 2026 | HKUST (Guangzhou) — researcher, LLM systems: agent memory, decoding, interpretability |
 | Jul 2024 – Sep 2025 | SmartX — Virtualization R&D Engineer, Chengdu |
 | Oct 2022 – Jul 2024 | SmartX — Virtualization R&D Intern, Chengdu |
@@ -69,7 +69,7 @@ placement built into it.
 | Coursework, first block | August to November 2026 |
 | Coursework, second block | January to March 2027 |
 | **Internship placement, 20 weeks** | **March to July or August 2027** |
-| Finishes | about late August or September 2027 |
+| Finishes | November 2027 |
 
 The internship is the capstone of the degree, not an optional extra. NUS-ISS collects
 project proposals from industry between September 2026 and January 2027, and students are
@@ -81,9 +81,7 @@ proposal for it has to be agreed by January 2027. Before March he is in coursewo
 University expects at least 40 hours of study a week during those blocks and discourages
 outside employment, so March 2027 is the first date he can start.
 
-His résumé gives the end date as August 2027, marked expected. It is expected rather than
-fixed because NUS publishes no graduation date for the cohort and the capstone can be extended
-by three to six months.
+His résumé gives the programme end date as November 2027.
 
 Degree structure, 50 to 51 units: two compulsory Graduate Certificates, two chosen from
 five, and the capstone.
@@ -103,8 +101,8 @@ Architecting Systems for Real-Time Data Processing.
 
 ## Languages he writes
 
-His résumé lists C, Python, Rust, Go and Shell. FastMM adds C++20: the engine is written in
-it, with Python for strategies and tooling. The résumé also leaves out TypeScript, which he
+His résumé lists Python, C++, C, Rust, Go and Shell. FastMM is written in C++20, with Python
+for strategies and tooling. The résumé leaves out TypeScript, which he
 writes too: this site, ZIYANG PROTOCOL, PawMemo and nullify are all TypeScript. Chinese and English.
 
 ## What else the résumé lists under skills
@@ -113,10 +111,9 @@ Beyond the languages, in his own grouping:
 
 | Area | What |
 |---|---|
-| Networking | TCP/UDP, epoll, DNS, iSCSI/NFS, tcpdump |
-| Linux and UNIX | process model, memory management, boot and initramfs, syscall debugging, strace, perf, gdb |
-| LLM and agents | agent routing, memory tiering, retrieval and reranking, ReAct, MCP, KV cache |
-| Distributed systems | CAP and PACELC, Raft, quorum, replication and erasure coding, consistency models, idempotency |
-| Virtualisation | QEMU/KVM, libvirt, Virtio, QGA, VDDK, live migration |
-| CI and CD | GitHub Actions, Jenkins, Docker, RPM and DEB packaging, Packer |
-| Databases | MySQL, Redis, MongoDB, SQLite, redb |
+| Networking and I/O | TCP/UDP multicast, epoll, io_uring, AF_XDP, DPDK, tcpdump |
+| Linux and UNIX | processes and threads, virtual memory, NUMA, CPU affinity, cgroups, strace, perf, gdb |
+| Virtualisation and migration | QEMU/KVM, libvirt, Virtio, VMware CBT/VDDK, QGA, live migration |
+| LLM systems | memory tiering, retrieval and reranking, ReAct, MCP, KV cache |
+| Build and operations | CMake, GitHub Actions, Jenkins, Docker, RPM and DEB packaging, Packer |
+| Databases | MySQL, Redis, MongoDB, SQLite |

@@ -33,6 +33,18 @@ const OUT_DIR = path.join(ROOT, "public", "corpus");
 const HOME = os.homedir();
 
 const RESUME_DIR = path.join(HOME, "Projects", "resume");
+const RESUME_EN = path.join(
+  RESUME_DIR,
+  "output",
+  "pdf",
+  "LIU_ZIYANG_RESUME_CLASSIC.pdf",
+);
+const RESUME_ZH = path.join(
+  RESUME_DIR,
+  "output",
+  "pdf",
+  "刘子阳-15281480053.pdf",
+);
 const DOWNLOADS = path.join(HOME, "Downloads");
 
 /** Anonymised artifacts of papers still in anonymous review. Never index or link. */
@@ -282,6 +294,7 @@ const EN_SECTIONS = [
   "PROJECTS",
   "RESEARCH",
   "SKILLS",
+  "TECHNICAL SKILLS",
   "HONOURS",
   "HONORS",
 ];
@@ -836,18 +849,21 @@ function skillRows(resumeFile: string): string[] {
 
   for (const line of lines) {
     const flat = line.trim();
-    if (/^SKILLS$/i.test(flat)) {
+    if (/^(?:TECHNICAL\s+)?SKILLS$/i.test(flat)) {
       inSkills = true;
       continue;
     }
     if (!inSkills) continue;
-    // The next all-capitals heading ends the section.
-    if (/^[A-Z][A-Z ]{2,}$/.test(flat)) break;
+    // The next heading ends the section. Classic uses title case for "Honours".
+    if (/^[A-Z][A-Z ]{2,}$/.test(flat) || /^HONOU?RS?$/i.test(flat)) break;
     if (!flat) continue;
 
-    // Two spaces or more is the column gap. Everything after it is the values.
+    // Support both layouts: the original résumé uses a two-column table, while Classic uses
+    // "Category: values" on one line.
     const split = line.match(/^\s*\S.*?\s{2,}(\S.*)$/);
-    if (split?.[1]) rows.push(split[1].trim());
+    const inline = flat.match(/^[^:]{2,40}:\s*(.+)$/);
+    const values = split?.[1] ?? inline?.[1];
+    if (values) rows.push(values.trim());
   }
 
   return rows;
@@ -937,10 +953,10 @@ async function main() {
   const docs: Doc[] = [];
 
   console.log("· résumé");
-  const resumeEn = resumeDoc(path.join(RESUME_DIR, "resume.pdf"), "en");
+  const resumeEn = resumeDoc(RESUME_EN, "en");
   docs.push(resumeEn);
-  writeKeywords(resumeEn, path.join(RESUME_DIR, "resume.pdf"));
-  docs.push(resumeDoc(path.join(RESUME_DIR, "resume-zh.pdf"), "zh"));
+  writeKeywords(resumeEn, RESUME_EN);
+  docs.push(resumeDoc(RESUME_ZH, "zh"));
 
   console.log("· preprints");
   for (const spec of PAPERS) docs.push(paperDoc(spec));
@@ -1016,11 +1032,11 @@ async function main() {
 
   // The header's Résumé link needs the PDF served from the site.
   fs.copyFileSync(
-    path.join(RESUME_DIR, "resume.pdf"),
+    RESUME_EN,
     path.join(ROOT, "public", "resume.pdf"),
   );
   fs.copyFileSync(
-    path.join(RESUME_DIR, "resume-zh.pdf"),
+    RESUME_ZH,
     path.join(ROOT, "public", "resume-zh.pdf"),
   );
 

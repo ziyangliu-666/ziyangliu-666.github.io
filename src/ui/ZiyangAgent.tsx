@@ -668,22 +668,15 @@ export default function ZiyangAgent({
           >
             LinkedIn
           </a>
-          {/* The easter egg. Absent until the agent has named the game in an answer, which
-              means the only way to this link is to have asked and been told. Once found it
-              stays found, so a return visit does not have to earn it twice.
-
-              Labelled PROTOCOL rather than anything with "play" in it. The word is the game's
-              own register, it says nothing about what happens when you click, and a visitor
-              who has just read the name recognises it. */}
+          {/* The easter egg stays hidden until it is discovered, but once revealed it uses the
+              same visual language as every other destination in this navigation. */}
           {unlocked && (
             <a
-              className="nav-egg"
               href="https://game.ziy.bio/"
               target="_blank"
               rel="noreferrer"
             >
-              <span className="nav-egg-dot" aria-hidden="true" />
-              PROTOCOL
+              Protocol
             </a>
           )}
         </nav>

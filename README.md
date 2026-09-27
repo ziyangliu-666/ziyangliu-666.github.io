@@ -66,7 +66,7 @@ Sources, and the rule for each, are declared at the top of `scripts/build-corpus
 of them are load-bearing rather than incidental:
 
 - The **three arXiv preprints** are indexed in full. They are public.
-- The **two under-review submissions** contribute a title and one line each, hand-written
+- The **three ICLR 2027 submissions** contribute a title and one line each, hand-written
   in `corpus/src/research.md`. Their PDFs are never read, and the two GitHub repositories
   holding their anonymised artifacts are on a denylist in both the builder and the runtime
   `github_activity` tool. Naming the author of an anonymous submission is a real harm to a

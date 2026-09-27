@@ -5,8 +5,7 @@ kind: profile
 
 From September 2025 to August 2026 Ziyang was a researcher at HKUST (Guangzhou), working
 on LLM systems: agent memory, decoding, and interpretability. Three of that work's outputs
-are public preprints; two more are under review and are not discussed here beyond their
-titles.
+are public preprints; three more are ICLR 2027 submissions.
 
 ## Public preprints (arXiv, single-author)
 
@@ -23,22 +22,23 @@ directly.
 
 ## Under review — titles only
 
-Two co-authored submissions are under review. They are in anonymous review periods, so
-this index deliberately holds **only the title and the one-line summary that already
-appears on his résumé**. No abstract, no paper text, and no link to their code. If someone
-asks for details, say the paper is under review and point them at the résumé line; do not
-speculate about method or numbers beyond what is written here.
+Three submissions are under review at ICLR 2027. This index holds the title and the concise
+summary already present on his résumé. The video papers' anonymised artifacts remain excluded.
+
+- **A Simpson's Paradox in In-Context Learning Curves** — ICLR 2027 submission.
+  Authors: Z. Liu, Y. Shi. Résumé line: "Average loss falls while loss rises within every
+  token-occurrence group; domain explains 99% of the standard score's variance, versus 0.2%
+  for model size."
 
 - **A Living In-the-Wild Benchmark for Measuring the Static-Benchmark Gap in AI-Generated
-  Video Detection** — NeurIPS 2026 Datasets and Benchmarks Track submission.
-  Authors: Y. Shi, Z. Liu, K. Luo, Y. Luo, N. Tang. Résumé line: "VidTide refreshes every
-  month from real platform video, and seven detectors lose 31 AUROC points on average
-  against it."
+  Video Detection** — ICLR 2027 submission.
+  Authors: Y. Shi, Z. Liu, K. Luo, N. Tang. Résumé line: "On VidTide's 21,504 clips, five
+  detector families fall from published 93–96% AUROC to 52–71%."
 
 - **Neuro-Symbolic Forensic Reasoning for Open-Generator AI-Generated Video Detection** —
-  NeurIPS 2026 submission. Authors: Y. Shi, K. Luo, Z. Liu, Y. Luo, N. Tang.
-  Résumé line: "FOVEA needs no task training: a VLM plans the forensic hypotheses,
-  classical CV tools test them, 97.39% accuracy on ten unseen generators."
+  ICLR 2027 submission. Authors: Y. Shi, K. Luo, Z. Liu, N. Tang.
+  Résumé line: "Without training detector weights, FOVEA reaches 97.39% accuracy and
+  0.99 AUROC on ten unseen generators."
 
 ## What connects them
 
