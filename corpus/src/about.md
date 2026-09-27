@@ -52,7 +52,7 @@ published the smaller, honest number.
 | Aug 2026 – Nov 2027 | M.Tech. in Software Engineering, National University of Singapore |
 | Mar 2027 – Jul 2027 | NUS internship placement, 20 weeks — the degree's capstone |
 | Sep 2026 – now | FastMM — maintainer, market-making engine in C++20 |
-| Sep 2025 – Aug 2026 | HKUST (Guangzhou) — researcher, LLM systems: agent memory, decoding, interpretability |
+| Sep 2025 – Aug 2026 | HKUST (Guangzhou) — researcher |
 | Jul 2024 – Sep 2025 | SmartX — Virtualization R&D Engineer, Chengdu |
 | Oct 2022 – Jul 2024 | SmartX — Virtualization R&D Intern, Chengdu |
 | Sep 2020 – Jun 2024 | B.Eng. Software Engineering, UESTC, Chengdu |
