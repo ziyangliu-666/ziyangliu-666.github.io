@@ -1,15 +1,17 @@
 /* One answer to "should this page move", for the stylesheet and for every script.
  *
- * The default is the visitor's system setting. A full-screen zoom is exactly what
- * `prefers-reduced-motion` exists to stop, so a visitor who asked for less motion gets a still
- * frame of the city, the native pointer, and content that is simply there.
+ * The page moves by default, for every visitor. That includes a visitor whose system asks for
+ * reduced motion. This is a deliberate choice by the owner of the site and it has a cost: a
+ * full-screen zoom is the kind of motion that setting exists to stop. The first version
+ * followed the system setting, and the owner's own machine had it on, so the owner saw a still
+ * frame of a page whose whole point was the movement.
  *
- * The override exists because the setting is per machine, not per site. Someone with Reduce
- * Motion on for the sake of the operating system's own animations can still choose to see this
- * page move:
+ * A visitor who needs the page to hold still can say so:
  *
- *   ?motion=on     move, and remember it on this machine
- *   ?motion=auto   forget the choice and follow the system again
+ *   ?motion=off    hold still, and remember it on this machine
+ *   ?motion=on     move again, and forget the choice
+ *
+ * Still means one frame of the scene, no arrival animations, and content that is simply there.
  *
  * The answer is written to <html> as the class `calm`, and the stylesheet keys on that class
  * instead of on the media query. A media query cannot be overridden from script; a class can.
@@ -23,17 +25,17 @@ let answer: boolean | null = null;
 export function calmMotion(): boolean {
   if (answer !== null) return answer;
 
-  let forced = false;
+  let still = false;
   try {
     const asked = new URLSearchParams(location.search).get("motion");
-    if (asked === "on") localStorage.setItem(KEY, "on");
-    if (asked === "auto") localStorage.removeItem(KEY);
-    forced = localStorage.getItem(KEY) === "on";
+    if (asked === "off") localStorage.setItem(KEY, "off");
+    if (asked === "on" || asked === "auto") localStorage.removeItem(KEY);
+    still = localStorage.getItem(KEY) === "off";
   } catch {
-    /* storage blocked: follow the system */
+    /* storage blocked: move */
   }
 
-  answer = !forced && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  answer = still;
   document.documentElement.classList.toggle("calm", answer);
   return answer;
 }
