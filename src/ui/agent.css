@@ -344,12 +344,10 @@ textarea {
 
 /* No animation, so no band: the letters fall back to the base colour on their own, and the
  * word simply reads flat. Nothing to park and nothing to hide. */
-@media (prefers-reduced-motion: reduce) {
-  .tilt {
-    animation: none;
-    background-image: none;
-    background-color: #f4f4f6;
-  }
+html.calm .tilt {
+  animation: none;
+  background-image: none;
+  background-color: #f4f4f6;
 }
 
 .composer-wrap {
@@ -880,12 +878,10 @@ textarea {
 
 /* Reduced motion asks for no movement, not for no feedback. The letters do not jump; the word
    brightens and cools instead, in place. */
-@media (prefers-reduced-motion: reduce) {
-  .md-spark--spent .md-spark-ch {
-    /* The hue still lands and still cools. Only the jump is dropped. */
-    animation: rl-letter-cool 520ms ease-out both;
-    animation-delay: calc(var(--i, 0) * 30ms);
-  }
+html.calm .md-spark--spent .md-spark-ch {
+  /* The hue still lands and still cools. Only the jump is dropped. */
+  animation: rl-letter-cool 520ms ease-out both;
+  animation-delay: calc(var(--i, 0) * 30ms);
 }
 
 /* The meter. Five pips at the left of the nav, appearing with the first click and gone once the
@@ -965,10 +961,8 @@ textarea {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .md-a--game {
-    animation: none;
-  }
+html.calm .md-a--game {
+  animation: none;
 }
 
 /* Inside a drawn block the rule above still wins on colour, which is what we want, but the
@@ -1252,18 +1246,16 @@ textarea {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .msg {
-    animation: none;
-  }
-  .pulse--live,
-  .dot--live {
-    animation: none;
-    opacity: 0.85;
-  }
-  .chev {
-    transition: none;
-  }
+html.calm .msg {
+  animation: none;
+}
+html.calm .pulse--live,
+html.calm .dot--live {
+  animation: none;
+  opacity: 0.85;
+}
+html.calm .chev {
+  transition: none;
 }
 
 /* The "+N more" affordance on a folded source list. A button, not a link — it reveals
@@ -1762,9 +1754,13 @@ textarea {
 @keyframes rl-sticker {
   from {
     opacity: 0;
+    scale: 1.7;
+    filter: blur(10px);
   }
   to {
     opacity: 1;
+    scale: 1;
+    filter: blur(0);
   }
 }
 
@@ -1791,30 +1787,21 @@ textarea {
   }
 }
 
+/* The arrival fills backwards only. Filled forwards it would hold `scale: 1` for the life of
+ * the tag, and an animation outranks a normal declaration, so the hover lift would never show.
+ * Each tag lands from in front of the page, out of focus, one after another. */
 .sticker {
   animation:
-    rl-sticker 520ms ease both,
+    rl-sticker 900ms cubic-bezier(0.16, 1, 0.3, 1) calc(520ms + var(--n, 0) * 55ms) backwards,
     rl-drift var(--dur, 20s) ease-in-out var(--lag, 0s) infinite;
 }
 
-.sticker-plane:nth-child(3n) .sticker {
-  animation-delay: 160ms, var(--lag, 0s);
+html.calm .sticker {
+  animation: none;
 }
-.sticker-plane:nth-child(3n + 1) .sticker {
-  animation-delay: 300ms, var(--lag, 0s);
-}
-.sticker-plane:nth-child(3n + 2) .sticker {
-  animation-delay: 440ms, var(--lag, 0s);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .sticker {
-    animation: none;
-  }
-  .sticker:hover,
-  .sticker:focus-visible {
-    scale: 1;
-  }
+html.calm .sticker:hover,
+html.calm .sticker:focus-visible {
+  scale: 1;
 }
 
 /* Between 1000 and 1320 px the bands are narrow enough that the longest keywords reach the
@@ -1835,4 +1822,202 @@ textarea {
   .stickers {
     display: none;
   }
+}
+
+
+/* ------------------------------------------------------------ megastructure
+ *
+ * The canvas takes the place of the line field. It is fixed behind everything, and it draws
+ * fewer pixels than the window has, so CSS stretches it.
+ *
+ * The page used to argue for restraint and the line field was the proof. This is the opposite
+ * decision, taken on purpose: the scene is the loud part, and everything in front of it stays
+ * as quiet as it was, in the same greys, so the two do not compete.
+ */
+.mega {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  display: none;
+  pointer-events: none;
+}
+
+.app--mega .mega {
+  display: block;
+}
+
+/* The scene is drawn on pure black, so the page behind it is pure black too. Otherwise the
+   canvas would show as a darker rectangle for the frame before it paints. */
+.app--mega {
+  background: #000;
+}
+
+/* The line field is the fallback. With the scene running it would be a second background. */
+.app--mega::before {
+  display: none;
+}
+
+.app--mega .user-bubble {
+  background: rgba(30, 30, 37, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* ------------------------------------------------------------------ arrival
+ *
+ * The content is mounted when the opening shot lets it in, so these all start from that
+ * moment. Order: the heading, word by word; the name; the field; the chips; the tags; and the
+ * header last, because it is the least interesting thing on the page.
+ *
+ * Everything arrives out of focus and sharpens. The camera has just come down through fog,
+ * and content that fades in flat would look pasted on top of that.
+ */
+@keyframes mg-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes mg-rise {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+    filter: blur(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+
+@keyframes mg-name {
+  0% {
+    opacity: 0;
+    transform: scale(1.5);
+    filter: blur(18px);
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+
+@keyframes mg-field {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.965);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.h1 {
+  /* The heading now sits on a picture, not on a flat ground. */
+  text-shadow: 0 2px 30px rgba(0, 0, 0, 0.75);
+}
+
+.h1-w {
+  display: inline-block;
+  animation: mg-rise 900ms cubic-bezier(0.16, 1, 0.3, 1) calc(var(--i, 0) * 95ms) both;
+}
+
+/* Two animations: the arrival, once, and the gleam, forever. A drop shadow, not a text shadow:
+   the letters are transparent with a clipped background, and a text shadow would show through
+   them. */
+.tilt {
+  filter: drop-shadow(0 2px 22px rgba(0, 0, 0, 0.7));
+  animation:
+    mg-name 1300ms cubic-bezier(0.16, 1, 0.3, 1) 300ms backwards,
+    rl-sheen 3.2s linear 1300ms infinite;
+}
+
+.landing .composer {
+  animation: mg-field 900ms cubic-bezier(0.16, 1, 0.3, 1) 480ms both;
+}
+
+.chip {
+  animation: mg-rise 700ms cubic-bezier(0.16, 1, 0.3, 1) calc(700ms + var(--chip, 0) * 70ms) backwards;
+}
+
+.chip:nth-child(2) {
+  --chip: 1;
+}
+.chip:nth-child(3) {
+  --chip: 2;
+}
+.chip:nth-child(4) {
+  --chip: 3;
+}
+
+.hdr {
+  animation: mg-fade 1100ms ease 500ms both;
+}
+
+.msg {
+  animation: mg-rise 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+html.calm .h1-w,
+html.calm .landing .composer,
+html.calm .chip,
+html.calm .hdr,
+html.calm .msg {
+  animation: none;
+}
+html.calm .tilt {
+  animation: none;
+}
+
+/* Over the scene, a panel is solid. Glass let the lines run on through the field, the chips
+ * and the tags, at the same brightness as the words inside them. A near-black plate cuts the
+ * lines off at its edge, and the text inside is lifted one step so it reads at a glance. */
+.app--mega .composer,
+.app--mega .chip,
+.app--mega .sticker,
+.app--mega .user-bubble {
+  background: rgba(9, 9, 11, 0.94);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  /* The edge is a line like any line in the scene, so it has to be brighter than they are.
+     At 0.14 it was dimmer than the tracks behind it and the panel had no outline. The user
+     bubble has no border of its own, so the whole border is set here, not only its colour. */
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  box-shadow: none;
+}
+
+.app--mega .composer:focus-within {
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
+.app--mega .sticker {
+  color: #a4a4ad;
+}
+
+.app--mega .chip {
+  color: #c2c2c9;
+}
+
+.app--mega .sticker:hover,
+.app--mega .sticker:focus-visible,
+.app--mega .chip:hover {
+  color: #ffffff;
+  background: #16161a;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.app--mega .composer textarea::placeholder {
+  color: #8a8a93;
 }

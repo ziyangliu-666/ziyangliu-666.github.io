@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import ZiyangAgent from "./ui/ZiyangAgent";
 import { createTransport } from "./agent/transport";
 import { hasModel, setByokKey } from "./agent/config";
+import { calmMotion } from "./ui/motion";
 import "./ui/agent.css";
 
 /* Local development without the proxy: paste a DeepSeek key once from the console.
@@ -30,6 +31,9 @@ try {
 } catch {
   /* storage blocked */
 }
+
+// Decided before the first paint, so no arrival animation starts and is then cancelled.
+calmMotion();
 
 const root = document.getElementById("root");
 if (!root) throw new Error("no #root element");

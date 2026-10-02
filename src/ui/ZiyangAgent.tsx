@@ -5,6 +5,7 @@
  * src/agent/events.ts.
  */
 
+import { calmMotion } from "./motion";
 import {
   useCallback,
   useEffect,
@@ -26,6 +27,7 @@ import { unmark } from "./inline";
 import { sparkle } from "./sparkle";
 import { startFavicon } from "./favicon";
 import { Stickers } from "./Stickers";
+import { startMegastructure, type Megastructure } from "./megastructure";
 import "./agent.css";
 
 /* Four openers a visitor can ask on arrival, knowing nothing.
@@ -46,6 +48,9 @@ const SEED_QUESTIONS = [
   "What is he researching?",
   "Show me some of his actual code.",
 ];
+
+const HEADING = ["Ask", "anything", "about"];
+type WordStyle = React.CSSProperties & Record<`--${string}`, string>;
 
 /** Sources shown before the list is folded. */
 const SOURCE_LIMIT = 12;
@@ -90,10 +95,10 @@ const GAP_FAR = 22;
 const TILT_REST = -13;
 const TILT_SWING = 9;
 
-function useRays(el: React.RefObject<HTMLDivElement | null>) {
+function useRays(el: React.RefObject<HTMLDivElement | null>, enabled: boolean) {
   useEffect(() => {
-    if (window.matchMedia("(hover: none)").matches) return;
-    const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!enabled || window.matchMedia("(hover: none)").matches) return;
+    const calm = calmMotion();
     const ease = calm ? 1 : 0.032;
 
     let gap = 32;
@@ -137,7 +142,36 @@ function useRays(el: React.RefObject<HTMLDivElement | null>) {
       window.removeEventListener("pointermove", onPointer);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [el]);
+  }, [el, enabled]);
+}
+
+/* ---------------------------------------------------------------- megastructure
+ * The scene behind the page, and the opening shot.
+ *
+ * `intro` is the only thing React knows about it. The page content is not rendered until the
+ * shot is far enough along, so every arrival animation starts at that moment and not at mount,
+ * two seconds before anyone could see it.
+ *
+ * `mega` is false until the scene is running. Without WebGL it stays false, the line field
+ * stays on, and the content comes in at once: the page a visitor had before this existed. */
+function useMegastructure(canvas: React.RefObject<HTMLCanvasElement | null>) {
+  const engine = useRef<Megastructure | null>(null);
+  const [mega, setMega] = useState(false);
+  const [intro, setIntro] = useState<"pre" | "in">("pre");
+
+  useEffect(() => {
+    const node = canvas.current;
+    const started = node ? startMegastructure(node, () => setIntro("in")) : null;
+    engine.current = started;
+    setMega(Boolean(started));
+    if (!started) setIntro("in");
+    return () => {
+      started?.destroy();
+      engine.current = null;
+    };
+  }, [canvas]);
+
+  return { engine, mega, intro };
 }
 
 /* ------------------------------------------------------------------- easter egg
@@ -254,6 +288,10 @@ function Composer({
     if (!node) return;
     node.style.height = "auto";
     node.style.height = `${node.scrollHeight}px`;
+    /* A scrollbar only once the text is taller than the cap. Left on `auto`, a one-line field
+       showed a scrollbar thumb beside the send button: the field is exactly as tall as its
+       content, and a sub-pixel rounding was enough to count as overflow. */
+    node.style.overflowY = node.scrollHeight > node.clientHeight + 1 ? "auto" : "hidden";
   }, [value]);
 
   return (
@@ -497,6 +535,8 @@ export default function ZiyangAgent({
   const stickToBottom = useRef(true);
   const cancelled = useRef(false);
   const appRef = useRef<HTMLDivElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const { engine, mega, intro } = useMegastructure(canvasRef);
   const busyRef = useRef(false);
   const [override, setOverride] = useState<Transport | null>(null);
   const sparks = useSparks(appRef);
@@ -527,6 +567,8 @@ export default function ZiyangAgent({
       }));
 
       dispatch({ type: "ask", text: q });
+      // A question sends a shock ring out through the city and throws the camera forward.
+      engine.current?.kick(1);
 
       const emit = (event: AgentEvent) => {
         if (current() && !cancelled.current) dispatch({ type: "event", event });
@@ -559,7 +601,7 @@ export default function ZiyangAgent({
       dispatch({ type: "settle" });
       busyRef.current = false;
     },
-    [active, state.messages],
+    [active, state.messages, engine],
   );
 
   const stop = useCallback(() => {
@@ -595,7 +637,12 @@ export default function ZiyangAgent({
    * and polls, instead of being torn down and rebuilt on every token that arrives. */
   useEffect(() => startFavicon(() => (busyRef.current ? "busy" : "idle")), []);
 
-  useRays(appRef);
+  useRays(appRef, !mega);
+
+  /* The city falls faster while an answer is being produced, and sits back in chat so the
+     thread stays the brightest thing on screen. */
+  useEffect(() => engine.current?.setBusy(state.busy), [engine, state.busy, mega]);
+  useEffect(() => engine.current?.setChat(state.started), [engine, state.started, mega]);
 
   // Follow the stream, but let go the moment the reader scrolls up to re-read something.
   useEffect(() => {
@@ -614,7 +661,19 @@ export default function ZiyangAgent({
   const lastIndex = state.messages.length - 1;
 
   return (
-    <div className="app" ref={appRef}>
+    <div
+      className={[
+        "app",
+        mega ? "app--mega" : "",
+        state.started ? "app--chat" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      ref={appRef}
+    >
+      <canvas className="mega" ref={canvasRef} aria-hidden="true" />
+      {intro === "in" && (
+        <>
       <header className="hdr">
         <div className="hdr-left">
           {/* The wordmark is the way back to the start, the way a masthead is on any site.
@@ -686,11 +745,17 @@ export default function ZiyangAgent({
         <main className="landing">
           <Stickers onPick={(q) => void send(q)} />
 
+          {/* One span per word, so each word can arrive on its own beat. The spaces stay
+              real text nodes: a screen reader and a copy both get the sentence. */}
           <h1 className="h1">
-            Ask anything about{" "}
-            <span className="tilt">
-              ZIYANG
-            </span>
+            {HEADING.map((word, i) => (
+              <span key={word}>
+                <span className="h1-w" style={{ "--i": String(i) } as WordStyle}>
+                  {word}
+                </span>{" "}
+              </span>
+            ))}
+            <span className="tilt">ZIYANG</span>
           </h1>
 
 
@@ -762,6 +827,8 @@ export default function ZiyangAgent({
             <div className="footnote">{footerNote}</div>
           </div>
         </main>
+      )}
+        </>
       )}
     </div>
   );

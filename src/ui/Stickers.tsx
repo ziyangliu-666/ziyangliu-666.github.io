@@ -25,6 +25,7 @@
  * as texture first and as an invitation second.
  */
 
+import { calmMotion } from "./motion";
 import { useEffect, useRef } from "react";
 import type React from "react";
 import { RESUME_KEYWORDS } from "./keywords.generated";
@@ -161,12 +162,20 @@ function useParallax(container: React.RefObject<HTMLDivElement | null>) {
     cull();
     const ro = new ResizeObserver(cull);
     ro.observe(document.body);
-    const stopCull = () => ro.disconnect();
+    /* The centre column arrives with a short rise, so the first measurement sees it a few
+       pixels low. Measuring again when an arrival animation ends corrects that. The event
+       bubbles, so one listener on the landing area hears all of them. */
+    const landing = host.closest(".landing");
+    landing?.addEventListener("animationend", cull);
+    const stopCull = () => {
+      ro.disconnect();
+      landing?.removeEventListener("animationend", cull);
+    };
 
     // No pointer to follow, or the visitor asked for less motion. The tags still cull.
     if (
       window.matchMedia("(hover: none)").matches ||
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      calmMotion()
     ) {
       return stopCull;
     }
@@ -239,6 +248,8 @@ export function Stickers({ onPick }: { onPick: (question: string) => void }) {
           "--fs": `${((slot.scale ?? 1) * 14.5).toFixed(2)}px`,
           ...drift(i),
           "--rot": `${slot.rot}deg`,
+          // Arrival order. The tags come in one after another instead of in three groups.
+          "--n": String(i),
         };
         return (
           <span className="sticker-plane" key={word} style={plane}>
