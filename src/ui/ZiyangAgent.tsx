@@ -41,12 +41,17 @@ import "./agent.css";
  * These still cover four different capabilities — a summary, a chronology, current work, and
  * reading the live repositories — because a visitor learns more from what the openers imply is
  * answerable than from any description of the site. The difference is that each one is now a
- * question a stranger would actually have. */
+ * question a stranger would actually have.
+ *
+ * The middle two now name his two largest pieces of work, SmartX and FastMM, in place of
+ * "Walk me through his career" and "Show me some of his actual code". A stranger can still ask
+ * them cold, because the names are on the page in the tags around the field, and they lead
+ * straight to the work instead of to a tour of it. */
 const SEED_QUESTIONS = [
   "Who is Ziyang?",
-  "Walk me through his career.",
+  "What did he build at SmartX?",
+  "What is FastMM?",
   "What is he researching?",
-  "Show me some of his actual code.",
 ];
 
 const HEADING = ["Ask", "anything", "about"];
