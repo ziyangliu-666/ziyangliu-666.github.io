@@ -91,7 +91,7 @@ const retrieve: ToolDef = {
             type: "string",
             enum: Object.keys(KIND_GROUPS),
             description:
-              "Narrow to one part of the corpus. 'resume' for roles and dates, 'papers' for the arXiv preprints, 'repos' for GitHub repositories and pull requests, 'profile' for the biography and the hand-written project notes. Omit to search everything.",
+              "Narrow to one part of the corpus. 'resume' for roles and dates, 'papers' for the preprints, on arXiv and on Zenodo, 'repos' for GitHub repositories and pull requests, 'profile' for the biography and the hand-written project notes. Omit to search everything.",
           },
           limit: {
             type: "integer",

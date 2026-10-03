@@ -47,3 +47,42 @@ to the model you paid for" becomes a commitment opened against a Merkle root. An
 "I remember what we discussed" becomes a measured recall rate against an evicted page. An
 editing model's "this file is mostly unchanged" becomes a grammar in which copying is a
 first-class token and the copy is verified by construction rather than sampled and hoped for.
+
+## Mathematics (Zenodo, with Yunxuan Wang and Yao Shi)
+
+In September 2026 Ziyang posted three mathematics preprints on Zenodo. All three have the
+same authors: Ziyang Liu, Yunxuan Wang and Yao Shi. Each one settles a question that other
+mathematicians had left open. He has said that the work was done with the help of AI
+research tools. Their full text is in this index.
+
+- **Limits of Schatten Best Approximants: Universal Convergence and Failure of Strict
+  Spectral Selection** — [Zenodo record 22986376](https://zenodo.org/records/22986376),
+  27 September 2026. A counterexample to a matrix approximation conjecture that Ziętak
+  proposed in 2017, which was still open in general in Grover and Gupta's 2026 paper. The
+  conjecture said that a method for approximating matrices approaches one particular best
+  solution, the strict spectral approximant. The paper proves that the method always
+  converges, and shows with an explicit 3-by-3 example that it can converge to a different
+  solution. The threshold is sharp: the conjecture holds when the smaller matrix dimension is
+  at most two.
+
+- **Two Problems in Comparative Prime Number Theory: the Five-Way Race Modulo 11, and the Sign
+  of the Integrated Prime Counting Error** — [Zenodo record
+  22537927](https://zenodo.org/records/22537927), 6 September 2026. Solves Problems 20 and 23
+  of the Comparative Prime Number Theory Problem List (Hamieh, Kadiri, Martin and Ng).
+  Problem 20: in the five-way prime race among the quadratic residues modulo 11, under GRH
+  and LI, all 120 orderings get rigorous densities. They collapse into exactly eight
+  symmetry classes, and the most likely ordering is more than twice as likely as the least
+  likely one. The key step reduces a four-dimensional computation to a one-dimensional
+  integral. Problem 23: which arithmetic progressions have an integrated prime-counting error
+  that eventually stays negative. The paper finds 18 explicit cases under GRH, and a complete
+  classification under GRH, LI and central non-vanishing. Both parts use certified zero data
+  and rigorous error bounds.
+
+- **An Arithmetic Defect beyond the Symplectic Trace Wall** — [Zenodo record
+  22537929](https://zenodo.org/records/22537929), 6 September 2026. About quadratic
+  L-functions over function fields, past the point where random matrix theory stops
+  predicting their statistics. It finds an arithmetic Euler factor in the limiting second
+  moment that random matrix theory does not see. For distance three the first correction is
+  2/q^3 + O(q^-4), which disproves universal post-wall saturation for every sufficiently
+  large fixed odd prime power.
+

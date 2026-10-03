@@ -65,7 +65,9 @@ npx tsx scripts/query-corpus.ts "transfer throughput"
 Sources, and the rule for each, are declared at the top of `scripts/build-corpus.ts`. Two
 of them are load-bearing rather than incidental:
 
-- The **three arXiv preprints** are indexed in full. They are public.
+- The **three arXiv preprints** and the **three mathematics preprints on Zenodo** are indexed
+  in full. They are public. The Zenodo PDFs are saved in `~/Downloads` as
+  `zenodo-<record>.pdf`.
 - The **three ICLR 2027 submissions** contribute a title and one line each, hand-written
   in `corpus/src/research.md`. Their PDFs are never read, and the two GitHub repositories
   holding their anonymised artifacts are on a denylist in both the builder and the runtime

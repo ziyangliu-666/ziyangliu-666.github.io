@@ -144,6 +144,32 @@ const PAPERS = [
     url: "https://arxiv.org/pdf/2604.18179v1",
     date: "2026-04-20",
   },
+  /* Three mathematics preprints on Zenodo, with Yunxuan Wang and Yao Shi. Public under
+     CC BY 4.0, so they are indexed in full like the arXiv ones. The files are the PDFs from
+     each Zenodo record, saved to Downloads under the record number. */
+  {
+    id: "paper-schatten-limits",
+    file: "zenodo-22986376.pdf",
+    title:
+      "Limits of Schatten Best Approximants: Universal Convergence and Failure of Strict Spectral Selection",
+    url: "https://zenodo.org/records/22986376",
+    date: "2026-09-27",
+  },
+  {
+    id: "paper-trace-wall",
+    file: "zenodo-22537929.pdf",
+    title: "An Arithmetic Defect beyond the Symplectic Trace Wall",
+    url: "https://zenodo.org/records/22537929",
+    date: "2026-09-06",
+  },
+  {
+    id: "paper-prime-races",
+    file: "zenodo-22537927.pdf",
+    title:
+      "Two Problems in Comparative Prime Number Theory: the Five-Way Race Modulo 11, and the Sign of the Integrated Prime Counting Error",
+    url: "https://zenodo.org/records/22537927",
+    date: "2026-09-06",
+  },
 ] as const;
 
 // ---------------------------------------------------------------------- helpers
