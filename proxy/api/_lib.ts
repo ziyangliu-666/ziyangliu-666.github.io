@@ -107,8 +107,12 @@ export function clientIp(req: Request): string {
  * billed for what it blocks.
  */
 
-const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL ?? "";
-const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN ?? "";
+/* Two sets of names for the same thing. The Vercel Marketplace installs Upstash as KV_*, and
+   an Upstash database set up by hand uses UPSTASH_REDIS_*. Either works. */
+const UPSTASH_URL =
+  process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL ?? "";
+const UPSTASH_TOKEN =
+  process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN ?? "";
 
 export function hasSharedStore(): boolean {
   return Boolean(UPSTASH_URL && UPSTASH_TOKEN);
@@ -319,9 +323,13 @@ export async function readJson(req: Request): Promise<Record<string, unknown>> {
 /* ------------------------------------------------------------------ request log
  *
  * One JSON line per question, to stdout, which Vercel keeps as runtime logs. `npm run logs`
- * in this directory tails them. No database, no dashboard, no extra service to keep alive: a
- * greppable line is enough to see what people actually ask, and what people actually ask is
- * the only interesting thing here.
+ * in this directory tails them.
+ *
+ * Runtime logs alone were not enough. Vercel keeps them for about an hour, so a question asked
+ * yesterday was already gone by the time anyone looked. When the shared store is configured,
+ * the same line is also pushed onto a capped list in Redis, ASK_LOG_MAX entries long, and
+ * `npm run asks` in this directory reads it back. No store, no history: the stdout line is
+ * still written, and nothing fails.
  *
  * The visitor is a hash, never an address. Salted with the DeepSeek key, which is already a
  * secret on this project and never leaves the server, so the digest cannot be reversed by
@@ -330,6 +338,10 @@ export async function readJson(req: Request): Promise<Record<string, unknown>> {
  *
  * Vercel's own geo headers give a country without any lookup of our own.
  */
+/** The Redis list that holds the question history, and how many entries it keeps. */
+export const ASK_LOG_KEY = "log:asks";
+export const ASK_LOG_MAX = 10_000;
+
 export async function logAsk(
   req: Request,
   fields: Record<string, unknown>,
@@ -342,15 +354,29 @@ export async function logAsk(
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("");
 
-    console.log(
-      JSON.stringify({
-        tag: "ask",
-        at: new Date().toISOString(),
-        visitor,
-        country: req.headers.get("x-vercel-ip-country") ?? null,
-        ...fields,
-      }),
-    );
+    const line = JSON.stringify({
+      tag: "ask",
+      at: new Date().toISOString(),
+      visitor,
+      country: req.headers.get("x-vercel-ip-country") ?? null,
+      ...fields,
+    });
+    console.log(line);
+
+    if (hasSharedStore()) {
+      // Newest first, and trimmed in the same round trip so the list can never grow past the cap.
+      await fetch(`${UPSTASH_URL}/pipeline`, {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${UPSTASH_TOKEN}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify([
+          ["LPUSH", ASK_LOG_KEY, line],
+          ["LTRIM", ASK_LOG_KEY, "0", String(ASK_LOG_MAX - 1)],
+        ]),
+      });
+    }
   } catch {
     /* A log line must never be the reason an answer fails. */
   }

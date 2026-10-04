@@ -9,7 +9,9 @@
     "dev": "vercel dev",
     "deploy": "vercel deploy --prod",
     "logs": "vercel logs ziyang-agent-proxy.vercel.app --follow",
-    "asks": "vercel logs ziyang-agent-proxy.vercel.app --follow | grep --line-buffered '\"tag\":\"ask\"'"
+    "asks": "node --env-file=.env.local scripts/asks.mjs",
+    "asks:live": "vercel logs ziyang-agent-proxy.vercel.app --follow | grep --line-buffered '\"tag\":\"ask\"'",
+    "env:pull": "vercel env pull .env.local --environment=production"
   },
   "devDependencies": {
     "typescript": "^5.7.2"
