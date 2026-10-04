@@ -5,10 +5,13 @@
  * src/agent/events.ts.
  */
 
+import { flushSync } from "react-dom";
 import { calmMotion } from "./motion";
+import { applyTheme, readPref, resolve, savePref, systemTheme, type ThemePref } from "./theme";
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useReducer,
   useRef,
@@ -27,7 +30,7 @@ import { unmark } from "./inline";
 import { sparkle } from "./sparkle";
 import { startFavicon } from "./favicon";
 import { Stickers } from "./Stickers";
-import { startMegastructure, type Megastructure } from "./megastructure";
+import { FLIP, startMegastructure, type FlipHooks, type Megastructure } from "./megastructure";
 import "./agent.css";
 
 /* Four openers a visitor can ask on arrival, knowing nothing.
@@ -148,6 +151,137 @@ function useRays(el: React.RefObject<HTMLDivElement | null>, enabled: boolean) {
       if (raf) cancelAnimationFrame(raf);
     };
   }, [el, enabled]);
+}
+
+/* ------------------------------------------------------------------------ theme
+ * The visitor's choice, the theme it resolves to, and a listener for the system setting while
+ * the choice is Auto. A visitor who switches their system to light at sunset sees the page
+ * follow without a reload. */
+/* The page's half of the theme change.
+ *
+ * The scene dives and rolls until the disc is edge on: one vertical line through the centre of
+ * the screen. Then the camera pushes in toward the hole, and the line widens into a band of the
+ * new theme's ground colour, faster and faster, until it fills the screen and covers the page.
+ * The colours change under that cover, where there is nothing to see change. Then the cover
+ * fades and the new page comes up out of its own ground colour while the camera rolls upright.
+ *
+ * Two earlier versions changed the colours of the whole page in one frame, the first behind a
+ * View Transitions snapshot and the second behind a clip that closed the content to a slit.
+ * Both read as a switch. A colour that grows out of the scene, and then is simply the page,
+ * reads as one continuous shot.
+ */
+const GROUND = { light: "#ffffff", dark: "#000000" } as const;
+
+/**
+ * The band of the new colour, as hooks for the scene's flip. The scene calls them every frame
+ * on its own clock, so the band fills the screen in exactly the frame the colours change.
+ */
+function veilHooks(to: "light" | "dark", apply: () => void): FlipHooks {
+  let veil: HTMLDivElement | null = null;
+
+  const ensure = () => {
+    if (!veil) {
+      veil = document.createElement("div");
+      veil.className = "theme-veil";
+      veil.style.backgroundColor = GROUND[to];
+      document.querySelector(".app")?.append(veil);
+    }
+    return veil;
+  };
+
+  return {
+    band: (p) => {
+      const v = ensure();
+      const side = (50 * (1 - p)).toFixed(3);
+      v.style.clipPath = `inset(0 ${side}% 0 ${side}%)`;
+    },
+    seam: () => {
+      /* Colour transitions are switched off across the change, so the chips and the tags take
+         their new colours at once instead of easing from the old ones under the fading cover. */
+      const root = document.documentElement;
+      root.classList.add("theme-switching");
+      apply();
+      window.setTimeout(() => root.classList.remove("theme-switching"), 100);
+    },
+    fade: (p) => {
+      if (veil) veil.style.opacity = String(1 - p);
+    },
+    done: () => {
+      veil?.remove();
+      veil = null;
+    },
+  };
+}
+
+function useTheme(engine: React.RefObject<Megastructure | null>) {
+  const [pref, setPref] = useState<ThemePref>(readPref);
+  const [system, setSystem] = useState(systemTheme);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-color-scheme: light)");
+    const onChange = () => setSystem(mq.matches ? "light" : "dark");
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  const theme = pref === "system" ? system : resolve(pref);
+  // Layout effect, not a plain effect: at the seam the change is flushed synchronously inside
+  // the view transition, and the attribute has to be on <html> before the new snapshot.
+  useLayoutEffect(() => applyTheme(theme), [theme]);
+  const flipping = useRef(false);
+
+  /* Switch to the other theme. Landing on the system's own theme stores nothing, so the page
+     goes back to following the system. */
+  const toggle = useCallback(() => {
+    if (flipping.current) return; // one move at a time
+    const next = theme === "light" ? "dark" : "light";
+    const pref: ThemePref = next === systemTheme() ? "system" : next;
+    const commit = () => {
+      savePref(pref);
+      flushSync(() => setPref(pref));
+    };
+    const started = engine.current?.flip(
+      next === "light",
+      veilHooks(next, commit),
+    );
+    if (!started) {
+      commit();
+      return;
+    }
+    flipping.current = true;
+    window.setTimeout(() => {
+      flipping.current = false;
+    }, FLIP * 1000);
+  }, [theme, engine]);
+
+  return { theme, toggle };
+}
+
+/* The icon shows the theme in use: a sun on light, a moon on dark. Drawn as strokes at the
+   weight of the send arrow, so it belongs to the same set of marks. */
+function ThemeIcon({ theme }: { theme: "light" | "dark" }) {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {theme === "light" ? (
+        <>
+          <circle cx="8" cy="8" r="3" />
+          <path d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M3.4 12.6l1.1-1.1M11.5 4.5l1.1-1.1" />
+        </>
+      ) : (
+        <path d="M13.2 9.6A5.6 5.6 0 0 1 6.4 2.8a5.6 5.6 0 1 0 6.8 6.8z" />
+      )}
+    </svg>
+  );
 }
 
 /* ---------------------------------------------------------------- megastructure
@@ -542,6 +676,7 @@ export default function ZiyangAgent({
   const appRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const { engine, mega, intro } = useMegastructure(canvasRef);
+  const { theme, toggle } = useTheme(engine);
   const busyRef = useRef(false);
   const [override, setOverride] = useState<Transport | null>(null);
   const sparks = useSparks(appRef);
@@ -648,6 +783,7 @@ export default function ZiyangAgent({
      thread stays the brightest thing on screen. */
   useEffect(() => engine.current?.setBusy(state.busy), [engine, state.busy, mega]);
   useEffect(() => engine.current?.setChat(state.started), [engine, state.started, mega]);
+  useEffect(() => engine.current?.setLight(theme === "light"), [engine, theme, mega]);
 
   // Follow the stream, but let go the moment the reader scrolls up to re-read something.
   useEffect(() => {
@@ -743,6 +879,16 @@ export default function ZiyangAgent({
               Protocol
             </a>
           )}
+          {/* Last, and in the colour of the links, so it reads as part of the header and not
+              as a control panel. */}
+          <button
+            className="theme-btn"
+            onClick={toggle}
+            aria-label={theme === "light" ? "Switch to dark theme" : "Switch to light theme"}
+            title={theme === "light" ? "Dark theme" : "Light theme"}
+          >
+            <ThemeIcon theme={theme} />
+          </button>
         </nav>
       </header>
 

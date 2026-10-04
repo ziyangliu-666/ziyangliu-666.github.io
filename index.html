@@ -9,7 +9,10 @@
       content="An agent that answers questions about Ziyang Liu. Retrieval over his résumé, papers and repos, plus live web search. The whole harness runs in your browser."
     />
     <link rel="icon" href="/favicon.ico" />
-    <meta name="color-scheme" content="dark" />
+    <meta name="color-scheme" content="dark light" />
+    <!-- The site draws its own dark theme. Dark Reader would otherwise repaint the light one
+         dark as well, and the visitor who chose light would never see it. -->
+    <meta name="darkreader-lock" />
     <meta property="og:title" content="ZY Agent" />
     <meta
       property="og:description"
@@ -18,12 +21,31 @@
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://ziy.bio" />
     <meta name="twitter:card" content="summary" />
-    <!-- Painted before the bundle parses, so there is no white flash on load. -->
+    <!-- Painted before the bundle parses, so there is no flash of the wrong theme on load.
+         The theme is resolved here exactly as src/ui/theme.ts resolves it: a saved choice,
+         else the system setting. The two must stay in step. -->
+    <script>
+      (function () {
+        var t = null;
+        try {
+          t = localStorage.getItem("ziyang-agent.theme");
+        } catch (e) {}
+        if (t !== "light" && t !== "dark") {
+          t = matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+        }
+        document.documentElement.dataset.theme = t;
+        document.documentElement.style.colorScheme = t;
+      })();
+    </script>
     <style>
       html,
       body {
         margin: 0;
-        background: #0b0b0d;
+        background: #000;
+      }
+      html[data-theme="light"],
+      html[data-theme="light"] body {
+        background: #fff;
       }
     </style>
     <!--

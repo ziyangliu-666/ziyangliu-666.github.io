@@ -2031,3 +2031,348 @@ html.calm .tilt {
 .app {
   overflow: hidden;
 }
+
+/* -------------------------------------------------------------- theme button
+ * In the colour of the nav links beside it, so it reads as part of the header. */
+.theme-btn {
+  display: inline-grid;
+  place-items: center;
+  border: none;
+  background: transparent;
+  padding: 2px;
+  margin: -2px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.theme-btn:hover {
+  color: var(--ink);
+}
+
+/* --------------------------------------------------------------- light theme
+ *
+ * The same page on white. The scene inverts itself in the shader; everything here is the
+ * stylesheet's side of it.
+ *
+ * The rule from the dark theme carries over unchanged: lines are mid grey and text is black,
+ * so the two layers stay apart by value. Most values below are the dark theme's own values
+ * mirrored about the middle grey, so a weight that was quiet on black is quiet on white.
+ */
+html[data-theme="light"] {
+  --bg: #ffffff;
+  --ink: #111114;
+  --surface: #f3f3f5;
+  --surface-2: #ececf0;
+  --line: #dcdce2;
+  --muted: #55555d;
+  --muted-2: #6a6a73;
+  --faint: #8a8a93;
+  --btn: #e7e7ec;
+  --btn-hover: #dcdce3;
+  --btn-active: #d0d0d8;
+}
+
+html[data-theme="light"] a {
+  color: #3a3a42;
+}
+html[data-theme="light"] a:hover {
+  color: #000;
+}
+html[data-theme="light"] ::selection {
+  background: rgba(0, 0, 0, 0.12);
+}
+html[data-theme="light"] :focus-visible {
+  outline-color: rgba(0, 0, 0, 0.4);
+}
+html[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: #d4d4da;
+}
+
+html[data-theme="light"] .app--mega {
+  background: #fff;
+}
+html[data-theme="light"] .app::before {
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.08) 0px,
+    rgba(0, 0, 0, 0.08) 2px,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(0, 0, 0, 0) var(--gap)
+  );
+}
+
+html[data-theme="light"] .wordmark,
+html[data-theme="light"] .h1 {
+  color: #111114;
+}
+html[data-theme="light"] .h1 {
+  text-shadow: none;
+}
+/* The gleam runs dark on light: the name is mid grey and the band that crosses it is near
+   black, so the highlight still reads as light passing over a surface. */
+html[data-theme="light"] .tilt {
+  filter: none;
+  background-color: #8a8a94;
+  background-image: linear-gradient(
+    99deg,
+    rgba(17, 17, 20, 0) 0%,
+    rgba(17, 17, 20, 0.22) 28%,
+    rgba(17, 17, 20, 1) 50%,
+    rgba(17, 17, 20, 0.22) 72%,
+    rgba(17, 17, 20, 0) 100%
+  );
+}
+html[data-theme="light"].calm .tilt {
+  background-image: none;
+  background-color: #111114;
+}
+html[data-theme="light"] .nav a {
+  color: var(--muted);
+}
+html[data-theme="light"] .nav a:hover,
+html[data-theme="light"] .wordmark--home:hover {
+  color: #000;
+}
+
+html[data-theme="light"] .app--mega .composer,
+html[data-theme="light"] .app--mega .chip,
+html[data-theme="light"] .app--mega .sticker,
+html[data-theme="light"] .app--mega .user-bubble {
+  background: rgba(255, 255, 255, 0.94);
+  border-color: rgba(0, 0, 0, 0.22);
+}
+html[data-theme="light"] .app--mega .composer:focus-within {
+  border-color: rgba(0, 0, 0, 0.6);
+}
+html[data-theme="light"] .app--mega .sticker {
+  color: #55555d;
+}
+html[data-theme="light"] .app--mega .chip {
+  color: #33333a;
+}
+html[data-theme="light"] .app--mega .sticker:hover,
+html[data-theme="light"] .app--mega .sticker:focus-visible,
+html[data-theme="light"] .app--mega .chip:hover {
+  color: #000;
+  background: #f0f0f3;
+  border-color: rgba(0, 0, 0, 0.45);
+}
+html[data-theme="light"] .app--mega .composer textarea::placeholder {
+  color: #8a8a93;
+}
+html[data-theme="light"] .user-bubble {
+  color: var(--ink);
+}
+
+/* The answer and its parts. */
+html[data-theme="light"] .answer {
+  color: #26262b;
+}
+html[data-theme="light"] .md-h,
+html[data-theme="light"] .md-strong {
+  color: #111114;
+}
+html[data-theme="light"] .md-a {
+  color: #000;
+  text-decoration-color: #9a9aa4;
+}
+html[data-theme="light"] .md-a:hover,
+html[data-theme="light"] .md-a:focus-visible {
+  text-decoration-color: #000;
+  background: rgba(0, 0, 0, 0.06);
+}
+html[data-theme="light"] .md-code {
+  background: #f3f3f5;
+  border-color: #e2e2e7;
+  color: #2a2a30;
+}
+html[data-theme="light"] .md-pre {
+  background: #f6f6f8;
+  border-color: #e4e4e9;
+}
+html[data-theme="light"] .md-pre code {
+  color: #2a2a30;
+}
+html[data-theme="light"] .md-quote {
+  border-left-color: #dcdce2;
+  color: #4a4a52;
+}
+html[data-theme="light"] .md-hr {
+  background: linear-gradient(90deg, transparent, #dcdce2 20%, #dcdce2 80%, transparent);
+}
+html[data-theme="light"] .md-list li::marker {
+  color: #9a9aa4;
+}
+html[data-theme="light"] .md-table th {
+  color: #4a4a52;
+}
+html[data-theme="light"] .md-table th,
+html[data-theme="light"] .md-table td {
+  border-bottom-color: #e6e6ea;
+}
+html[data-theme="light"] .md-img {
+  border-color: #e4e4e9;
+}
+html[data-theme="light"] .md-caption {
+  color: #6a6a73;
+}
+html[data-theme="light"] .md-spark {
+  background-color: #55555d;
+}
+html[data-theme="light"] .caret {
+  background: #9a9aa4;
+}
+html[data-theme="light"] .err {
+  color: #8a4a4a;
+}
+
+/* The trace of the agent's work. */
+html[data-theme="light"] .act-toggle:hover {
+  color: #2a2a30;
+}
+html[data-theme="light"] .pulse {
+  background: #c4c4cc;
+}
+html[data-theme="light"] .pulse--live,
+html[data-theme="light"] .dot--live {
+  background: #3a3a42;
+}
+html[data-theme="light"] .dot {
+  background: #b4b4bc;
+}
+html[data-theme="light"] .chev,
+html[data-theme="light"] .followup .arrow {
+  color: #a0a0a8;
+}
+html[data-theme="light"] .act-items {
+  border-left-color: #e4e4e9;
+}
+html[data-theme="light"] .reasoning,
+html[data-theme="light"] .tool-result {
+  color: #6a6a73;
+}
+html[data-theme="light"] .tool-name {
+  color: #3a3a42;
+}
+
+/* Sources, follow-ups, the footnote. */
+html[data-theme="light"] .sources-label,
+html[data-theme="light"] .footnote,
+html[data-theme="light"] .usage {
+  color: #8a8a93;
+}
+html[data-theme="light"] .source {
+  background: #f3f3f5;
+}
+html[data-theme="light"] .source:hover,
+html[data-theme="light"] .source--more:hover {
+  color: #000;
+  background: #e9e9ee;
+}
+html[data-theme="light"] .source--more {
+  border-color: #e2e2e7;
+}
+html[data-theme="light"] .followup {
+  color: #55555d;
+}
+html[data-theme="light"] .followup:hover {
+  color: #000;
+}
+html[data-theme="light"] .nav-pip {
+  background: #d4d4da;
+}
+
+/* The drawn blocks. */
+html[data-theme="light"] .dg-span::before {
+  background: #c4c4cc;
+}
+html[data-theme="light"] .dg-axis {
+  border-bottom-color: #e4e4e9;
+}
+html[data-theme="light"] .dg-track {
+  background: #f1f1f4;
+}
+html[data-theme="light"] .dg-bar {
+  background: #b4b4bf;
+  box-shadow: none;
+}
+html[data-theme="light"] .dg-box {
+  border-color: #e2e2e7;
+  background: #f6f6f8;
+  color: #2a2a30;
+}
+html[data-theme="light"] .dg-layer {
+  border-top-color: #ececf0;
+}
+html[data-theme="light"] .dg-pill {
+  color: #2a2a30;
+  background: #f3f3f5;
+  border-color: #e2e2e7;
+}
+html[data-theme="light"] .dg .md-a {
+  color: #111114;
+  text-decoration-color: #a0a0a8;
+}
+html[data-theme="light"] .dg-metric {
+  border-color: #e6e6ea;
+  background: #f7f7f9;
+}
+html[data-theme="light"] .dg-value {
+  color: #111114;
+}
+
+/* The marked word, the game link and the meter, on white. The dark theme's colours are pastels
+ * chosen to glow on black, and on white they wash out to the point that the word reads as
+ * faded rather than as special. These are the same seven hues at a depth that holds on white. */
+html[data-theme="light"] .md-spark,
+html[data-theme="light"] .md-a--game {
+  background-image: linear-gradient(
+    100deg,
+    #e03131 0%,
+    #e8590c 14%,
+    #f08c00 28%,
+    #2f9e44 42%,
+    #0c8599 56%,
+    #1971c2 70%,
+    #7048e8 84%,
+    #e03131 100%
+  );
+}
+html[data-theme="light"] .md-spark {
+  text-decoration-color: rgba(0, 0, 0, 0.3);
+}
+html[data-theme="light"] .md-spark:hover {
+  text-decoration-color: rgba(0, 0, 0, 0.7);
+}
+html[data-theme="light"] .md-a--game {
+  background-color: #33333a;
+  text-decoration-color: #2f9e44;
+}
+html[data-theme="light"] .md-a--game:hover {
+  background-color: #000;
+  text-decoration-color: #000;
+}
+html[data-theme="light"] .md-spark--spent .md-spark-ch {
+  color: hsl(calc(var(--i, 0) * 34deg + 348deg) 80% 42%);
+}
+html[data-theme="light"] .nav-pip--on {
+  background: #2f9e44;
+  box-shadow: none;
+}
+
+/* The band of the new theme's colour that grows over everything during a theme change. Above
+ * all the page content, and it takes no pointer events, so a click during the move goes to
+ * whatever is under it. See veilHooks. */
+.theme-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+}
+
+/* Set by the theme change for an instant at the colour change. See veilHooks. */
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition: none !important;
+}
