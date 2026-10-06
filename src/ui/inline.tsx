@@ -15,6 +15,25 @@ import type { CSSProperties, ReactNode } from "react";
 /** A custom property in a style object needs the index signature spelled out for TypeScript. */
 type SparkStyle = CSSProperties & Record<`--${string}`, string | number>;
 
+/* ---------------------------------------------------------------------- images */
+
+/* The animated explainers come in two drawings, one per theme: /demos/x.gif on white, and
+ * /demos/dark/x.gif on black, drawn by the same generator with the dark palette. Both are
+ * rendered and the stylesheet hides the one for the other theme. A hidden lazy image is never
+ * fetched, so a visitor downloads only the one they see, and a theme change swaps the drawing
+ * with no request in the way. Any other image renders once, as it is. */
+export function ThemedImg({ src, alt }: { src: string; alt: string }) {
+  const themed = src.startsWith("/demos/") && !src.startsWith("/demos/dark/");
+  const common = { alt, loading: "lazy" as const, referrerPolicy: "no-referrer" as const };
+  if (!themed) return <img className="md-img" src={src} {...common} />;
+  return (
+    <>
+      <img className="md-img md-img--light" src={src} {...common} />
+      <img className="md-img md-img--dark" src={src.replace("/demos/", "/demos/dark/")} {...common} />
+    </>
+  );
+}
+
 /* ---------------------------------------------------------------------- inline */
 
 /** Only schemes that cannot execute. `javascript:` and `data:` never reach an href. */
@@ -103,14 +122,7 @@ export function inline(text: string, keyBase = 0): ReactNode[] {
       const src = safeSrc(token.slice(split + 2, -1));
       out.push(
         src ? (
-          <img
-            className="md-img"
-            key={key++}
-            src={src}
-            alt={alt}
-            loading="lazy"
-            referrerPolicy="no-referrer"
-          />
+          <ThemedImg key={key++} src={src} alt={alt} />
         ) : (
           // Off-site image: keep the caption the model wrote, drop the request.
           <span key={key++}>{alt}</span>

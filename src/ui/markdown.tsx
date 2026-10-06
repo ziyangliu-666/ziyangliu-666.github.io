@@ -18,7 +18,7 @@
 import type { ReactNode } from "react";
 
 import { diagram } from "./diagrams";
-import { inline, safeSrc } from "./inline";
+import { inline, safeSrc, ThemedImg } from "./inline";
 
 /* ----------------------------------------------------------------------- block */
 
@@ -245,13 +245,7 @@ export function Markdown({
         if (lone && loneSrc) {
           return (
             <figure className="md-figure" key={i}>
-              <img
-                className="md-img"
-                src={loneSrc}
-                alt={lone[1]!}
-                loading="lazy"
-                referrerPolicy="no-referrer"
-              />
+              <ThemedImg src={loneSrc} alt={lone[1]!} />
               {lone[1] && <figcaption className="md-caption">{lone[1]}</figcaption>}
               {trailing}
             </figure>

@@ -2376,3 +2376,15 @@ html[data-theme="light"] .nav-pip--on {
 .theme-switching *::after {
   transition: none !important;
 }
+
+/* An explainer drawn twice, one per theme. Only the drawing for the theme in use is shown, and
+ * the other, being lazy and hidden, is never fetched. See ThemedImg. */
+html[data-theme="dark"] .md-img--light,
+html[data-theme="light"] .md-img--dark {
+  display: none;
+}
+/* The dark drawing is on black, so its frame is too; the light figure keeps the paper ground. */
+.md-img--dark {
+  background: #000;
+  border-color: #26262c;
+}
