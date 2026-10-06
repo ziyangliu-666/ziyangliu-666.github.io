@@ -89,6 +89,17 @@ const FASTMM_DOC_PAGES = [
     path: "bench/README.md",
     title: "FastMM: benchmarks, and what each number contains",
   },
+  /* Added for 0.4.0. how-fast is the only page with numbers from a production session, as
+     opposed to the engine alone in simulation, and a visitor who asks how fast it is should
+     get both and know which is which. */
+  {
+    path: "docs/explanation/how-fast.md",
+    title: "FastMM: how fast it is, in a 13-hour production session on Binance",
+  },
+  {
+    path: "docs/explanation/how-it-works.md",
+    title: "FastMM: how it works",
+  },
 ] as const;
 
 type Kind = "resume" | "paper" | "repo" | "profile" | "project";

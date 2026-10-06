@@ -46,14 +46,16 @@ import "./agent.css";
  * answerable than from any description of the site. The difference is that each one is now a
  * question a stranger would actually have.
  *
- * The middle two now name his two largest pieces of work, SmartX and FastMM, in place of
- * "Walk me through his career" and "Show me some of his actual code". A stranger can still ask
- * them cold, because the names are on the page in the tags around the field, and they lead
- * straight to the work instead of to a tour of it. */
+ * The middle two now name his largest pieces of work, SmartX, and FastMM with bndesk, its
+ * dashboard, in place of "Walk me through his career" and "Show me some of his actual code". A
+ * stranger can still ask them cold, because the names are on the page in the tags around the
+ * field, and they lead straight to the work instead of to a tour of it. "Show me" is chosen on
+ * purpose for the second: bndesk's answer carries its GIF recordings, and the question asks for
+ * them. */
 const SEED_QUESTIONS = [
   "Who is Ziyang?",
   "What did he build at SmartX?",
-  "What is FastMM?",
+  "Show me FastMM and bndesk.",
   "What is he researching?",
 ];
 

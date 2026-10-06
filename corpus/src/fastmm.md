@@ -13,7 +13,63 @@ C++ or in Python. Every session is recorded, and a replay of a recording sends t
 orders again, byte for byte. Orders pass pre-trade risk checks before they leave, and the
 loss limit trips a kill switch that pulls every quote.
 
-Version 0.2.0 was released on 23 September 2026. It installs without a build:
+Version 0.4.0 is dated 6 October 2026 in the changelog. Version 0.3.0 was released on
+3 October, and 0.2.0, on 23 September, was the first that installs without a build.
+
+What the engine offers, as its README puts it since 0.4.0:
+
+- Strategies in C++ or Python. Python hooks marked `@fastmm.hot` compile to machine code with
+  Numba.
+- One strategy file for backtest and live. Replays are deterministic, and the simulated
+  exchange models queue position.
+- Account pools: several sub-accounts trade behind one venue, and orders spread across them.
+- A gateway: one `fastmm-gateway` holds the exchange connections, and several strategy
+  processes attach to it and can stop or restart without dropping them.
+- Live control: `fastmm-ctl` changes a running session's parameters without a restart.
+- Host and network tuning built in, such as core pinning and kernel bypass.
+
+Exchanges: Binance, OKX, Bybit, Gate, Deribit, Gemini and Coinbase, and Nasdaq over
+TotalView-ITCH and OUCH 5.0.
+
+## How fast it is, live
+
+Two kinds of number exist, and they must not be mixed up. The engine alone, in simulation, gets
+from a market-data update to an order in 111 to 123 ns at p50 (see the benchmarks). A real
+production session is slower, because it decodes real packets and signs and encrypts real
+orders. The documentation's [How fast it is](https://ziy.bio/FastMM/explanation/how-fast/) page
+gives one such session: `fastmm-live` on Binance, five accounts, 13 hours, a 4 vCPU VM in the
+exchange's region, every thread pinned to its own core.
+
+- Tick to trade, from the market-data packet read to the order handed to the network thread:
+  11.3 µs at p50, 69.6 µs at p99, 110.6 µs at p99.9.
+- To the signed, TLS-encrypted order written to the socket: 29 to 44 µs at p50, by account.
+- Load: 134 million market-data messages, about 2,900 a second, with no resync and none
+  dropped; 429,754 orders placed and 428,679 cancelled; no rate-limit refusal and no reconnect.
+
+## What changed recently
+
+0.4.0 (6 October):
+
+- A running session can hand over to a new process, and a warm standby can wait on market data
+  and take over with one message: the pause is a reconciliation, not a restart.
+- A pool treasury keeps one asset spread over a pool's accounts by internal transfers, with
+  limits, a ledger, and the same treasury running in backtests.
+- A periodic fill audit compares the venue's trade history with the stored fills, and
+  `fastmm-pnl audit` does the same against an exported file.
+- Each account of a pool can leave from its own source address.
+- A backtest can start from the state a live session recorded, and `fastmm-data calibrate`
+  fits the cancel path, the venue's intake service time and millisecond timestamp jitter.
+- The engine and network threads can run under SCHED_FIFO.
+
+0.3.0 (3 October): two Coinbase connectors; mark price, index and funding for perpetuals;
+balances, margin and a pre-trade balance check on every venue; `HedgeExecutor`, which hedges on
+one or more venues in order of preference and fails over; `fastmm-data calibrate`, which fits
+the backtest's fill model to live sessions; strategy state that survives a restart.
+
+His dashboard for watching FastMM trade is a separate project,
+[bndesk](https://github.com/ziyangliu-666/bndesk). FastMM's README points Binance users to it.
+
+It installs without a build:
 
 - Python: `pip install "fastmm-engine[hot]"` from [PyPI](https://pypi.org/project/fastmm-engine/), wheels for CPython 3.9 to 3.14 on Linux x86-64. The Numba hot hooks need CPython 3.10 or later.
 - The C++ programs: a release tarball on GitHub, and the container image `ghcr.io/ziyangliu-666/fastmm`.

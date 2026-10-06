@@ -121,7 +121,7 @@ const TOPICS: { label: string; ask: string }[] = [
   { label: "VMTools", ask: "What is VMTools, and why did he rebuild it?" },
   { label: "Nasdaq ITCH", ask: "How does FastMM handle Nasdaq TotalView-ITCH?" },
   { label: "UOS pidfd leak", ask: "How did he find the UOS kernel defect that hung customer VMs?" },
-  { label: "Deterministic replay", ask: "How does FastMM replay a session byte for byte?" },
+  { label: "bndesk", ask: "Show me bndesk, his trading dashboard." },
   // Above the heading.
   { label: "Copy-as-Decode", ask: "What does the Copy-as-Decode paper show?" },
   { label: "Memory paging for LLMs", ask: "What is cooperative memory paging for LLM conversations?" },
