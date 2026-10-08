@@ -360,9 +360,26 @@ const DATE_RANGE =
 const BULLET_START =
   /^(?:[・•]\s*)?(?:[A-Z][A-Za-z0-9 ()./+&-]{1,48}:|[\p{Script=Han}][^：]{1,24}：|[・•])/u;
 
+/* xdvipdfmx 20260317 embeds the CMSY10 symbol font as Type 3 with no ToUnicode map, so
+ * pdftotext emits the raw glyph codes: the bullet comes out as U+000F, "×" as U+0002,
+ * "∼" as U+0018, and the contact-line separator "|" as a lone "j". Without this the
+ * bullets were not recognised and each role collapsed into one paragraph. The codes are
+ * CMSY10 positions; a control character never belongs in résumé text, and a lone "j"
+ * between spaces is not an English word. */
+function restoreCmsyGlyphs(text: string): string {
+  return text
+    .replace(/\u000f/g, "•")
+    .replace(/\u0002/g, "×")
+    .replace(/\u0018/g, "∼")
+    .replace(/\u0000/g, "−")
+    .replace(/(?<= )j(?= )/g, "|");
+}
+
 function resumeDoc(file: string, lang: "en" | "zh"): Doc {
   const headings = lang === "en" ? EN_SECTIONS : ZH_SECTIONS;
-  const lines = normalizeLines(pdfToText(file, { layout: true }));
+  const lines = normalizeLines(
+    restoreCmsyGlyphs(pdfToText(file, { layout: true })),
+  );
 
   const sections: Section[] = [];
   const header: string[] = [];
@@ -407,16 +424,28 @@ function resumeDoc(file: string, lang: "en" | "zh"): Doc {
 
   /* The résumé's Project section stays out of the index, on his request (2026-09-24). His
    * current project, FastMM, has its own note in corpus/src/fastmm.md. */
-  const withoutProject = sections.filter(
-    (s) => !PROJECT_SECTIONS.some((h) => s.heading.toUpperCase().startsWith(h)),
-  );
+  const isProject = (s: Section) =>
+    PROJECT_SECTIONS.some((h) => s.heading.toUpperCase().startsWith(h));
+  const dropped = sections.filter(isProject).map((s) => s.text).join("\n");
+  const withoutProject = sections.filter((s) => !isProject(s));
   sections.length = 0;
   sections.push(...withoutProject);
 
-  // Only links whose anchor is still in the text: the Project section's links go with it.
+  /* Only links whose anchor is still in the text: the Project section's links go with it.
+   * An anchor that appears in the Project section is dropped even when the word also
+   * occurs elsewhere: bndesk's "source" link was attached to "source" in a SmartX bullet.
+   * The match is on the whole token, so "ziy.bio/FastMM" there does not take the header's
+   * "ziy.bio" link with it. */
   const kept = sections.map((s) => s.text).join("\n");
+  const inDropped = (anchor: string) =>
+    new RegExp(
+      `(?<![\\p{L}\\p{N}./])${anchor.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}\\p{N}/])`,
+      "u",
+    ).test(dropped);
   const links = pdfLinks(file).filter(
-    (l) => l.url.startsWith("mailto:") || kept.includes(l.anchor),
+    (l) =>
+      l.url.startsWith("mailto:") ||
+      (kept.includes(l.anchor) && !inDropped(l.anchor)),
   );
   const linked = sections
     .filter((s) => s.text.trim())

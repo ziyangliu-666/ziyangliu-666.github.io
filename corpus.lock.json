@@ -1,8 +1,8 @@
 {
-  "builtAt": "2026-10-06",
+  "builtAt": "2026-10-07",
   "sources": {
-    "Projects/resume/output/pdf/LIU_ZIYANG_RESUME_CLASSIC.pdf": "7b04d0128167ccc0",
-    "Projects/resume/output/pdf/刘子阳-15281480053.pdf": "8e108dc326dd4642",
+    "Projects/resume/output/pdf/LIU_ZIYANG_RESUME_CLASSIC.pdf": "912714f6d308025b",
+    "Projects/resume/output/pdf/刘子阳-15281480053.pdf": "794d4ef2310863e2",
     "Downloads/2604.18170v1.pdf": "842efdf9bd9e5b71",
     "Downloads/2604.12376v1.pdf": "65ead9842248384b",
     "Downloads/2604.18179v1.pdf": "a32b7f225401a5b9",
@@ -17,6 +17,6 @@
     "Projects/self-intro-agent/corpus/src/links.md": "92b0e011d84d388c",
     "Projects/self-intro-agent/corpus/src/research.md": "c4078b7a3210aa28",
     "Projects/self-intro-agent/corpus/src/this-site.md": "e60e6ec7b180b7e2",
-    "github:ziyangliu-666/FastMM": "f288947e3748350e"
+    "github:ziyangliu-666/FastMM": "0c6671018b14f1fc"
   }
 }
