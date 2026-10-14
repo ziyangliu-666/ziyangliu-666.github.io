@@ -1673,13 +1673,17 @@ html.calm .chev {
   }
 }
 
-/* Keyword tags scattered around the landing page. Positioned absolutely inside .landing,
- * which is why that element becomes the containing block below.
+/* Highlight cards around the landing page. Positioned absolutely inside .landing, which is
+ * the containing block.
  *
- * They sit behind the centre column in the stacking order and are individually clickable —
- * the wrapper takes no pointer events so it can span the whole area without swallowing a
- * click meant for the composer. */
-.stickers {
+ * The wrapper takes no pointer events, so it can span the whole area without swallowing a
+ * click meant for the composer. Each card takes them back.
+ *
+ * Three nested layers, because three things move a card and each needs its own channel:
+ * the plane owns `translate` for the pointer parallax, the tilt owns `rotate` and `scale` for
+ * the hover, and the card owns `translate` again for its idle drift. One element cannot take
+ * the same property from a keyframe and from a hover rule at once. */
+.cards {
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -1688,73 +1692,257 @@ html.calm .chev {
   --py: 0px;
 }
 
-/* The parallax plane. It owns `translate` and nothing else, which is what keeps the pointer
- * offset from fighting the drift keyframe on the button inside it. */
-.sticker-plane {
+.card-plane {
   position: absolute;
   translate: calc(var(--px) * var(--depth, 0.7)) calc(var(--py) * var(--depth, 0.7));
-  /* No transition: the easing lives in the rAF loop, and a CSS transition on top of it would
-     add a second lag and read as sludge. */
   will-change: translate;
 }
 
-.sticker {
+/* The open card comes to the front, over its neighbours and over the centre column. */
+.card-plane:has(.card-tilt:hover, :focus-visible, .card-tilt[data-open]) {
+  z-index: 5;
+}
+
+.card-tilt {
   pointer-events: auto;
-  transform-origin: center;
+  rotate: var(--rot);
+  transition:
+    rotate 420ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    scale 420ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 220ms ease;
+  animation: rl-card 900ms cubic-bezier(0.16, 1, 0.3, 1) calc(520ms + var(--n, 0) * 70ms)
+    backwards;
+}
+
+.card {
+  position: relative;
+  /* Its own stacking context, so the drawing can sit at z-index -1: above the card's plate,
+     below everything else on it. */
+  isolation: isolate;
+  overflow: hidden;
+  cursor: pointer;
+  width: 212px;
+  display: flex;
+  flex-direction: column;
   border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 9px;
-  /* Frosted, so a tag samples the light behind it instead of sitting on a flat plate. */
+  border-radius: 10px;
+  /* Frosted, so a card samples the light behind it instead of sitting on a flat plate. */
   background: rgba(20, 20, 26, 0.55);
   backdrop-filter: blur(9px) saturate(115%);
   -webkit-backdrop-filter: blur(9px) saturate(115%);
   color: #64646d;
-  font-family: inherit;
-  line-height: 1;
-  font-size: var(--fs, 14.5px);
-  padding: 9px 14px;
-  white-space: nowrap;
-  cursor: pointer;
-  /* `scale` and the colours transition; `translate` and `rotate` are left alone because the
-     drift keyframe owns them, and a transition on those would fight it every frame. */
   transition:
     color 180ms ease,
     border-color 180ms ease,
     background 180ms ease,
-    box-shadow 180ms ease,
-    scale 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow 180ms ease;
+  animation: rl-drift var(--dur, 20s) ease-in-out var(--lag, 0s) infinite;
 }
 
-.sticker:hover,
-.sticker:focus-visible {
+/* A card in the lower half opens upwards: the preview unfolds above the title, into open
+ * space, and the title stays where the visitor pointed. */
+.card-tilt--up .card {
+  flex-direction: column-reverse;
+}
+
+/* The open state. It straightens the card, lifts it a little and stops the drift, because a
+ * target that is still moving under the cursor is a target you have to chase. The overshoot
+ * in the easing is the small jump that tells the visitor the card answered. */
+/* Keyboard focus opens a card too, but only `:focus-visible`. With `:focus-within`, a mouse
+ * click left focus on the link, and a visitor who came back from the new tab found the card
+ * still open, with no way to close it but to click somewhere else. */
+.card-tilt:hover,
+.card-tilt:has(:focus-visible),
+.card-tilt[data-open] {
+  rotate: 0deg;
+  scale: 1.04;
+}
+
+.card-tilt:hover .card,
+.card-tilt:has(:focus-visible) .card,
+.card-tilt[data-open] .card {
   color: #ecedf1;
   border-color: rgba(255, 255, 255, 0.22);
-  background: rgba(32, 32, 40, 0.72);
-  scale: 1.08;
-  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.5);
-  /* Hold still while it is being read and aimed at. A target that is still drifting under
-     the cursor is a target you have to chase. Two values for the two animations: pausing the
-     shorthand would also pause the arrival fade, and hovering during those 520 ms would
-     strand the tag half-transparent until the pointer left. */
-  animation-play-state: running, paused;
-  z-index: 2;
+  background: rgba(32, 32, 40, 0.86);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
+  animation-play-state: paused;
 }
 
-.sticker:focus-visible {
+/* While one card is open, the others step back. */
+.cards:has(.card-tilt:hover, .card-tilt[data-open])
+  .card-tilt:not(:hover):not([data-open]) {
+  opacity: 0.35;
+}
+
+/* The drawing behind a card. Faint at rest, a step brighter when the card opens. It fades
+ * out towards the left, so it never sits behind the words at full strength. */
+.card-art {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  color: rgba(255, 255, 255, 0.13);
+  mask-image: linear-gradient(to right, transparent 15%, #000 80%);
+  -webkit-mask-image: linear-gradient(to right, transparent 15%, #000 80%);
+  transition: color 220ms ease;
+}
+
+.card-tilt:hover .card-art,
+.card-tilt:has(:focus-visible) .card-art,
+.card-tilt[data-open] .card-art {
+  color: rgba(255, 255, 255, 0.16);
+}
+
+/* The title area is the card's link. Its ::after covers the whole card, so a click anywhere
+ * on the card follows it. The extra links in the preview sit above that cover. */
+.card-head {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px 13px 11px;
+  color: inherit;
+  text-decoration: none;
+  outline: none;
+}
+
+/* z-index 1 is what makes the whole card clickable. Without it the preview, which animates
+ * `translate` and so paints in its own layer, sat above this cover and caught every click
+ * on the lower part of the card. */
+.card-head::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+}
+
+/* On the card, not on the cover: the card clips its overflow, and an outline drawn outside
+ * the cover would be cut off. */
+.card:has(.card-head:focus-visible) {
   outline: 1px solid #5a5a6a;
   outline-offset: 3px;
 }
 
-.sticker:active {
-  scale: 0.98;
+.card-kind {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #5c5c65;
 }
 
-/* Two animations on one element, comma-separated: the fade is one-shot on arrival, the drift
- * runs forever. `--lag` is negative so each tag starts mid-circuit instead of every tag
- * setting off from zero together. */
-@keyframes rl-sticker {
+.card-title {
+  font-size: 14.5px;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+/* The preview. Its row grows from 0fr to 1fr, so it unfolds to the height of whatever it
+ * holds without a measured height in script. */
+.card-more {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 420ms cubic-bezier(0.34, 1.3, 0.64, 1);
+}
+
+.card-tilt:hover .card-more,
+.card-tilt:has(:focus-visible) .card-more,
+.card-tilt[data-open] .card-more {
+  grid-template-rows: 1fr;
+}
+
+.card-body {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* The preview sits above the card's cover so its links can be reached, and lets every other
+ * pointer event through to the cover underneath. The links take pointer events back. Raising
+ * the links alone did not work: the preview animates `translate`, so it is a stacking context
+ * of its own, and a z-index inside it cannot climb above the cover outside it. */
+.card-inner {
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
+  margin: 0 13px;
+  padding: 12px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  opacity: 0;
+  translate: 0 -4px;
+  transition:
+    opacity 160ms ease,
+    translate 160ms ease;
+}
+
+.card-tilt--up .card-inner {
+  border-top: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  translate: 0 4px;
+}
+
+.card-tilt:hover .card-inner,
+.card-tilt:has(:focus-visible) .card-inner,
+.card-tilt[data-open] .card-inner {
+  opacity: 1;
+  translate: 0 0;
+  transition:
+    opacity 260ms ease 90ms,
+    translate 260ms ease 90ms;
+}
+
+.card-figure {
+  font-size: 30px;
+  line-height: 1;
+  font-weight: 450;
+  letter-spacing: -0.024em;
+  font-variant-numeric: tabular-nums;
+  color: #ffffff;
+}
+
+.card-caption {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #9a9aa1;
+  white-space: normal;
+}
+
+/* Mono is for the kind label alone. The links are in the body face, so a paper title reads
+ * as a title and a host reads the same way beside it. */
+.card-links {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #c2c2c9;
+}
+
+.card-link {
+  pointer-events: auto;
+  align-self: flex-start;
+  color: #c2c2c9;
+  text-decoration: none;
+}
+
+.card-link:hover,
+.card-link:focus-visible {
+  color: #ffffff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Each card lands from in front of the page, out of focus, one after another. Filled
+ * backwards only: filled forwards it would hold `scale: 1`, and the hover lift would never
+ * show. */
+@keyframes rl-card {
   from {
     opacity: 0;
-    scale: 1.7;
+    scale: 1.5;
     filter: blur(10px);
   }
   to {
@@ -1767,60 +1955,83 @@ html.calm .chev {
 @keyframes rl-drift {
   0% {
     translate: 0 0;
-    rotate: var(--rot);
   }
   25% {
     translate: var(--dx) calc(var(--dy) * -1);
-    rotate: calc(var(--rot) + 1.1deg);
   }
   50% {
     translate: calc(var(--dx) * -0.55) calc(var(--dy) * -0.45);
-    rotate: calc(var(--rot) - 0.9deg);
   }
   75% {
     translate: calc(var(--dx) * -0.3) var(--dy);
-    rotate: calc(var(--rot) + 0.5deg);
   }
   100% {
     translate: 0 0;
-    rotate: var(--rot);
   }
 }
 
-/* The arrival fills backwards only. Filled forwards it would hold `scale: 1` for the life of
- * the tag, and an animation outranks a normal declaration, so the hover lift would never show.
- * Each tag lands from in front of the page, out of focus, one after another. */
-.sticker {
-  animation:
-    rl-sticker 900ms cubic-bezier(0.16, 1, 0.3, 1) calc(520ms + var(--n, 0) * 55ms) backwards,
-    rl-drift var(--dur, 20s) ease-in-out var(--lag, 0s) infinite;
-}
-
-html.calm .sticker {
+html.calm .card-tilt,
+html.calm .card {
   animation: none;
 }
-html.calm .sticker:hover,
-html.calm .sticker:focus-visible {
-  scale: 1;
+html.calm .card-tilt,
+html.calm .card-more,
+html.calm .card-inner {
+  transition: opacity 120ms ease;
 }
 
-/* Between 1000 and 1320 px the bands are narrow enough that the longest keywords reach the
- * heading. The whole set steps down rather than those two tags alone, so the arrangement keeps
- * one type size. */
-@media (max-width: 1320px) {
-  .sticker {
-    font-size: calc(var(--fs, 14.5px) * 0.88);
-    padding: 7px 11px;
-  }
+/* The rail: the same cards as one row under the suggestions, for screens too narrow for the
+ * side bands. It scrolls sideways, and a tap goes straight to the destination. */
+.card-rail {
+  display: none;
+  gap: 8px;
+  margin-top: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  /* Room for the focus outline, which overflow would otherwise clip. */
+  padding: 4px 2px;
+  /* The last card fades at the edge, which says the row goes on. */
+  mask-image: linear-gradient(to right, #000 88%, transparent);
+  -webkit-mask-image: linear-gradient(to right, #000 88%, transparent);
 }
 
-/* Below this width the side bands are narrower than the longest keyword, so a tag would have
- * to overlap the heading or be truncated. The keywords are texture, not content — a narrow
- * window loses them rather than getting a broken version of them. Measured, not guessed:
- * 1180 px is where "P2P sync and reorg handling" stops clearing the heading. */
-@media (max-width: 1180px) {
-  .stickers {
+.card-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.rail-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px 13px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  background: rgba(20, 20, 26, 0.55);
+  color: #9a9aa1;
+  text-decoration: none;
+}
+
+/* The same face as the figure in a card preview, at rail size. */
+.rail-figure {
+  font-size: 13px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: #ecedf1;
+}
+
+/* Below this width the side bands cannot hold a card without touching the composer, so the
+ * cards move into the rail. Measured: a 212 px card at 3% clears a 720 px column from
+ * 1280 px up. */
+@media (max-width: 1280px) {
+  .cards {
     display: none;
+  }
+  .card-rail {
+    display: flex;
   }
 }
 
@@ -1988,7 +2199,8 @@ html.calm .tilt {
  * lines off at its edge, and the text inside is lifted one step so it reads at a glance. */
 .app--mega .composer,
 .app--mega .chip,
-.app--mega .sticker,
+.app--mega .card,
+.app--mega .rail-card,
 .app--mega .user-bubble {
   background: rgba(9, 9, 11, 0.94);
   backdrop-filter: none;
@@ -2004,7 +2216,8 @@ html.calm .tilt {
   border-color: rgba(255, 255, 255, 0.7);
 }
 
-.app--mega .sticker {
+.app--mega .card,
+.app--mega .rail-card {
   color: #a4a4ad;
 }
 
@@ -2012,8 +2225,10 @@ html.calm .tilt {
   color: #c2c2c9;
 }
 
-.app--mega .sticker:hover,
-.app--mega .sticker:focus-visible,
+.app--mega .card-tilt:hover .card,
+.app--mega .card-tilt:has(:focus-visible) .card,
+.app--mega .card-tilt[data-open] .card,
+.app--mega .rail-card:hover,
 .app--mega .chip:hover {
   color: #ffffff;
   background: #16161a;
@@ -2136,7 +2351,8 @@ html[data-theme="light"] .wordmark--home:hover {
 
 html[data-theme="light"] .app--mega .composer,
 html[data-theme="light"] .app--mega .chip,
-html[data-theme="light"] .app--mega .sticker,
+html[data-theme="light"] .app--mega .card,
+html[data-theme="light"] .app--mega .rail-card,
 html[data-theme="light"] .app--mega .user-bubble {
   background: rgba(255, 255, 255, 0.94);
   border-color: rgba(0, 0, 0, 0.22);
@@ -2144,18 +2360,55 @@ html[data-theme="light"] .app--mega .user-bubble {
 html[data-theme="light"] .app--mega .composer:focus-within {
   border-color: rgba(0, 0, 0, 0.6);
 }
-html[data-theme="light"] .app--mega .sticker {
+html[data-theme="light"] .app--mega .card,
+html[data-theme="light"] .app--mega .rail-card {
   color: #55555d;
 }
 html[data-theme="light"] .app--mega .chip {
   color: #33333a;
 }
-html[data-theme="light"] .app--mega .sticker:hover,
-html[data-theme="light"] .app--mega .sticker:focus-visible,
+html[data-theme="light"] .app--mega .card-tilt:hover .card,
+html[data-theme="light"] .app--mega .card-tilt:has(:focus-visible) .card,
+html[data-theme="light"] .app--mega .card-tilt[data-open] .card,
+html[data-theme="light"] .app--mega .rail-card:hover,
 html[data-theme="light"] .app--mega .chip:hover {
   color: #000;
   background: #f0f0f3;
   border-color: rgba(0, 0, 0, 0.45);
+}
+/* The card preview is written in the dark palette above. These are the same steps on white. */
+html[data-theme="light"] .card-figure {
+  color: #000;
+}
+html[data-theme="light"] .card-caption {
+  color: #55555d;
+}
+html[data-theme="light"] .card-kind {
+  color: #8a8a93;
+}
+html[data-theme="light"] .card-links {
+  color: #33333a;
+}
+html[data-theme="light"] .card-link {
+  color: #33333a;
+}
+html[data-theme="light"] .card-link:hover,
+html[data-theme="light"] .card-link:focus-visible {
+  color: #000;
+}
+html[data-theme="light"] .card-inner {
+  border-color: rgba(0, 0, 0, 0.12);
+}
+html[data-theme="light"] .card-art {
+  color: rgba(0, 0, 0, 0.1);
+}
+html[data-theme="light"] .card-tilt:hover .card-art,
+html[data-theme="light"] .card-tilt:has(:focus-visible) .card-art,
+html[data-theme="light"] .card-tilt[data-open] .card-art {
+  color: rgba(0, 0, 0, 0.14);
+}
+html[data-theme="light"] .rail-figure {
+  color: #111114;
 }
 html[data-theme="light"] .app--mega .composer textarea::placeholder {
   color: #8a8a93;

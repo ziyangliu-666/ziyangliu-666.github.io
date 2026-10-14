@@ -29,7 +29,7 @@ import { Markdown } from "./markdown";
 import { unmark } from "./inline";
 import { sparkle } from "./sparkle";
 import { startFavicon } from "./favicon";
-import { Stickers } from "./Stickers";
+import { CardRail, Cards } from "./Cards";
 import { FLIP, startMegastructure, type FlipHooks, type Megastructure } from "./megastructure";
 import "./agent.css";
 
@@ -48,7 +48,7 @@ import "./agent.css";
  *
  * The middle two now name his largest pieces of work, SmartX, and FastMM with bndesk, its
  * dashboard, in place of "Walk me through his career" and "Show me some of his actual code". A
- * stranger can still ask them cold, because the names are on the page in the tags around the
+ * stranger can still ask them cold, because the names are on the page in the cards around the
  * field, and they lead straight to the work instead of to a tour of it. "Show me" is chosen on
  * purpose for the second: bndesk's answer carries its GIF recordings, and the question asks for
  * them. */
@@ -896,7 +896,7 @@ export default function ZiyangAgent({
 
       {!state.started ? (
         <main className="landing">
-          <Stickers onPick={(q) => void send(q)} />
+          <Cards />
 
           {/* One span per word, so each word can arrive on its own beat. The spaces stay
               real text nodes: a screen reader and a copy both get the sentence. */}
@@ -936,6 +936,7 @@ export default function ZiyangAgent({
                 ))}
               </div>
             )}
+            <CardRail />
           </div>
         </main>
       ) : (
