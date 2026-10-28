@@ -69,8 +69,8 @@ interface Card {
 
 type CardStyle = React.CSSProperties & Record<`--${string}`, string>;
 
-/* Five cards down the left of the centre column and four down the right. The left band is what
- * he builds now, the right band is what he built and found before. Cards in the lower half open
+/* Five cards down each side of the centre column. The left band is what he builds now, the
+ * right band is what he built and found before, down to the blog he kept as a student. Cards in the lower half open
  * upwards, so the preview never runs off the bottom of the page. */
 const SLOTS: Slot[] = [
   { x: 3, y: 10, rot: -5, depth: 0.6 },
@@ -79,10 +79,11 @@ const SLOTS: Slot[] = [
   { x: 4, y: 71, rot: 4, depth: 0.85 },
   { x: 3, y: 90, rot: -4, depth: 0.5 },
 
-  { x: 97, y: 12, rot: 5, depth: 0.85 },
-  { x: 95.5, y: 32, rot: -4, depth: 0.5 },
-  { x: 97.5, y: 68, rot: 3, depth: 1 },
-  { x: 96, y: 88, rot: -5, depth: 0.65 },
+  { x: 97, y: 10, rot: 5, depth: 0.85 },
+  { x: 95.5, y: 28, rot: -4, depth: 0.5 },
+  { x: 97.5, y: 47, rot: 3, depth: 1 },
+  { x: 96, y: 71, rot: -4, depth: 0.65 },
+  { x: 97, y: 90, rot: 4, depth: 0.55 },
 ];
 
 /* The figures come from the corpus notes and the résumé, not from memory. The Binance figures
@@ -103,7 +104,7 @@ const CARDS: Card[] = [
     art: "candles",
     title: "Binance liquidity provider",
     figure: "Top 5",
-    caption: "Maker on 5 tokenized US-equity pairs with 10k USD of capital, all on FastMM.",
+    caption: "Maker on 5 tokenized US-equity pairs, all on FastMM.",
     href: "https://www.linkedin.com/feed/update/urn:li:activity:7515643540148797440/",
   },
   {
@@ -173,6 +174,18 @@ const CARDS: Card[] = [
       { label: "Prime-race problems, solved", href: "https://zenodo.org/records/22537927" },
       { label: "Where random matrices miss", href: "https://zenodo.org/records/22537929" },
     ],
+  },
+  /* The oldest thing on the page, last in the band. Its blueprint is a memory, not a diagram:
+     see the student blog in blueprintScenes.ts. The count is the posts in its feed. */
+  {
+    kind: "2021–2022 · in Chinese",
+    art: "notes",
+    title: "His old blog",
+    figure: "48 posts",
+    caption: "His notes from 2021 and 2022: Spring, Redis, the JVM, blockchain and his first neural nets.",
+    href: "https://ziy.bio/comethx.github.io/",
+    // The host line would read "ziy.bio", the domain of this page, and say nothing.
+    links: [{ label: "Open the blog", href: "https://ziy.bio/comethx.github.io/" }],
   },
 ];
 

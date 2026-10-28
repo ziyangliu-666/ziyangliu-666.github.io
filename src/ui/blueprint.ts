@@ -22,7 +22,7 @@
 
 import type { Art } from "./cardArt";
 import { BOX_H, BOX_W, BUILD, Pen, type Scene, ez, win } from "./blueprintKit";
-import { SCENES } from "./blueprintScenes";
+import { type Drawn, SCENES } from "./blueprintScenes";
 import { drawSession } from "./lumenSession";
 import { SHOT, createLumen, type Lumen } from "./lumenSpace";
 import { calmMotion } from "./motion";
@@ -154,7 +154,7 @@ export function mountBlueprint(canvas: HTMLCanvasElement): () => void {
         lumen.draw(ctx, W, H, layer.t, layer.alpha, { ink, bg, dark: !light }, pointer, still);
         drawSession(ctx, sessionBox(), still ? 30 : layer.t, layer.alpha, { ink, bg, sans, mono });
       } else {
-        drawScene(SCENES[layer.art], layer);
+        drawScene(SCENES[layer.art as Drawn], layer);
       }
     }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -262,6 +262,8 @@ export function mountBlueprint(canvas: HTMLCanvasElement): () => void {
   };
 
   const open = (art: Art, el: Element) => {
+    // A card with nothing to draw leaves the page as it is.
+    if (art !== "lumen" && !(art in SCENES)) return engine?.hide();
     readTheme();
     anchor = el;
     held = el.getBoundingClientRect();

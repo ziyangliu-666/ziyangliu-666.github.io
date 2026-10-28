@@ -11,6 +11,8 @@
  *   papers     copy_grid: copy-as-decode against a normal model, pass by pass
  *   maths      the Schatten-limits preprint: p goes to infinity, Yp converges, and the limit
  *              is not the strict approximant
+ *   blog       his student blog, as a memory: who he was then, every post surfacing on a line
+ *              from 2021 to 2022, and the line going on to now
  *
  * Numbers that are facts come from the corpus notes, the résumé and the GIFs. Values that only
  * fill a field (an IP address, a fill time) are labelled illustrative, as the GIFs label them.
@@ -380,7 +382,7 @@ const binance: Scene = {
     const px = 790;
     pen.ink(lift(TXT, LIT, five));
     pen.text("MAKER ON 5 PAIRS", px, 96, { size: 11, p: grow(t, 0.9) });
-    pen.text("10K USD OF CAPITAL", px, 114, { size: 11, p: grow(t, 1.0) });
+    pen.text("ALL ON FASTMM", px, 114, { size: 11, p: grow(t, 1.0) });
     range(5).forEach((k) => {
       const y = 160 + k * 56;
       const gk = grow(t, 1.0 + k * 0.1);
@@ -1064,7 +1066,307 @@ const maths: Scene = {
   },
 };
 
-export const SCENES: Record<Exclude<Art, "lumen">, Scene> = {
+/* ---------------------------------------------------------------------------- student blog */
+
+/* The student blog as a memory: a stick figure walks the years he wrote it, and at each stop it
+   tries something and thinks. It reads (deep learning, blockchain), builds (Java, Spring),
+   looks further (Redis, the JVM, distributed systems), stands at a signpost and scratches its
+   head, and walks on to now. One arm of the signpost points back to the old blog. The words
+   in its thought bubbles are the subjects of his posts. Everything is in English, as the rest
+   of the page is, though the blog itself is in Chinese. The date in the corner walks with it,
+   from the first post to the last. */
+
+interface Pose {
+  /** Torso lean from upright, forward positive. */
+  lean: number;
+  /** Head tilt on top of the lean. */
+  head: number;
+  /** Thighs from straight down, forward positive: [near, far]. */
+  th: [number, number];
+  /** Knee bend: the shin swings back by this much. */
+  kn: [number, number];
+  /** Upper arms from straight down, forward positive. */
+  ua: [number, number];
+  /** Elbow bend: the forearm swings forward by this much. */
+  el: [number, number];
+  /** How far the hip sits above the ground. */
+  hip: number;
+}
+
+const STAND_HIP = 68;
+const THIGH = 34;
+const SHIN = 34;
+const TORSO = 54;
+const UPPER = 26;
+const FORE = 24;
+
+const pose = (p: Partial<Pose>): Pose => ({
+  lean: 0,
+  head: 0,
+  th: [0.06, -0.06],
+  kn: [0, 0],
+  ua: [0.12, -0.12],
+  el: [0.15, 0.15],
+  hip: STAND_HIP,
+  ...p,
+});
+
+const STAND = pose({});
+const THINK = pose({ lean: 0.04, head: 0.2, ua: [0.55, 0.25], el: [2.45, 1.45] });
+const SIT = pose({ lean: -0.05, head: 0.12, th: [1.45, 1.35], kn: [1.45, 1.3], ua: [0.6, 0.45], el: [1.2, 1.35], hip: 40 });
+const BEND = pose({ lean: 0.95, head: 0.3, th: [0.12, -0.04], kn: [0.25, 0.2], ua: [1.15, 1.0], el: [0.1, 0.1], hip: 64 });
+const LIFT = pose({ head: -0.2, ua: [2.75, 2.6], el: [0.15, 0.2] });
+const PLACE = pose({ lean: 0.12, head: 0.1, ua: [1.55, 1.45], el: [0.25, 0.25] });
+const LOOK = pose({ lean: 0.12, head: -0.3, th: [0.08, -0.1], ua: [1.75, 1.45], el: [0.9, 1.15] });
+const SCRATCH = pose({ lean: 0.02, head: 0.24, ua: [2.55, 0.2], el: [1.9, 0.25] });
+
+function walkPose(phase: number): Pose {
+  const s = Math.sin(phase);
+  return pose({
+    lean: 0.07,
+    th: [0.42 * s, -0.42 * s],
+    kn: [0.15 + 0.5 * Math.max(0, -s), 0.15 + 0.5 * Math.max(0, s)],
+    ua: [-0.35 * s, 0.35 * s],
+    el: [0.35, 0.35],
+    hip: STAND_HIP - 2.5 * Math.abs(Math.sin(phase * 2) * 0.5),
+  });
+}
+
+const mix = (a: Pose, b: Pose, k: number): Pose => {
+  const m = (x: number, y: number) => x + (y - x) * k;
+  return {
+    lean: m(a.lean, b.lean),
+    head: m(a.head, b.head),
+    th: [m(a.th[0], b.th[0]), m(a.th[1], b.th[1])],
+    kn: [m(a.kn[0], b.kn[0]), m(a.kn[1], b.kn[1])],
+    ua: [m(a.ua[0], b.ua[0]), m(a.ua[1], b.ua[1])],
+    el: [m(a.el[0], b.el[0]), m(a.el[1], b.el[1])],
+    hip: m(a.hip, b.hip),
+  };
+};
+
+/** Draws the figure standing on `ground` at `x`, facing right. Returns where its head and
+ *  hands are, for the props it holds. */
+function figure(pen: Pen, x: number, ground: number, p: Pose) {
+  const hip: P = [x, ground - p.hip];
+  const neck: P = [hip[0] + TORSO * Math.sin(p.lean), hip[1] - TORSO * Math.cos(p.lean)];
+  const tilt = p.lean + p.head;
+  const head: P = [neck[0] + 15 * Math.sin(tilt), neck[1] - 15 * Math.cos(tilt)];
+  const shoulder: P = [neck[0] - 5 * Math.sin(p.lean), neck[1] + 5 * Math.cos(p.lean)];
+  pen.line(hip[0], hip[1], neck[0], neck[1]);
+  pen.circle(head[0], head[1], 11);
+  const hands: P[] = [];
+  for (const i of [0, 1] as const) {
+    const knee: P = [hip[0] + THIGH * Math.sin(p.th[i]), hip[1] + THIGH * Math.cos(p.th[i])];
+    const shin = p.th[i] - p.kn[i];
+    const foot: P = [knee[0] + SHIN * Math.sin(shin), knee[1] + SHIN * Math.cos(shin)];
+    pen.poly([hip, knee, foot]);
+    const elbow: P = [shoulder[0] + UPPER * Math.sin(p.ua[i]), shoulder[1] + UPPER * Math.cos(p.ua[i])];
+    const fore = p.ua[i] + p.el[i];
+    const hand: P = [elbow[0] + FORE * Math.sin(fore), elbow[1] + FORE * Math.cos(fore)];
+    pen.poly([shoulder, elbow, hand]);
+    hands.push(hand);
+  }
+  return { head, hands: hands as [P, P] };
+}
+
+/** A thought: three rising dots and a bubble with words in it. */
+function thought(pen: Pen, head: P, words: string, a: number) {
+  if (a <= 0) return;
+  pen.ink(LINE * a);
+  pen.circle(head[0] + 14, head[1] - 16, 2);
+  pen.circle(head[0] + 22, head[1] - 27, 3);
+  pen.circle(head[0] + 32, head[1] - 40, 4);
+  const w = Math.max(30, pen.measure(words, 14) + 22);
+  const bx = Math.min(head[0] + 26, 980 - w);
+  const by = head[1] - 78;
+  const r = 13;
+  pen.ctx.beginPath();
+  pen.ctx.roundRect(bx, by, w, 28, r);
+  pen.ctx.stroke();
+  pen.ink(LIT * a).text(words, bx + w / 2, by + 14, { size: 14, align: "center" });
+}
+
+const GROUND = 440;
+
+/** The walk: where it stops, for how long, and what it does there. */
+const STOPS = [
+  { x: 130, from: 0.4, to: 2.6, act: "think", words: "?" },
+  { x: 300, from: 4.1, to: 6.8, act: "read", words: "CNN · GAN · blockchain" },
+  { x: 500, from: 8.3, to: 11.0, act: "build", words: "Java · Spring" },
+  { x: 680, from: 12.5, to: 15.0, act: "look", words: "Redis · JVM · distributed" },
+  { x: 840, from: 16.4, to: 19.0, act: "wonder", words: "Which way?" },
+] as const;
+const EXIT_AT = 19.0;
+const WALK_SPEED = 120;
+
+const DAY = 86400000;
+const day = (iso: string) => Date.parse(`${iso}T00:00:00Z`) / DAY;
+/** 2021.03.25: the date as an old camera stamps it. */
+const stamp = (d: number) => new Date(d * DAY).toISOString().slice(0, 10).replaceAll("-", ".");
+
+const BLOG_FIRST = day("2021-03-25");
+const BLOG_LAST = day("2022-05-26");
+
+const notes: Scene = {
+  title: "His old blog",
+  subtitle: "From his student days, 2021 to 2022",
+  period: 22,
+  steps: [
+    [0, "A student, mostly backend, thinking"],
+    [4.1, "Reading: deep learning, blockchain"],
+    [8.3, "Building: Java, the web, Spring"],
+    [12.5, "Looking further: Redis, the JVM, distributed systems"],
+    [16.4, "Finding the way"],
+    [EXIT_AT, "And on, to now"],
+  ],
+  draw(pen, t, L) {
+    /* Who he was then. In the past tense and dated: the blog's own front page says "I am a
+       student", and quoted as it stands, a visitor read it as who he is now. */
+    const who = grow(t, 0, 0.6);
+    pen.ink(LIT * 0.9).text("His old blog", 40, 64, { size: 22, p: who });
+    pen.ink(TXT).text("2021 to 2022, from his student days: mostly backend, some machine learning", 40, 96, {
+      size: 14,
+      p: who,
+    });
+
+    // The ground, the stops along it, and now at its end.
+    const g = grow(t, 0.2, 0.9);
+    pen.ink(LINE).line(20, GROUND, 980, GROUND, g);
+    pen.ink(DIM).dashed(950, GROUND - 160, 950, GROUND, g);
+    pen.ink(TXT).text("2026", 950, GROUND - 172, { size: 11, align: "center", p: g });
+
+    // Where it is and what it is doing.
+    let x: number = STOPS[0].x;
+    let p: Pose = STAND;
+    let stop = -1;
+    let k = 0;
+    let walked = 0;
+    for (let i = 0; i < STOPS.length; i++) {
+      const st = STOPS[i]!;
+      const prev = STOPS[i - 1];
+      const leave = prev ? prev.to : 0;
+      if (L >= leave && L < st.from && prev) {
+        const u = clamp01((L - leave) / (st.from - leave));
+        x = prev.x + (st.x - prev.x) * u;
+        walked = x;
+        p = walkPose(walked * 0.075);
+        stop = -1;
+        break;
+      }
+      if (L >= st.from && L < st.to) {
+        x = st.x;
+        stop = i;
+        k = L - st.from;
+        break;
+      }
+      if (i === STOPS.length - 1 && L >= st.to) {
+        x = st.x + (L - st.to) * WALK_SPEED;
+        p = walkPose(x * 0.075);
+        stop = -2;
+      }
+    }
+
+    // The props, drawn before the figure so it stands in front of them.
+    const books = grow(t, 0.4);
+    pen.ink(LINE);
+    pen.rect(268, GROUND - 13, 66, 13, books);
+    pen.rect(272, GROUND - 26, 58, 13, books);
+    pen.rect(266, GROUND - 39, 62, 13, books);
+
+    const placed = stop === 2 ? (k > 1.9 ? 3 : 2) : L >= STOPS[2].to ? 3 : 2;
+    for (let b = 0; b < placed; b++) pen.ink(LINE).rect(540, GROUND - 22 - b * 22, 22, 22, grow(t, 0.5));
+    // The block it will pick up waits on the ground, until it is picked up.
+    if (L < STOPS[2].from + 0.5) pen.ink(LINE).rect(512, GROUND - 22, 22, 22, grow(t, 0.55));
+
+    // The telescope on its tripod, and the sky it points at.
+    const tg = grow(t, 0.6);
+    pen.ink(LINE);
+    pen.line(712, GROUND - 92, 760, GROUND - 128, tg);
+    pen.line(700, GROUND - 83, 712, GROUND - 92, tg);
+    pen.line(730, GROUND - 106, 716, GROUND, tg);
+    pen.line(730, GROUND - 106, 744, GROUND, tg);
+    pen.line(730, GROUND - 106, 730, GROUND, tg);
+    const looking = stop === 3 ? held(k, 0.3, 2.3, 0.3) : 0;
+    [[790, 170], [840, 140], [880, 200], [810, 230], [905, 160], [760, 190]].forEach(([sx, sy], n) => {
+      const tw = 0.5 + 0.5 * Math.sin(t * 3 + n * 1.7);
+      pen.ink(lift(DIM, LIT, looking * tw)).disc(sx!, sy!, 1.6 + looking * tw);
+    });
+    if (looking > 0) {
+      const sh = clamp01((k - 1.0) / 0.6);
+      if (sh > 0 && sh < 1) pen.ink(LIT * (1 - sh)).line(860 + sh * 80, 120 + sh * 40, 860 + sh * 80 - 40, 120 + sh * 40 - 20);
+    }
+
+    // The signpost at the fork.
+    const sg = grow(t, 0.7);
+    const wondering = stop === 4 ? 1 : 0;
+    pen.ink(lift(LINE, LIT, wondering * 0.6));
+    pen.line(880, GROUND, 880, GROUND - 120, sg);
+    pen.poly([[880, GROUND - 112], [930, GROUND - 112], [940, GROUND - 102], [930, GROUND - 92], [880, GROUND - 92]], sg);
+    pen.poly([[880, GROUND - 84], [806, GROUND - 84], [796, GROUND - 74], [806, GROUND - 64], [880, GROUND - 64]], sg);
+    // One arm points on, to now. The other points back, to the old blog.
+    pen.ink(lift(TXT, LIT, wondering)).text("NOW", 906, GROUND - 102, { size: 11, align: "center", p: sg });
+    pen.text("MY OLD BLOG", 843, GROUND - 74, { size: 10, align: "center", p: sg });
+
+    // What it does at each stop.
+    if (stop >= 0) {
+      const st = STOPS[stop]!;
+      const span = st.to - st.from;
+      const into = Math.min(1, k / 0.35);
+      const outOf = Math.min(1, (span - k) / 0.35);
+      const blend = Math.min(into, outOf);
+      const walkIn = walkPose(x * 0.075);
+      let target: Pose = STAND;
+      if (st.act === "think") target = THINK;
+      if (st.act === "read") target = SIT;
+      if (st.act === "look") target = LOOK;
+      if (st.act === "wonder") {
+        target = { ...SCRATCH, el: [SCRATCH.el[0] + (k < 1.6 ? 0.25 * Math.sin(t * 16) : 0), SCRATCH.el[1]] };
+        if (k > 1.6) target = THINK;
+      }
+      if (st.act === "build") {
+        target = k < 0.8 ? BEND : k < 1.5 ? LIFT : k < 2.1 ? PLACE : THINK;
+      }
+      p = mix(walkIn, target, ez(blend));
+    }
+
+    pen.ink(LIT * grow(t, 0.3));
+    const fig = figure(pen, x, GROUND, p);
+
+    // What it holds.
+    if (stop === 1) {
+      // A book, open, its page turning now and then.
+      const [hx, hy] = fig.hands[0];
+      pen.ink(LIT * held(k, 0.4, 2.4, 0.2));
+      pen.rect(hx - 4, hy - 14, 26, 18);
+      const flip = (k * 1.2) % 1;
+      pen.line(hx + 9, hy - 14, hx + 9 + 12 * Math.cos(flip * Math.PI), hy - 14 - 4 * Math.sin(flip * Math.PI));
+    }
+    if (stop === 2 && k > 0.5 && k < 1.95) {
+      const [hx, hy] = fig.hands[0];
+      pen.ink(LIT).rect(hx - 11, hy - 22, 22, 22);
+    }
+
+    // What it thinks.
+    if (stop >= 0) {
+      const st = STOPS[stop]!;
+      const a = held(k, 0.5, st.to - st.from - 0.2, 0.3);
+      const words = st.act === "wonder" && k > 1.6 ? "!" : st.words;
+      thought(pen, fig.head, words, a);
+    }
+
+    // The date, stamped in the corner as an old camera stamps it, walking with the figure.
+    const u = clamp01(L / EXIT_AT);
+    const date = L >= EXIT_AT + 1.2 ? "2026" : stamp(BLOG_FIRST + (BLOG_LAST - BLOG_FIRST) * u);
+    pen.ink(lift(LINE, LIT, 0.75)).text(date, 960, 64, { size: 20, align: "right", p: grow(t, 0.3) });
+    pen.ink(DIM).text("48 POSTS, IN CHINESE", 40, 520, { size: 10, p: grow(t, 1.2) });
+  },
+};
+
+/** The cards that have a drawing. lumen shows its own page instead. */
+export type Drawn = Exclude<Art, "lumen">;
+
+export const SCENES: Record<Drawn, Scene> = {
   book: fastmm,
   candles: binance,
   desk: bndesk,
@@ -1073,4 +1375,5 @@ export const SCENES: Record<Exclude<Art, "lumen">, Scene> = {
   guest: vmtools,
   copy,
   matrix: maths,
+  notes,
 };

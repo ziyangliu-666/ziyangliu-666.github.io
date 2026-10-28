@@ -21,7 +21,8 @@ export type Art =
   | "guest"
   | "copy"
   | "matrix"
-  | "lumen";
+  | "lumen"
+  | "notes";
 
 const range = (n: number) => Array.from({ length: n }, (_, i) => i);
 
@@ -184,6 +185,20 @@ function Sphere() {
   );
 }
 
+/* The student blog: a stack of note pages, the top one written on. */
+function Notes() {
+  return (
+    <>
+      <rect x={140} y={30} width={74} height={100} rx={3} />
+      <rect x={132} y={24} width={74} height={100} rx={3} />
+      <rect x={124} y={18} width={74} height={100} rx={3} />
+      {range(7).map((i) => (
+        <line key={i} x1={134} y1={34 + i * 11} x2={188 - ((i * 17) % 26)} y2={34 + i * 11} />
+      ))}
+    </>
+  );
+}
+
 const DRAWINGS: Record<Art, () => React.ReactNode> = {
   book: Book,
   candles: Candles,
@@ -194,6 +209,7 @@ const DRAWINGS: Record<Art, () => React.ReactNode> = {
   copy: Copy,
   matrix: Matrix,
   lumen: Sphere,
+  notes: Notes,
 };
 
 export function CardArt({ art }: { art: Art }) {
