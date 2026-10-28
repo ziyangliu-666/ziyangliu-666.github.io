@@ -174,6 +174,8 @@ textarea {
 .app {
   min-height: 100vh;
   height: 100vh;
+  /* The visible viewport on a phone, not the one behind the address bar. */
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   background: var(--bg);
@@ -253,11 +255,27 @@ textarea {
   /* Containing block for the scattered keyword tags. */
   position: relative;
   flex: 1 1 auto;
+  /* The landing scrolls inside the app, which is one viewport tall and clips. On a phone the
+     cards are a column under the field, taller than the screen, and with the app clipping
+     and nothing scrolling, the column could not be reached. */
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   padding: 0 24px 8vh;
+}
+
+/* Centred while it fits, top-aligned once it does not. justify-content: center would push
+   the top of a tall column above the scroll origin, where no scroll can reach it; auto
+   margins share only the free space, and there is none once it overflows. */
+.landing > .h1 {
+  margin-top: auto;
+}
+
+.landing > .composer-wrap {
+  margin-bottom: auto;
 }
 
 .h1 {
