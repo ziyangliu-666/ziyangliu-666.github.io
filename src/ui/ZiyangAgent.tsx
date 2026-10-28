@@ -31,6 +31,7 @@ import { sparkle } from "./sparkle";
 import { startFavicon } from "./favicon";
 import { mountBlueprint } from "./blueprint";
 import { DarkHint } from "./DarkHint";
+import { Friends } from "./Friends";
 import { NameTail } from "./NameTail";
 import { CardDeck, Cards } from "./Cards";
 import { FLIP, startMegastructure, type FlipHooks, type Megastructure } from "./megastructure";
@@ -887,6 +888,7 @@ export default function ZiyangAgent({
               Protocol
             </a>
           )}
+          <Friends />
           {/* Last, and in the colour of the links, so it reads as part of the header and not
               as a control panel. */}
           <span className="theme-wrap">
