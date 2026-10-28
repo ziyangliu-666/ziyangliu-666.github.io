@@ -212,7 +212,8 @@ const DRAWINGS: Record<Art, () => React.ReactNode> = {
   notes: Notes,
 };
 
-export function CardArt({ art }: { art: Art }) {
+/** `align` "center" is for the deck on a phone, where the emblem fills a screen of its own. */
+export function CardArt({ art, align = "right" }: { art: Art; align?: "right" | "center" }) {
   const Drawing = DRAWINGS[art];
   return (
     <svg
@@ -221,7 +222,7 @@ export function CardArt({ art }: { art: Art }) {
       /* Pinned to the right and scaled whole, never cropped. On a closed card it is a small
          emblem at the right end; as the preview unfolds, it grows to fill the card. Cropping
          to fill showed a closed card only a middle strip of the drawing, which named nothing. */
-      preserveAspectRatio="xMaxYMid meet"
+      preserveAspectRatio={align === "center" ? "xMidYMid meet" : "xMaxYMid meet"}
       aria-hidden="true"
       fill="none"
       stroke="currentColor"

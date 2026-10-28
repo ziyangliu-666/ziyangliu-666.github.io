@@ -31,7 +31,8 @@ import { sparkle } from "./sparkle";
 import { startFavicon } from "./favicon";
 import { mountBlueprint } from "./blueprint";
 import { DarkHint } from "./DarkHint";
-import { CardRail, Cards } from "./Cards";
+import { NameTail } from "./NameTail";
+import { CardDeck, Cards } from "./Cards";
 import { FLIP, startMegastructure, type FlipHooks, type Megastructure } from "./megastructure";
 import "./agent.css";
 
@@ -916,7 +917,11 @@ export default function ZiyangAgent({
                 </span>{" "}
               </span>
             ))}
-            <span className="tilt">ZIYANG</span>
+            {/* The name and the words after it never break apart across lines. */}
+            <span className="h1-name">
+              <span className="tilt">ZIYANG</span>
+              <NameTail />
+            </span>
           </h1>
 
 
@@ -944,7 +949,7 @@ export default function ZiyangAgent({
                 ))}
               </div>
             )}
-            <CardRail />
+            <CardDeck />
           </div>
         </main>
       ) : (

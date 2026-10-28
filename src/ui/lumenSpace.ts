@@ -56,6 +56,8 @@ export interface Lumen {
     theme: Theme,
     pointer: { x: number; y: number; on: boolean },
     still: boolean,
+    /** Where the sphere stands, if not at the landing shot: the small player on a phone. */
+    shot?: { ax: number; ay: number; size: number },
   ): void;
 }
 
@@ -166,7 +168,8 @@ export function createLumen(): Lumen {
   const snap = (v: number) => Math.round(v / S) * S + S / 2;
 
   return {
-    draw(ctx, W, H, t, alpha, theme, pointer, still) {
+    draw(ctx, W, H, t, alpha, theme, pointer, still, shot) {
+      const at = shot ?? SHOT;
       const fresh = lastT < 0 || t < lastT;
       const dt = fresh ? 0.016 : Math.min(t - lastT, 0.064);
       if (fresh) {
@@ -241,9 +244,9 @@ export function createLumen(): Lumen {
       };
       const pos = { x: -fwd.x * cam.dist, y: -fwd.y * cam.dist, z: -fwd.z * cam.dist };
 
-      const cx = SHOT.ax * W;
-      const cy = SHOT.ay * H;
-      const restR = SHOT.size * H;
+      const cx = at.ax * W;
+      const cy = at.ay * H;
+      const restR = at.size * H;
       const focal = restR * Math.sqrt(SHOT.dist * SHOT.dist - 1);
       const R = focal / Math.sqrt(cam.dist * cam.dist - 1);
       const dark = theme.dark;

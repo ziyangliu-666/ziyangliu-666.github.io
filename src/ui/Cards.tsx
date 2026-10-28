@@ -36,6 +36,7 @@
 
 import { hideBlueprint, showBlueprint } from "./blueprint";
 import { type Art, CardArt } from "./cardArt";
+import { playInline } from "./inlinePlayer";
 import { calmMotion } from "./motion";
 import { useEffect, useRef, useState } from "react";
 import type React from "react";
@@ -250,6 +251,9 @@ function useParallax(container: React.RefObject<HTMLDivElement | null>) {
     cull();
     const ro = new ResizeObserver(cull);
     ro.observe(document.body);
+    // The heading changes width on its own as the words after the name take turns.
+    const h1 = document.querySelector(".h1");
+    if (h1) ro.observe(h1);
     /* The centre column arrives with a short rise, so the first measurement sees it a few
        pixels low. Measuring again when an arrival animation ends corrects that. */
     const landing = host.closest(".landing");
@@ -429,20 +433,104 @@ export function Cards() {
   );
 }
 
-/* Below the width that holds the side bands, the same cards become one row under the
- * suggestions, which scrolls sideways. There is no hover on most such screens, so a rail card
- * shows its figure at once and a tap goes straight to the destination. */
-export function CardRail() {
+/* Below the width that holds the side bands, the cards become a column under the suggestions,
+ * one card under another, and the page scrolls down through them. The card nearest the middle
+ * of the screen plays its drawing in its own screen, the same drawing a wide screen shows
+ * behind the page (inlinePlayer.ts), with the current step as a subtitle. The others show
+ * their still emblem. A tap opens the work, as a click does on a wide screen.
+ *
+ * It replaces a sideways row of small chips that cut their titles off and showed no drawing.
+ * A sideways deck came between the two, and it was the wrong axis: on a phone the thumb
+ * already scrolls down, and a second direction is one more thing to find.
+ *
+ * The player lives inside the card, so it moves with the scroll and has nothing to lag behind.
+ * The choice of card waits until the scroll has paused a moment, so a fast fling through the
+ * column does not start and stop ten players on the way. */
+export function CardDeck() {
+  const list = useRef<HTMLDivElement | null>(null);
+  const [active, setActive] = useState<number | null>(null);
+
+  useEffect(() => {
+    const el = list.current;
+    if (!el) return;
+    let timer = 0;
+    const pick = () => {
+      // Hidden, because the side bands are showing: nothing plays.
+      if (el.offsetParent === null) return setActive(null);
+      const mid = window.innerHeight / 2;
+      let best: number | null = null;
+      let bestScore = Infinity;
+      Array.from(el.children).forEach((child, i) => {
+        const r = child.getBoundingClientRect();
+        /* A card mostly on screen wins, nearest the middle first. Short of that, a card that
+           shows its screen at least: on a phone the first card is only half in view under
+           the suggestions, and a column that plays nothing until scrolled looks dead. */
+        const shown = (Math.min(r.bottom, window.innerHeight) - Math.max(r.top, 0)) / r.height;
+        if (shown < 0.4) return;
+        const score = (shown >= 0.6 ? 0 : 1e6) + Math.abs(r.top + r.height / 2 - mid);
+        if (score < bestScore) {
+          bestScore = score;
+          best = i;
+        }
+      });
+      setActive(best);
+    };
+    const onScroll = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(pick, 120);
+    };
+    pick();
+    // The page may scroll on the window or on a container; capture hears both.
+    window.addEventListener("scroll", onScroll, { passive: true, capture: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll, { capture: true });
+      window.removeEventListener("resize", onScroll);
+      window.clearTimeout(timer);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (active === null) return;
+    const card = list.current?.children[active] as HTMLElement | undefined;
+    const canvas = card?.querySelector<HTMLCanvasElement>(".deck-live");
+    const sub = card?.querySelector<HTMLElement>(".deck-sub");
+    if (!card || !canvas) return;
+    card.dataset.live = "";
+    const stop = playInline(canvas, CARDS[active]!.art, (caption) => {
+      if (sub) sub.textContent = caption;
+    });
+    return () => {
+      stop();
+      delete card.dataset.live;
+    };
+  }, [active]);
+
   return (
-    <div className="card-rail" aria-label="Highlights from his work">
-      {CARDS.map((card) => (
-        <Out className="rail-card" href={card.href} key={card.title}>
-          <CardArt art={card.art} />
-          <span className="card-kind">{card.kind}</span>
-          <span className="card-title">{card.title}</span>
-          <span className="rail-figure">{card.figure}</span>
-        </Out>
-      ))}
-    </div>
+    <section className="deck" aria-label="Highlights from his work">
+      <div className="deck-head">Highlights</div>
+      <div className="deck-list" ref={list}>
+        {CARDS.map((card) => (
+          <Out className="deck-card" href={card.href} key={card.title}>
+            <span className="deck-screen">
+              <CardArt art={card.art} align="center" />
+              <canvas className="deck-live" aria-hidden="true" />
+              <span className="deck-sub" aria-hidden="true" />
+            </span>
+            <span className="deck-meta">
+              <span className="deck-row">
+                <span className="card-kind">{card.kind}</span>
+                <span className="deck-figure">{card.figure}</span>
+              </span>
+              <span className="deck-title">
+                {card.title}
+                {"\u00a0↗"}
+              </span>
+              <span className="deck-caption">{card.caption}</span>
+            </span>
+          </Out>
+        ))}
+      </div>
+    </section>
   );
 }

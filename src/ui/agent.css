@@ -354,6 +354,84 @@ html.calm .tilt {
   background-color: #f4f4f6;
 }
 
+/* The words after the name (NameTail.tsx). A note on the name: smaller, lighter, grey, on
+ * the same baseline. Its width is set from script and slides, so the centred heading glides
+ * to its new place when the words change. */
+.h1-name {
+  white-space: nowrap;
+}
+
+.tail {
+  position: relative;
+  display: inline-block;
+  vertical-align: baseline;
+  font-size: 0.56em;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: #8a8a93;
+  white-space: nowrap;
+  transition: width 700ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* A hidden copy, only to be measured. The gap before the words is part of the width. */
+.tail-ghost {
+  position: absolute;
+  visibility: hidden;
+  padding-left: 0.45em;
+}
+
+/* The new words are in the flow, so the tail sits on the heading's baseline. The old words
+   lie over them while they leave. */
+.tail-text {
+  padding-left: 0.45em;
+}
+
+.tail-text--out {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.tail-ch {
+  display: inline-block;
+}
+
+.tail-text--in .tail-ch {
+  animation: tail-in 620ms cubic-bezier(0.16, 1, 0.3, 1) calc(160ms + var(--k) * 26ms) backwards;
+}
+
+.tail-text--out .tail-ch {
+  animation: tail-out 420ms cubic-bezier(0.4, 0, 1, 1) calc(var(--k) * 12ms) forwards;
+}
+
+@keyframes tail-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.45em);
+    filter: blur(6px);
+  }
+}
+
+@keyframes tail-out {
+  to {
+    opacity: 0;
+    transform: translateY(-0.45em);
+    filter: blur(6px);
+  }
+}
+
+html.calm .tail {
+  transition: none;
+}
+
+html.calm .tail-ch {
+  animation: none;
+}
+
+html[data-theme="light"] .tail {
+  color: #6a6a73;
+}
+
 .composer-wrap {
   width: 100%;
   max-width: 720px;
@@ -1984,58 +2062,159 @@ html.calm .card-inner {
   transition: opacity 120ms ease;
 }
 
-/* The rail: the same cards as one row under the suggestions, for screens too narrow for the
- * side bands. It scrolls sideways, and a tap goes straight to the destination. */
-.card-rail {
+/* The deck: the cards on screens too narrow for the side bands (Cards.tsx, CardDeck). One
+ * column, scrolled down. Each card is a screen that plays its drawing over a plate of words.
+ * Its edge, corners and type are the composer's and the chips', so the deck reads as part of
+ * the same column. */
+.deck {
   display: none;
-  gap: 8px;
-  margin-top: 6px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  /* Room for the focus outline, which overflow would otherwise clip. */
-  padding: 4px 2px;
-  /* The last card fades at the edge, which says the row goes on. */
-  mask-image: linear-gradient(to right, #000 88%, transparent);
-  -webkit-mask-image: linear-gradient(to right, #000 88%, transparent);
+  width: 100%;
+  margin-top: 26px;
+  animation: mg-rise 800ms cubic-bezier(0.16, 1, 0.3, 1) 1000ms backwards;
 }
 
-.card-rail::-webkit-scrollbar {
-  display: none;
+.deck-head {
+  margin: 0 2px 10px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
 }
 
-.rail-card {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  flex: 0 0 auto;
+.deck-list {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  padding: 10px 13px 11px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
-  background: rgba(20, 20, 26, 0.55);
-  color: #9a9aa1;
+  gap: 14px;
+}
+
+.deck-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 16px;
+  background: rgba(19, 19, 23, 0.6);
+  color: var(--muted);
   text-decoration: none;
 }
 
-/* The same face as the figure in a card preview, at rail size. */
-.rail-figure {
-  font-size: 13px;
+/* The screen keeps the drawings' own proportions, so nothing is cropped. */
+.deck-screen {
+  position: relative;
+  /* Its own stacking context, so the emblem (z-index -1 for the side cards) sits above the
+     card's plate and not under it. */
+  isolation: isolate;
+  display: block;
+  aspect-ratio: 1000 / 560;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.deck-screen .card-art,
+.deck-live {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.deck-screen .card-art {
+  inset: 18%;
+  width: 64%;
+  height: 64%;
+  mask-image: none;
+  -webkit-mask-image: none;
+  color: rgba(255, 255, 255, 0.22);
+  transition: opacity 300ms ease;
+}
+
+.deck-live {
+  opacity: 0;
+  transition: opacity 400ms ease;
+}
+
+.deck-card[data-live] .deck-live {
+  opacity: 1;
+}
+
+.deck-card[data-live] .card-art {
+  opacity: 0;
+}
+
+/* The current step of the drawing, as a subtitle. Written from the player, not from React. */
+.deck-sub {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* A ground that fades up into the drawing, so the subtitle never sits on its labels. */
+  padding: 16px 12px 9px;
+  background: linear-gradient(to top, rgba(9, 9, 11, 0.96) 50%, rgba(9, 9, 11, 0));
+  font-family: var(--mono);
+  font-size: 9.5px;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink);
+  opacity: 0.8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.deck-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 13px 15px 15px;
+}
+
+.deck-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.deck-figure {
+  font-size: 19px;
   line-height: 1;
+  font-weight: 450;
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
-  color: #ecedf1;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.deck-title {
+  font-size: 16px;
+  line-height: 1.2;
+  color: var(--ink);
+}
+
+.deck-caption {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+html.calm .deck {
+  animation: none;
 }
 
 /* Below this width the side bands cannot hold a card without touching the composer, so the
- * cards move into the rail. Measured: a 212 px card at 3% clears a 720 px column from
+ * cards move into the deck. Measured: a 212 px card at 3% clears a 720 px column from
  * 1280 px up. */
 @media (max-width: 1280px) {
   .cards {
     display: none;
   }
-  .card-rail {
-    display: flex;
+  .deck {
+    display: block;
   }
 }
 
@@ -2237,7 +2416,7 @@ html.calm .tilt {
 .app--mega .composer,
 .app--mega .chip,
 .app--mega .card,
-.app--mega .rail-card,
+.app--mega .deck-card,
 .app--mega .user-bubble {
   background: rgba(9, 9, 11, 0.94);
   backdrop-filter: none;
@@ -2254,7 +2433,7 @@ html.calm .tilt {
 }
 
 .app--mega .card,
-.app--mega .rail-card {
+.app--mega .deck-card {
   color: #a4a4ad;
 }
 
@@ -2265,7 +2444,6 @@ html.calm .tilt {
 .app--mega .card-tilt:hover .card,
 .app--mega .card-tilt:has(:focus-visible) .card,
 .app--mega .card-tilt[data-open] .card,
-.app--mega .rail-card:hover,
 .app--mega .chip:hover {
   color: #ffffff;
   background: #16161a;
@@ -2551,7 +2729,7 @@ html[data-theme="light"] .wordmark--home:hover {
 html[data-theme="light"] .app--mega .composer,
 html[data-theme="light"] .app--mega .chip,
 html[data-theme="light"] .app--mega .card,
-html[data-theme="light"] .app--mega .rail-card,
+html[data-theme="light"] .app--mega .deck-card,
 html[data-theme="light"] .app--mega .user-bubble {
   background: rgba(255, 255, 255, 0.94);
   border-color: rgba(0, 0, 0, 0.22);
@@ -2560,7 +2738,7 @@ html[data-theme="light"] .app--mega .composer:focus-within {
   border-color: rgba(0, 0, 0, 0.6);
 }
 html[data-theme="light"] .app--mega .card,
-html[data-theme="light"] .app--mega .rail-card {
+html[data-theme="light"] .app--mega .deck-card {
   color: #55555d;
 }
 html[data-theme="light"] .app--mega .chip {
@@ -2569,8 +2747,7 @@ html[data-theme="light"] .app--mega .chip {
 html[data-theme="light"] .app--mega .card-tilt:hover .card,
 html[data-theme="light"] .app--mega .card-tilt:has(:focus-visible) .card,
 html[data-theme="light"] .app--mega .card-tilt[data-open] .card,
-html[data-theme="light"] .app--mega .rail-card:hover,
-html[data-theme="light"] .app--mega .chip:hover {
+html[data-theme="light"] html[data-theme="light"] .app--mega .chip:hover {
   color: #000;
   background: #f0f0f3;
   border-color: rgba(0, 0, 0, 0.45);
@@ -2606,8 +2783,14 @@ html[data-theme="light"] .card-tilt:has(:focus-visible) .card-art,
 html[data-theme="light"] .card-tilt[data-open] .card-art {
   color: rgba(0, 0, 0, 0.14);
 }
-html[data-theme="light"] .rail-figure {
-  color: #111114;
+html[data-theme="light"] .deck-sub {
+  background: linear-gradient(to top, rgba(255, 255, 255, 0.96) 50%, rgba(255, 255, 255, 0));
+}
+html[data-theme="light"] .deck-screen {
+  border-color: rgba(0, 0, 0, 0.1);
+}
+html[data-theme="light"] .deck-screen .card-art {
+  color: rgba(0, 0, 0, 0.22);
 }
 html[data-theme="light"] .app--mega .composer textarea::placeholder {
   color: #8a8a93;
