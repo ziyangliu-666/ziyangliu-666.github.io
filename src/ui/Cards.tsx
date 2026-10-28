@@ -34,6 +34,7 @@
  * a card when it would touch the centre column.
  */
 
+import { hideBlueprint, showBlueprint } from "./blueprint";
 import { type Art, CardArt } from "./cardArt";
 import { calmMotion } from "./motion";
 import { useEffect, useRef, useState } from "react";
@@ -68,14 +69,15 @@ interface Card {
 
 type CardStyle = React.CSSProperties & Record<`--${string}`, string>;
 
-/* Four cards down each side of the centre column. The left band is what he builds now, the
- * right band is what he built and found before. Cards in the lower half open upwards, so the
- * preview never runs off the bottom of the page. */
+/* Five cards down the left of the centre column and four down the right. The left band is what
+ * he builds now, the right band is what he built and found before. Cards in the lower half open
+ * upwards, so the preview never runs off the bottom of the page. */
 const SLOTS: Slot[] = [
-  { x: 3, y: 12, rot: -5, depth: 0.6 },
-  { x: 4.5, y: 32, rot: 4, depth: 1 },
-  { x: 2.5, y: 68, rot: -3, depth: 0.75 },
-  { x: 4, y: 88, rot: 5, depth: 0.5 },
+  { x: 3, y: 10, rot: -5, depth: 0.6 },
+  { x: 4.5, y: 28, rot: 4, depth: 1 },
+  { x: 2.5, y: 47, rot: -3, depth: 0.75 },
+  { x: 4, y: 71, rot: 4, depth: 0.85 },
+  { x: 3, y: 90, rot: -4, depth: 0.5 },
 
   { x: 97, y: 12, rot: 5, depth: 0.85 },
   { x: 95.5, y: 32, rot: -4, depth: 0.5 },
@@ -112,6 +114,14 @@ const CARDS: Card[] = [
     caption: "A real-time desk for market making on Binance. It holds no keys that can trade.",
     href: "https://ziy.bio/bndesk/",
     links: [{ label: "github.com", href: "https://github.com/ziyangliu-666/bndesk" }],
+  },
+  {
+    kind: "TypeScript · agents",
+    art: "lumen",
+    title: "lumen",
+    figure: "On its own",
+    caption: "An AI that does research in mathematics while you watch and steer it.",
+    href: "https://github.com/ziyangliu-666/lumen-next",
   },
   {
     kind: "macOS · Windows",
@@ -314,6 +324,16 @@ export function Cards() {
     return () => document.removeEventListener("pointerdown", close);
   }, [open]);
 
+  /* A tapped card shows its blueprint too, since a touch screen has no hover to start it. */
+  useEffect(() => {
+    const el = open === null ? null : document.querySelector(".card-tilt[data-open]");
+    if (el && open !== null) showBlueprint(CARDS[open]!.art, el);
+    else hideBlueprint();
+  }, [open]);
+
+  // The landing goes when a conversation starts, and its blueprint goes with it.
+  useEffect(() => hideBlueprint, []);
+
   return (
     <div className="cards" ref={field} aria-label="Highlights from his work">
       {CARDS.map((card, i) => {
@@ -345,6 +365,21 @@ export function Cards() {
               className={up ? "card-tilt card-tilt--up" : "card-tilt"}
               style={tilt}
               data-open={open === i ? "" : undefined}
+              /* The blueprint behind the page follows the same three ways a card opens: the
+                 pointer, keyboard focus, and a tap (the effect above). */
+              onPointerEnter={(e) => {
+                if (e.pointerType !== "touch") showBlueprint(card.art, e.currentTarget);
+              }}
+              onPointerLeave={(e) => {
+                if (e.pointerType !== "touch") hideBlueprint();
+              }}
+              onFocus={(e) => {
+                if (e.target.matches(":focus-visible")) showBlueprint(card.art, e.currentTarget);
+              }}
+              onBlur={(e) => {
+                // Focus moving to another link on the same card keeps the drawing.
+                if (!e.currentTarget.contains(e.relatedTarget)) hideBlueprint();
+              }}
             >
               <div className="card" style={drift(i)}>
                 <CardArt art={card.art} />

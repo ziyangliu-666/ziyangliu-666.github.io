@@ -29,6 +29,8 @@ import { Markdown } from "./markdown";
 import { unmark } from "./inline";
 import { sparkle } from "./sparkle";
 import { startFavicon } from "./favicon";
+import { mountBlueprint } from "./blueprint";
+import { DarkHint } from "./DarkHint";
 import { CardRail, Cards } from "./Cards";
 import { FLIP, startMegastructure, type FlipHooks, type Megastructure } from "./megastructure";
 import "./agent.css";
@@ -678,6 +680,8 @@ export default function ZiyangAgent({
   const appRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const { engine, mega, intro } = useMegastructure(canvasRef);
+  const blueprintRef = useRef<HTMLCanvasElement | null>(null);
+  useEffect(() => (blueprintRef.current ? mountBlueprint(blueprintRef.current) : undefined), []);
   const { theme, toggle } = useTheme(engine);
   const busyRef = useRef(false);
   const [override, setOverride] = useState<Transport | null>(null);
@@ -815,6 +819,7 @@ export default function ZiyangAgent({
       ref={appRef}
     >
       <canvas className="mega" ref={canvasRef} aria-hidden="true" />
+      <canvas className="blueprint" ref={blueprintRef} aria-hidden="true" />
       {intro === "in" && (
         <>
       <header className="hdr">
@@ -883,14 +888,17 @@ export default function ZiyangAgent({
           )}
           {/* Last, and in the colour of the links, so it reads as part of the header and not
               as a control panel. */}
-          <button
-            className="theme-btn"
-            onClick={toggle}
-            aria-label={theme === "light" ? "Switch to dark theme" : "Switch to light theme"}
-            title={theme === "light" ? "Dark theme" : "Light theme"}
-          >
-            <ThemeIcon theme={theme} />
-          </button>
+          <span className="theme-wrap">
+            <button
+              className="theme-btn"
+              onClick={toggle}
+              aria-label={theme === "light" ? "Switch to dark theme" : "Switch to light theme"}
+              title={theme === "light" ? "Dark theme" : "Light theme"}
+            >
+              <ThemeIcon theme={theme} />
+            </button>
+            <DarkHint theme={theme} onSwitch={toggle} />
+          </span>
         </nav>
       </header>
 

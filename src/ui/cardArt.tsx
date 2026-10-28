@@ -12,7 +12,16 @@
 
 import type React from "react";
 
-export type Art = "book" | "candles" | "desk" | "wave" | "migrate" | "guest" | "copy" | "matrix";
+export type Art =
+  | "book"
+  | "candles"
+  | "desk"
+  | "wave"
+  | "migrate"
+  | "guest"
+  | "copy"
+  | "matrix"
+  | "lumen";
 
 const range = (n: number) => Array.from({ length: n }, (_, i) => i);
 
@@ -149,6 +158,32 @@ function Matrix() {
   );
 }
 
+/* lumen: its halftone sphere. Dots on a fixed grid, larger where the sun falls, the one
+   drawing here that is filled, because a halftone is made of filled dots. */
+function Sphere() {
+  const dots: React.ReactNode[] = [];
+  const cx = 176;
+  const cy = 80;
+  const r = 58;
+  for (let y = cy - r; y <= cy + r; y += 8) {
+    for (let x = cx - r; x <= cx + r; x += 8) {
+      const nx = (x - cx) / r;
+      const ny = (y - cy) / r;
+      const q = nx * nx + ny * ny;
+      if (q > 1) continue;
+      const lit = Math.max(0, 0.75 * nx - 0.45 * ny + 0.5 * Math.sqrt(1 - q));
+      const rad = 3.4 * Math.sqrt(Math.min(1, lit));
+      if (rad > 0.5) dots.push(<circle key={`${x},${y}`} cx={x} cy={y} r={rad} fill="currentColor" stroke="none" />);
+    }
+  }
+  return (
+    <>
+      {dots}
+      <ellipse cx={cx} cy={cy} rx={88} ry={16} strokeDasharray="1 5" transform={`rotate(-12 ${cx} ${cy})`} />
+    </>
+  );
+}
+
 const DRAWINGS: Record<Art, () => React.ReactNode> = {
   book: Book,
   candles: Candles,
@@ -158,6 +193,7 @@ const DRAWINGS: Record<Art, () => React.ReactNode> = {
   guest: Guest,
   copy: Copy,
   matrix: Matrix,
+  lumen: Sphere,
 };
 
 export function CardArt({ art }: { art: Art }) {
