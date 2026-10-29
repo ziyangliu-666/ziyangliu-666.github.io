@@ -9,8 +9,8 @@ Ziyang Liu (刘子阳) is a software engineer who spent three years on productio
 virtualization at SmartX, then moved into LLM systems research. He is based in
 Singapore, where he started a one-year M.Tech. in Software Engineering at the National
 University of Singapore in August 2026. Since September 2026 he has also been building
-[FastMM](https://github.com/ziyangliu-666/FastMM), a market-making engine in C++20. He
-expects to finish the degree around late August or September 2027. Before that he took a B.Eng. in Software Engineering at the University of
+[FastMM](https://github.com/ziyangliu-666/FastMM), a market-making engine in C++20. The
+degree is conferred in November 2027. Before that he took a B.Eng. in Software Engineering at the University of
 Electronic Science and Technology of China, in Chengdu, graduating June 2024.
 
 He is reachable at ziyang.liu.r@outlook.com, on GitHub as
@@ -50,7 +50,7 @@ published the smaller, honest number.
 | When | What |
 |---|---|
 | Aug 2026 – Nov 2027 | M.Tech. in Software Engineering, National University of Singapore |
-| Mar 2027 – Jul 2027 | NUS internship placement, 20 weeks — the degree's capstone |
+| Mar 2027 – Nov 2027 | NUS internship placement, at least 20 weeks and up to November — the degree's capstone |
 | Sep 2026 – now | FastMM — maintainer, market-making engine in C++20 |
 | Sep 2025 – Aug 2026 | HKUST (Guangzhou) — researcher |
 | Jul 2024 – Sep 2025 | SmartX — Virtualization R&D Engineer, Chengdu |
@@ -68,20 +68,22 @@ placement built into it.
 | First day of class | 17 August 2026 |
 | Coursework, first block | August to November 2026 |
 | Coursework, second block | January to March 2027 |
-| **Internship placement, 20 weeks** | **March to July or August 2027** |
-| Finishes | November 2027 |
+| **Internship placement, at least 20 weeks** | **March 2027, and it can run to November 2027** |
+| Degree conferred | November 2027 |
 
 The internship is the capstone of the degree, not an optional extra. NUS-ISS collects
 project proposals from industry between September 2026 and January 2027, and students are
 encouraged to bring their own. Both an NUS-ISS supervisor and a supervisor at the host
 company grade it, and he cannot graduate without passing it.
 
-So he is looking for a placement that starts in March 2027 and runs 20 weeks, and the
-proposal for it has to be agreed by January 2027. Before March he is in coursework: the
+So he is looking for a placement that starts in March 2027. It runs at least 20 weeks, and it
+can continue to November 2027, when the degree is conferred. The proposal for it has to be
+agreed by January 2027. Before March he is in coursework: the
 University expects at least 40 hours of study a week during those blocks and discourages
 outside employment, so March 2027 is the first date he can start.
 
-His résumé gives the programme end date as November 2027.
+His résumé gives the programme end date as November 2027. That is when the degree is
+conferred, so a placement can run until then without a gap.
 
 Degree structure, 50 to 51 units: two compulsory Graduate Certificates, two chosen from
 five, and the capstone.

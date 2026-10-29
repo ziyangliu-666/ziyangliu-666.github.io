@@ -56,12 +56,22 @@ import "./agent.css";
  * stranger can still ask them cold, because the names are on the page in the cards around the
  * field, and they lead straight to the work instead of to a tour of it. "Show me" is chosen on
  * purpose for the second: bndesk's answer carries its GIF recordings, and the question asks for
- * them. */
+ * them.
+ *
+ * The question log (npm run asks in proxy/) settled the rest. Most visitors click one opener
+ * and leave, and "Who is Ziyang?" is clicked most, so it comes first and its answer opens with
+ * his intro animation. "What is he researching?" was clicked least, and the cards around the
+ * field already name every paper, so it gives its place to the question a recruiter needs
+ * answered before any other: when he can start, and for what.
+ *
+ * "Show me FastMM and bndesk." became the question the log showed a visitor actually typing:
+ * is the live record real, and where can it be checked. Its answer carries the Binance weekly
+ * report and the bndesk recording, so it shows both and proves the first. */
 const SEED_QUESTIONS = [
   "Who is Ziyang?",
+  "When is he available, and for what?",
+  "How does FastMM do in live trading?",
   "What did he build at SmartX?",
-  "Show me FastMM and bndesk.",
-  "What is he researching?",
 ];
 
 const HEADING = ["Ask", "anything", "about"];

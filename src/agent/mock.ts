@@ -31,6 +31,29 @@ interface Run {
 
 const RUNS: Run[] = [
   {
+    k: ["who is", "who's", "about him", "是谁", "介绍"],
+    reasoning: "A broad opener: the whole arc, briefly, with his intro animation first.",
+    steps: [{ name: "retrieve", args: "index:profile + resume", result: "2 documents" }],
+    text:
+      "![Ziyang Liu in five episodes: UESTC, ByteDance, SmartX, FastMM, and research with agents](/media/intro.webp)\n\nZiyang Liu is a software engineer in Singapore, on a one-year M.Tech. in Software Engineering at NUS since August 2026. Before that he spent three years at SmartX on production virtualization, where he owned V2V OS, the product that has moved 10,000+ production VMs off VMware. Then a year of LLM systems research at HKUST (Guangzhou), and since September 2026 FastMM, a market-making engine in C++20.",
+    sources: [
+      { label: "resume.pdf", url: "/resume.pdf" },
+      { label: "github.com/ziyangliu-666", url: "https://github.com/ziyangliu-666" },
+    ],
+    suggestions: ["When is he available, and for what?", "Show me FastMM and bndesk."],
+    usage: { model: "offline demo", inputTokens: 5210, outputTokens: 120 },
+  },
+  {
+    k: ["when is he available", "when can he start", "start", "placement", "intern", "什么时候", "实习"],
+    reasoning: "Dates from the profile note, not from memory.",
+    steps: [{ name: "retrieve", args: "index:profile", result: "When he is available" }],
+    text:
+      "He is in coursework at NUS until March 2027, so March 2027 is the first date he can start. He is looking for an internship placement from March 2027. It runs at least 20 weeks and can continue to November 2027, when his M.Tech. is conferred. It is the capstone of the degree, and the proposal for it has to be agreed by January 2027.\n\nEmail is the fastest path: ziyang.liu.r@outlook.com.",
+    sources: [{ label: "Who Ziyang Liu is" }],
+    suggestions: ["Show me FastMM and bndesk.", "What did he build at SmartX?"],
+    usage: { model: "offline demo", inputTokens: 2310, outputTokens: 90 },
+  },
+  {
     k: ["built", "build", "projects", "shipped", "ship", "做过", "项目"],
     reasoning:
       "The question is broad, so breadth first: rank by what actually shipped and what it was trusted with, then read the résumé and the project note in parallel rather than guessing from titles.",

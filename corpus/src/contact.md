@@ -7,13 +7,13 @@ kind: profile
   within a day.
 - **GitHub** — [github.com/ziyangliu-666](https://github.com/ziyangliu-666)
 - **LinkedIn** — [linkedin.com/in/ziyangliu666](https://www.linkedin.com/in/ziyangliu666)
-- **Résumé** — the PDF linked in this page's header, English. A Chinese version exists;
-  ask and he will send it.
+- **Résumé** — the Resume menu in this page's header opens both PDFs, English
+  ([/resume.pdf](/resume.pdf)) and Chinese ([/resume-zh.pdf](/resume-zh.pdf)).
 - **Phone** — on the résumé.
 - **Location** — Singapore, since August 2026. Before that, Chengdu, China.
-- **Availability** — his M.Tech. runs one year from August 2026 and includes a 20-week
-  internship placement from March to July or August 2027, which is the degree's capstone.
-  He finishes around late August or September 2027. Proposals for the placement are agreed
-  by January 2027.
+- **Availability** — his M.Tech. runs from August 2026 and includes an internship placement,
+  which is the degree's capstone. It starts in March 2027, runs at least 20 weeks, and can
+  continue to November 2027, when the degree is conferred. Proposals for the placement are
+  agreed by January 2027.
 
 He reads English and Chinese; write in whichever you prefer.

@@ -367,7 +367,7 @@ const binance: Scene = {
 
     // The legend.
     const lg = grow(t, 0.8);
-    pen.ink(DIM).text("WEEK TO 19 OCT 2026", 980, 452, { size: 10, align: "right", p: lg });
+    pen.ink(DIM).text("WEEK OF 12–18 OCT 2026", 980, 452, { size: 10, align: "right", p: lg });
     pen.ink(LIT).line(x0, 478, x0 + 22, 478, lg);
     pen.ink(TXT).text("PRICE", x0 + 30, 478, { size: 10, p: lg });
     pen.ink(LINE).line(x0 + 100, 478, x0 + 122, 478, lg);
@@ -379,7 +379,7 @@ const binance: Scene = {
     pen.ink(DIM).text("ILLUSTRATIVE PRICES", x1, 478, { size: 10, align: "right", p: lg });
 
     /* The book he quotes: 77 tokenized US stocks. Shown are five of his best ranks by maker
-       volume in the week to 19 Oct 2026, from the program's weekly report. The first lane is
+       volume in the week of 12–18 Oct 2026, from the program's weekly report. The first lane is
        the chart; the others fill at their own pace. */
     const five = held(L, 6.6, 9.8, 0.4);
     const px = 790;
