@@ -309,7 +309,7 @@ const binance: Scene = {
   steps: [
     [0, "Quote both sides around the price"],
     [3.2, "A fill when the price reaches a quote"],
-    [6.6, "Five pairs, one engine"],
+    [6.6, "77 stocks, one engine: top 5 on 24"],
   ],
   draw(pen, t, L) {
     const { x0, x1, top, bottom } = CHART;
@@ -367,6 +367,7 @@ const binance: Scene = {
 
     // The legend.
     const lg = grow(t, 0.8);
+    pen.ink(DIM).text("WEEK TO 19 OCT 2026", 980, 452, { size: 10, align: "right", p: lg });
     pen.ink(LIT).line(x0, 478, x0 + 22, 478, lg);
     pen.ink(TXT).text("PRICE", x0 + 30, 478, { size: 10, p: lg });
     pen.ink(LINE).line(x0 + 100, 478, x0 + 122, 478, lg);
@@ -377,17 +378,27 @@ const binance: Scene = {
     pen.ink(TXT).text("SELL FILL", x0 + 310, 478, { size: 10, p: lg });
     pen.ink(DIM).text("ILLUSTRATIVE PRICES", x1, 478, { size: 10, align: "right", p: lg });
 
-    // Five pairs. The first is the chart; the others fill at their own pace.
+    /* The book he quotes: 77 tokenized US stocks. Shown are five of his best ranks by maker
+       volume in the week to 19 Oct 2026, from the program's weekly report. The first lane is
+       the chart; the others fill at their own pace. */
     const five = held(L, 6.6, 9.8, 0.4);
     const px = 790;
     pen.ink(lift(TXT, LIT, five));
-    pen.text("MAKER ON 5 PAIRS", px, 96, { size: 11, p: grow(t, 0.9) });
-    pen.text("ALL ON FASTMM", px, 114, { size: 11, p: grow(t, 1.0) });
-    range(5).forEach((k) => {
+    pen.text("77 TOKENIZED STOCKS", px, 96, { size: 11, p: grow(t, 0.9) });
+    pen.text("TOP 5 ON 24 OF THEM", px, 114, { size: 11, p: grow(t, 1.0) });
+    const lanes: [string, string][] = [
+      ["ASTS", "#1"],
+      ["PYPL", "#1"],
+      ["ARM", "#2"],
+      ["ASML", "#2"],
+      ["CRDO", "#2"],
+    ];
+    lanes.forEach(([sym, rank], k) => {
       const y = 160 + k * 56;
       const gk = grow(t, 1.0 + k * 0.1);
       pen.ink(lift(LINE, LIT, k === 0 ? 0.6 : five)).rect(px, y - 18, 190, 40, gk);
-      pen.ink(TXT).text(`PAIR ${k + 1}`, px + 10, y - 6, { size: 10, p: gk });
+      pen.ink(TXT).text(sym, px + 10, y - 6, { size: 10, p: gk });
+      pen.ink(lift(TXT, LIT, five)).text(rank, px + 180, y - 6, { size: 10, align: "right", p: gk });
       const n = k === 0 ? fills : Math.floor((fills * (0.55 + hash(k) * 0.6)) | 0);
       for (let d = 0; d < Math.min(n, 28); d++) {
         const dx = px + 12 + d * 6.2;

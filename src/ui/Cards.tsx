@@ -88,7 +88,10 @@ const SLOTS: Slot[] = [
 ];
 
 /* The figures come from the corpus notes and the résumé, not from memory. The Binance figures
- * come from his own public LinkedIn post about 12 October 2026, and the card links that post. */
+ * come from his Spot Liquidity Provider Program weekly report for the week to 19 October 2026:
+ * maker on 77 tokenized US stocks, top 5 by maker volume on 24 of them. The card links his
+ * public LinkedIn post about the program. No amounts: he does not publish his capital or his
+ * volume. */
 const CARDS: Card[] = [
   // Left band.
   {
@@ -105,7 +108,8 @@ const CARDS: Card[] = [
     art: "candles",
     title: "Binance liquidity provider",
     figure: "Top 5",
-    caption: "Maker on 5 tokenized US-equity pairs, all on FastMM.",
+    // "Top 5" alone, then "maker on 5 pairs", read as five pairs in all. Say what the 5 ranks.
+    caption: "By maker volume, on 24 of the 77 tokenized US stocks he quotes on Binance. Week to 19 Oct 2026, all on FastMM.",
     href: "https://www.linkedin.com/feed/update/urn:li:activity:7515643540148797440/",
   },
   {
