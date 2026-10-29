@@ -32,6 +32,7 @@ import { startFavicon } from "./favicon";
 import { mountBlueprint } from "./blueprint";
 import { DarkHint } from "./DarkHint";
 import { Friends } from "./Friends";
+import { Resume } from "./Resume";
 import { NameTail } from "./NameTail";
 import { CardDeck, Cards } from "./Cards";
 import { FLIP, startMegastructure, type FlipHooks, type Megastructure } from "./megastructure";
@@ -859,10 +860,8 @@ export default function ZiyangAgent({
             </span>
           )}
           {/* Plain "Resume", as the design has it. The accents read as noise beside
-              "GitHub" and "LinkedIn" at 13.5px. */}
-          <a href="/resume.pdf" target="_blank" rel="noreferrer">
-            Resume
-          </a>
+              "GitHub" and "LinkedIn" at 13.5px. It opens both résumés, English and Chinese. */}
+          <Resume />
           <a
             href="https://github.com/ziyangliu-666"
             target="_blank"
