@@ -303,13 +303,13 @@ const FILLS: Fill[] = (() => {
 })();
 
 const binance: Scene = {
-  title: "Binance liquidity provider",
+  title: "Binance spot market maker",
   subtitle: "Quotes on both sides, all day",
   period: 10,
   steps: [
     [0, "Quote both sides around the price"],
     [3.2, "A fill when the price reaches a quote"],
-    [6.6, "77 stocks, one engine: top 5 on 24"],
+    [6.6, "Tier 4, the program's top tier"],
   ],
   draw(pen, t, L) {
     const { x0, x1, top, bottom } = CHART;
@@ -367,7 +367,7 @@ const binance: Scene = {
 
     // The legend.
     const lg = grow(t, 0.8);
-    pen.ink(DIM).text("WEEK OF 12–18 OCT 2026", 980, 452, { size: 10, align: "right", p: lg });
+    pen.ink(DIM).text("TIER 4 SINCE 19–25 OCT 2026", 980, 452, { size: 10, align: "right", p: lg });
     pen.ink(LIT).line(x0, 478, x0 + 22, 478, lg);
     pen.ink(TXT).text("PRICE", x0 + 30, 478, { size: 10, p: lg });
     pen.ink(LINE).line(x0 + 100, 478, x0 + 122, 478, lg);
@@ -378,14 +378,16 @@ const binance: Scene = {
     pen.ink(TXT).text("SELL FILL", x0 + 310, 478, { size: 10, p: lg });
     pen.ink(DIM).text("ILLUSTRATIVE PRICES", x1, 478, { size: 10, align: "right", p: lg });
 
-    /* The book he quotes: 77 tokenized US stocks. Shown are five of his best ranks by maker
-       volume in the week of 12–18 Oct 2026, from the program's weekly report. The first lane is
-       the chart; the others fill at their own pace. */
+    /* The headline is the tier: Tier 4, the program's top tier, from the weekly report for
+       19–25 Oct 2026. The lanes are five of his best ranks by maker volume in the week of
+       12–18 Oct 2026, the last report with ranks per pair. The panel names that week, so the
+       ranks are not read as current. The first lane is the chart; the others fill at their
+       own pace. */
     const five = held(L, 6.6, 9.8, 0.4);
     const px = 790;
     pen.ink(lift(TXT, LIT, five));
-    pen.text("77 TOKENIZED STOCKS", px, 96, { size: 11, p: grow(t, 0.9) });
-    pen.text("TOP 5 ON 24 OF THEM", px, 114, { size: 11, p: grow(t, 1.0) });
+    pen.text("TIER 4: TOP TIER", px, 96, { size: 11, p: grow(t, 0.9) });
+    pen.text("BEST RANKS, 12–18 OCT", px, 114, { size: 11, p: grow(t, 1.0) });
     const lanes: [string, string][] = [
       ["ASTS", "#1"],
       ["PYPL", "#1"],

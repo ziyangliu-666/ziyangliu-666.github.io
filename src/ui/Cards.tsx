@@ -87,11 +87,12 @@ const SLOTS: Slot[] = [
   { x: 97, y: 90, rot: 4, depth: 0.55 },
 ];
 
-/* The figures come from the corpus notes and the résumé, not from memory. The Binance figures
- * come from his Spot Liquidity Provider Program weekly report for the week of 12–18 October 2026:
- * maker on 77 tokenized US stocks, top 5 by maker volume on 24 of them. The card links his
- * public LinkedIn post about the program. No amounts: he does not publish his capital or his
- * volume. */
+/* The figures come from the corpus notes and the résumé, not from memory. The Binance figure
+ * comes from his Spot Liquidity Provider Program weekly report for the week of 19–25 October
+ * 2026: Tier 4, the program's top tier. His fee rate on 7 November 2026, -0.008% maker, is the
+ * Tier 4 rebate, so he still held the tier then. The card links his public LinkedIn post about
+ * the program. No amounts on the card: the corpus note gives the volume, and he does not
+ * publish his capital. */
 const CARDS: Card[] = [
   // Left band.
   {
@@ -106,10 +107,10 @@ const CARDS: Card[] = [
   {
     kind: "Live · Binance",
     art: "candles",
-    title: "Binance liquidity provider",
-    figure: "Top 5",
-    // "Top 5" alone, then "maker on 5 pairs", read as five pairs in all. Say what the 5 ranks.
-    caption: "By maker volume, on 24 of the 77 tokenized US stocks he quotes on Binance. Week of 12–18 Oct 2026, all on FastMM.",
+    title: "Binance spot market maker",
+    figure: "Top tier",
+    // A bare "Top tier" does not say which program or which tier. The caption says both.
+    caption: "Tier 4, the top tier of Binance's Spot Liquidity Provider Program, since the week of 19–25 Oct 2026. All on FastMM.",
     href: "https://www.linkedin.com/feed/update/urn:li:activity:7515643540148797440/",
   },
   {
