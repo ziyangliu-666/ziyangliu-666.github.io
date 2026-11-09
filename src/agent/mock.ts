@@ -67,7 +67,7 @@ const RUNS: Run[] = [
       },
     ],
     text:
-      "Three things carry the most weight:\n\n— V2V OS at SmartX. He led the design of the product that moves guests off VMware onto SMTX OS, and between SMTX OS clusters. It is now on 10,000+ production VMs, including core financial workloads.\n— FastMM. A market-making engine in C++20: backtests, replay and live trading run the same strategy code, and a replay sends byte-identical orders. In simulation a market-data update becomes an order in 111 to 123 ns (p50, one core).\n— Three single-author preprints on LLM systems, on decoding, agent memory, and proving a hosted model is the one you paid for.\n\nAsk about any one and I will pull the detail.",
+      "Three things carry the most weight:\n\n— V2V OS at SmartX. He led the design of the product that moves guests off VMware onto SMTX OS, and between SMTX OS clusters. It is now on 10,000+ production VMs, including core financial workloads.\n— FastMM. A market-making engine in C++20: backtests, replay and live trading run the same strategy code, and a replay sends byte-identical orders. In simulation a market-data update becomes an order in 143 ns (p50, one core).\n— Three single-author preprints on LLM systems, on decoding, agent memory, and proving a hosted model is the one you paid for.\n\nAsk about any one and I will pull the detail.",
     sources: [
       { label: "resume.pdf", url: "/resume.pdf" },
       { label: "FastMM", url: "https://github.com/ziyangliu-666/FastMM" },

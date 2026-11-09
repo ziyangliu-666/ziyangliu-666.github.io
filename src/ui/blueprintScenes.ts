@@ -256,7 +256,7 @@ const fastmm: Scene = {
     pen.line(525, 494, 525, 506, d);
     pen.line(715, 494, 715, 506, d);
     pen.ink(lift(TXT, LIT, held(L, 3.8, 6.1, 0.4)));
-    pen.text("111 NS  P50  MARKET DATA TO ORDER", 620, 520, { size: 11, align: "center", p: d });
+    pen.text("143 NS  P50  MARKET DATA TO ORDER", 620, 520, { size: 11, align: "center", p: d });
   },
 };
 

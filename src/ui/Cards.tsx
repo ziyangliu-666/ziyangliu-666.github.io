@@ -99,7 +99,7 @@ const CARDS: Card[] = [
     kind: "Market making · C++20",
     art: "book",
     title: "FastMM",
-    figure: "111 ns",
+    figure: "143 ns",
     caption: "From market data to an order, p50, in the engine alone. Open source.",
     href: "https://ziy.bio/FastMM/",
     links: [{ label: "github.com", href: "https://github.com/ziyangliu-666/FastMM" }],

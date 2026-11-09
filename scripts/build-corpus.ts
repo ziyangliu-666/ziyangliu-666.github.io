@@ -89,12 +89,24 @@ const FASTMM_DOC_PAGES = [
     path: "bench/README.md",
     title: "FastMM: benchmarks, and what each number contains",
   },
-  /* Added for 0.4.0. how-fast is the only page with numbers from a production session, as
-     opposed to the engine alone in simulation, and a visitor who asks how fast it is should
-     get both and know which is which. */
+  /* how-fast is the only page with numbers from a production session, as opposed to the
+     engine alone in simulation, and a visitor who asks how fast it is should get both and know
+     which is which. The title names no session length: the page changed from a 13-hour
+     session to a 45-hour one in 0.10.0, and a title that names it goes stale with the page. */
   {
     path: "docs/explanation/how-fast.md",
-    title: "FastMM: how fast it is, in a 13-hour production session on Binance",
+    title: "FastMM: how fast it is, in a live production session on Binance",
+  },
+  /* benchmarks.md holds the engine's own figures (143 ns tick to order since 0.10.0). Without
+     it the index had no current figure for the engine alone, only the stale one in an old
+     note. */
+  {
+    path: "docs/explanation/benchmarks.md",
+    title: "FastMM: benchmark results, the engine alone and end to end",
+  },
+  {
+    path: "docs/explanation/sweep-performance.md",
+    title: "FastMM: sweep performance, many backtests in one pass over the data",
   },
   {
     path: "docs/explanation/how-it-works.md",

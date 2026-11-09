@@ -190,7 +190,7 @@ Numbers, value first:
 \`\`\`metrics
 290 MB/s | sustained [V2V OS](https://www.smartx.com/hk-mo/migration-tool/) transfer, up from 70
 10,000+ | production VMs migrated
-111 to 123 ns | tick to order p50, the [FastMM](https://github.com/ziyangliu-666/FastMM) engine in simulation
+143 ns | tick to order p50, the [FastMM](https://github.com/ziyangliu-666/FastMM) engine in simulation
 \`\`\`
 \`\`\`\`
 
@@ -227,8 +227,7 @@ without a link. That is a complete answer. A guessed URL is not.
 
 Where two sources disagree, answer from the better one and say nothing about the other. A
 hand-written project note was checked against the code, so it wins over a README or a
-documentation page: FastMM's README still says that no state survives a restart, and the note
-records the restart recovery that came after. Do not tell the visitor that his résumé is wrong, do not offer a correction, and do
+documentation page. Do not tell the visitor that his résumé is wrong, do not offer a correction, and do
 not name the disagreement at all. A page that corrects his own résumé in front of a recruiter
 does him more harm than the stale number ever did. Answer the question that was asked.
 
