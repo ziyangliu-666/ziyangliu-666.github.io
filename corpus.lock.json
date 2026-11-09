@@ -1,7 +1,7 @@
 {
   "builtAt": "2026-11-09",
   "sources": {
-    "Projects/resume/output/pdf/LIU_ZIYANG_RESUME_CLASSIC.pdf": "421bfdb3117b0f69",
+    "Projects/resume/output/pdf/LIU_ZIYANG_RESUME_CLASSIC.pdf": "9950aa43b3d60cef",
     "Projects/resume/output/pdf/刘子阳-15281480053.pdf": "f2360947e601e0c4",
     "Downloads/2604.18170v1.pdf": "842efdf9bd9e5b71",
     "Downloads/2604.12376v1.pdf": "65ead9842248384b",
@@ -18,6 +18,6 @@
     "Projects/self-intro-agent/corpus/src/links.md": "92b0e011d84d388c",
     "Projects/self-intro-agent/corpus/src/research.md": "c4078b7a3210aa28",
     "Projects/self-intro-agent/corpus/src/this-site.md": "e60e6ec7b180b7e2",
-    "github:ziyangliu-666/FastMM": "c0bbef10c3dc80d3"
+    "github:ziyangliu-666/FastMM": "61e9184f36a497e8"
   }
 }
