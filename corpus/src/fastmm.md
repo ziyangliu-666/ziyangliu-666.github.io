@@ -15,7 +15,7 @@ loss limit trips a kill switch that pulls every quote.
 
 ## Version
 
-The current version, the latest release, is 0.11.0, released on 7 November 2026. This note
+The current version, the latest release, is 0.13.0, released on 9 November 2026. This note
 was checked against that release and its documentation site.
 
 ## Features
@@ -84,6 +84,11 @@ is 11.3 to 11.8 µs at p50, and the engine's part of it is 2.6 to 2.7 µs.
 
 ## Releases: what changed since 0.4.0
 
+- 0.13.0 (9 November): a pool of accounts keeps each spot position on its home account by
+  itself. The engine moves the pieces there by internal transfer, held, budgeted and confirmed
+  like orders.
+- 0.12.0 (9 November): a pool's home account can hand the orders it cannot take now to another
+  account. `fastmm-sim-exchange` serves a whole pool of sub-accounts with internal transfers.
 - 0.11.0 (7 November): a strategy's learnt state lives in versioned checkpoints. Parameters and
   A/B arms can be set per instrument. A pool can keep each position on one home account and fund
   each account by what its instruments need. `[capacity]` prices every order against the
